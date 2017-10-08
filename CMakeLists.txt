@@ -1,0 +1,114 @@
+cmake_minimum_required (VERSION 3.1)
+find_package(PkgConfig)
+
+####
+# General configuration
+####
+option(INCLUDE_COMPILER "Includes the VC4C compiler" ON)
+option(BUILD_TESTING "Build testing program" ON)
+option(BUILD_ICD "Build with support for ICD" ON)
+option(IMAGE_SUPPORT "Experimental image support" OFF)
+# Option whether to use register-poking (faster) or mailbox-calls (synchronized system-wide) to run kernels
+option(REGISTER_POKE_KERNELS "Use the faster way of register to run kernels" ON)
+# Option to enable/disable test-program
+option(BUILD_DEBUG "Build with debugging symbols. Otherwise build for performance" OFF)
+# Option to enable/disable cross compilation
+option(CROSS_COMPILE "Cross compile for Raspbian" OFF)
+
+if(CROSS_COMPILE)
+	message(STATUS "Cross compiling for Raspbian...")
+	#Set Cross compiler
+	SET(CMAKE_SYSTEM_NAME "Linux")
+	SET(CMAKE_C_COMPILER   /opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-gcc)
+	SET(CMAKE_CXX_COMPILER /opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-g++)
+	SET(CMAKE_FIND_ROOT_PATH  /opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64 /opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf)
+endif()
+
+project (VC4CL VERSION 0.4)
+add_definitions(-DVC4CL_VERSION="${PROJECT_VERSION}")
+
+# append usage of C++ to compiler flags, also optimize for speed and enable all warnings
+if(BUILD_DEBUG)
+	LIST(APPEND CMAKE_C_FLAGS "-std=gnu11 -g3 -Wall -Wextra -Wno-unused-parameter -Wno-ignored-attributes -pthread")
+	LIST(APPEND CMAKE_CXX_FLAGS "-std=c++0x -g3 -Wall -Wextra -Wno-unused-parameter -Wno-ignored-attributes -pthread")
+	SET(CMAKE_BUILD_TYPE 		Debug)
+	add_definitions(-DDEBUG_MODE=1)
+else()
+	LIST(APPEND CMAKE_C_FLAGS "-std=gnu11 -O3 -Wall -Wextra -Wno-unused-parameter -Wno-ignored-attributes -pthread")
+	LIST(APPEND CMAKE_CXX_FLAGS "-std=c++0x -g3 -Wall -Wextra -Wno-unused-parameter -Wno-ignored-attributes -pthread")
+	SET(CMAKE_BUILD_TYPE 		Release)
+endif()
+
+# Enable sanitizers (for now only for host pc)
+# Raspberry Pi throws ASAN error on linking shared libraries (in ld)
+if(BUILD_DEBUG AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "6.0.0")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=leak -fsanitize=undefined ")
+endif()
+
+####
+# Dependencies
+####
+
+# Check for OpenCL headers
+find_package(OpenCL REQUIRED)
+message(STATUS "Found headers for OpenCL up to version ${OpenCL_VERSION_STRING} located in ${OpenCL_INCLUDE_DIRS}")
+include_directories(${OpenCL_INCLUDE_DIRS})
+
+if(INCLUDE_COMPILER AND EXISTS "${PROJECT_SOURCE_DIR}/lib/vc4c/include/VC4C.h")
+#	add_subdirectory(lib/vc4c build/vc4c)
+	add_definitions(-DCOMPILER_HEADER="${PROJECT_SOURCE_DIR}/lib/vc4c/include/VC4C.h")
+	add_definitions(-DHAS_COMPILER=1)
+else()
+	message(STATUS "No VC4CC compiler found!")
+	add_definitions(-DHAS_COMPILER=0)
+endif()
+
+# Enable Khronos ICD loader
+if(BUILD_ICD)
+	# To be exact, this enables the methods for the cl_khr_icd extension to be exported as publicly accessible
+	add_definitions(-Dcl_khr_icd=1)
+	add_definitions(-Duse_cl_khr_icd=1)
+	message(STATUS "Building with ICD support")
+	
+	if(NOT CROSS_COMPILE)
+		# accoding to pocl, pkg-config doesn't work with cross-compiling
+		pkg_search_module(OCL_ICD REQUIRED ocl-icd>=1.3)
+		message(STATUS "Found Khronos ICD Loader in version ${OCL_ICD_VERSION} in ${OCL_ICD_LIBDIR}")
+	endif()
+endif()
+
+# Enable experimental image support
+if(IMAGE_SUPPORT)
+	add_definitions(-DIMAGE_SUPPORT=1)
+	message(STATUS "Building with experimental image support")
+endif() 
+
+# Enable register poking for kernels
+if(REGISTER_POKE_KERNELS)
+	add_definitions(-DREGISTER_POKE_KERNELS=1)
+	message(STATUS "Enabling register-poking to run kernels")
+endif()
+
+####
+# Main files
+####
+#build all from ./src into ./build
+add_subdirectory(./src build)
+add_subdirectory(./tools build/tools)
+
+if (BUILD_TESTING)
+	if(NOT SUBMODULES_UPDATED)
+	   include(cmake/submodules.cmake)
+	endif()
+	if(NOT TARGET cpptest-lite)
+		# only build cpptest-lite, if it doesn't exist yet (e.g. built by VC4CC)
+		add_subdirectory(lib/cpptest-lite build/cpptest-lite)
+	endif()
+	add_subdirectory(test build/test)
+endif (BUILD_TESTING)
+
+##
+# Installation targets
+##
+# Adds custom uninstall command
+add_custom_target(uninstall "${CMAKE_COMMAND}" -P "cmake_uninstall.cmake")

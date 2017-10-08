@@ -1,0 +1,54 @@
+0xdeadbeaf, 0xdeadbeaf,
+// Kernel 'hello_world', offset 15, with following parameters: const in <16 x i8>* in (4 B), out <16 x i8>* out (4 B)
+0x0026000f, 0x0002000b, 
+0x00010101, 0x00000000, 
+0x6c6c6568, 0x6f775f6f, 
+0x00646c72, 0x00000000, 
+0x00020004, 0x1011000a, 
+0x00006e69, 0x00000000, 
+0x2036313c, 0x38692078, 
+0x00002a3e, 0x00000000, 
+0x00030004, 0x1100000a, 
+0x0074756f, 0x00000000, 
+0x2036313c, 0x38692078, 
+0x00002a3e, 0x00000000, 
+0,0,
+0,0,
+0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100208e7, //or r3, unif, unif
+0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100217e7, //or rb31, unif, unif
+0x15827d80, 0x100217a7, //or rb30, unif, unif
+0x159e76c0, 0x100208a7, //or r2, r3, r3
+0x000000ff, 0xe00218e7, //ldi r3, 255
+0x149e74c0, 0x100208a7, //and r2, r2, r3
+0x15ce7d80, 0x100209e7, //or -, mutex_acq, mutex_acq
+0x119c45c0, 0xd00208e7, //shl r3, r2, 4
+0x0c9dfec0, 0x100208e7, //add r3, rb31, r3
+0xc0001000, 0xe0020c67, //ldi vpr_setup, 3221229568
+0x90000000, 0xe0020c67, //ldi vpr_setup, 2415919104
+0x159e76c0, 0x10020ca7, //or vpr_addr, r3, r3
+0x15ca7d80, 0x100209e7, //or -, vpm_wait, vpm_wait
+0x00101800, 0xe0020c67, //ldi vpr_setup, 1054720
+0x15c27d80, 0x10020867, //or r1, vpm, vpm
+0x159c1fc0, 0xd0020ce7, //or mutex_rel, 1, 1
+0x119c45c0, 0xd00208e7, //shl r3, r2, 4
+0x0c9deec0, 0x100208e7, //add r3, rb30, r3
+0x15ce7d80, 0x100209e7, //or -, mutex_acq, mutex_acq
+0x00110800, 0xe0021c67, //ldi vpw_setup, 1116160
+0x80904004, 0xe0021c67, //ldi vpw_setup, 2156937220
+0xc0000000, 0xe0021c67, //ldi vpw_setup, 3221225472
+0x159e7240, 0x10020c27, //or vpm, r1, r1
+0x159e76c0, 0x10021ca7, //or vpw_addr, r3, r3
+0x159f2fc0, 0x100209e7, //or -, vpm_wait, vpm_wait
+0x159c1fc0, 0xd0020ce7, //or mutex_rel, 1, 1
+0x179e6e00, 0x100209a7, //not irq, qpu_num
+0x009e7000, 0x300009e7, //nop.thrend.never 
+0x009e7000, 0x100009e7, //nop.never 
+0x009e7000, 0x100009e7, //nop.never 

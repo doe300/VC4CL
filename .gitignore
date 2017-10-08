@@ -1,9 +1,23 @@
+CMakeFiles/
+build/
 CMakeCache.txt
-CMakeFiles
-CMakeScripts
-Testing
 Makefile
 cmake_install.cmake
-install_manifest.txt
-compile_commands.json
-CTestTestfile.cmake
+cmake_uninstall.cmake
+
+#Eclipse
+.cproject
+.project
+.csettings/
+.settings/
+
+# Netbeans
+dist/
+nbproject/
+
+
+# Other
+.dep.inc
+lib/
+testResult.log
+testing/

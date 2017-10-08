@@ -1,0 +1,93 @@
+/*
+ * Author: doe300
+ *
+ * See the file "LICENSE" for the full license governing this code.
+ */
+
+#include "TestCommandQueue.h"
+#include "src/Context.h"
+#include "src/CommandQueue.h"
+#include "src/Platform.h"
+#include "src/Device.h"
+#include "src/icd_loader.h"
+
+using namespace vc4cl;
+
+TestCommandQueue::TestCommandQueue() : context(NULL), queue(NULL)
+{
+    TEST_ADD(TestCommandQueue::testCreateCommandQueue);
+    TEST_ADD(TestCommandQueue::testGetCommandQueueInfo);
+    TEST_ADD(TestCommandQueue::testRetainCommandQueue);
+    TEST_ADD(TestCommandQueue::testReleaseCommandQueue);
+}
+
+void TestCommandQueue::testCreateCommandQueue()
+{
+    cl_int errcode = CL_SUCCESS;
+    cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
+    context = VC4CL_FUNC(clCreateContext)(NULL, 1, &device_id, NULL, NULL, &errcode);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+    TEST_ASSERT(context != NULL);
+    
+    queue = VC4CL_FUNC(clCreateCommandQueue)(context, NULL, 0, &errcode);
+    TEST_ASSERT(errcode != CL_SUCCESS);
+    TEST_ASSERT_EQUALS(nullptr, queue);
+    
+    queue = VC4CL_FUNC(clCreateCommandQueue)(context, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_QUEUE_PROFILING_ENABLE, &errcode);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+    TEST_ASSERT(queue != NULL);
+}
+
+void TestCommandQueue::testGetCommandQueueInfo()
+{
+    size_t info_size = 0;
+    char buffer[1024] = {0};
+    cl_int state = VC4CL_FUNC(clGetCommandQueueInfo)(queue, CL_QUEUE_CONTEXT, 1024, buffer, &info_size);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    TEST_ASSERT_EQUALS(sizeof(cl_context), info_size);
+    TEST_ASSERT_EQUALS(context, *(cl_context*)buffer);
+    
+    state = VC4CL_FUNC(clGetCommandQueueInfo)(queue, CL_QUEUE_DEVICE, 1024, buffer, &info_size);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    TEST_ASSERT_EQUALS(sizeof(cl_device_id), info_size);
+    TEST_ASSERT_EQUALS(toType<Context>(context)->device->toBase(), *(cl_device_id*)buffer);
+    
+    state = VC4CL_FUNC(clGetCommandQueueInfo)(queue, CL_QUEUE_REFERENCE_COUNT, 1024, buffer, &info_size);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
+    TEST_ASSERT_EQUALS(1, *(cl_uint*)buffer);
+    
+    state = VC4CL_FUNC(clGetCommandQueueInfo)(queue, CL_QUEUE_PROPERTIES, 1024, buffer, &info_size);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    TEST_ASSERT_EQUALS(sizeof(cl_command_queue_properties), info_size);
+    TEST_ASSERT((*(cl_command_queue_properties*)buffer) & CL_QUEUE_PROFILING_ENABLE);
+    
+    state = VC4CL_FUNC(clGetCommandQueueInfo)(queue, 0xDEADBEAF, 1024, buffer, &info_size);
+    TEST_ASSERT(state != CL_SUCCESS);
+}
+
+void TestCommandQueue::testRetainCommandQueue()
+{
+    TEST_ASSERT_EQUALS(1, toType<CommandQueue>(queue)->getReferences());
+    cl_int state = VC4CL_FUNC(clRetainCommandQueue)(queue);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    TEST_ASSERT_EQUALS(2, toType<CommandQueue>(queue)->getReferences());
+    
+    //release again, so the next test destroys the queue
+    state = VC4CL_FUNC(clReleaseCommandQueue)(queue);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    
+    TEST_ASSERT_EQUALS(1, toType<CommandQueue>(queue)->getReferences());
+}
+
+void TestCommandQueue::testReleaseCommandQueue()
+{
+    TEST_ASSERT_EQUALS(1, toType<CommandQueue>(queue)->getReferences());
+    cl_int state = VC4CL_FUNC(clReleaseCommandQueue)(queue);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    
+    TEST_ASSERT_EQUALS(1, toType<Context>(context)->getReferences());
+    state = VC4CL_FUNC(clReleaseContext)(context);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+}
+
