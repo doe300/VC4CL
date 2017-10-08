@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.1)
 find_package(PkgConfig)
+include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 ####
 # General configuration
@@ -102,6 +103,15 @@ if (BUILD_TESTING)
 	endif()
 	if(NOT TARGET cpptest-lite)
 		# only build cpptest-lite, if it doesn't exist yet (e.g. built by VC4CC)
+		ExternalProject_Add(cpptest-lite-project
+			PREFIX 				${CMAKE_BINARY_DIR}/build/cpptest-lite
+			SOURCE_DIR 			${CMAKE_SOURCE_DIR}/lib/cpptest-lite
+			GIT_REPOSITORY		https://github.com/doe300/cpptest-lite.git
+			UPDATE_COMMAND 		git pull -f https://github.com/doe300/cpptest-lite.git
+			STEP_TARGETS 		build
+	  		EXCLUDE_FROM_ALL	TRUE
+	  		TIMEOUT 			30		#Timeout for downloads, in seconds
+		)
 		add_subdirectory(lib/cpptest-lite build/cpptest-lite)
 	endif()
 	add_subdirectory(test build/test)

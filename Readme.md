@@ -5,8 +5,8 @@
 The implementation consists of:
 
 * The **VC4CL** OpenCL runtime library, running on the host CPU to compile, run and intercat with OpenCL kernels.
-* The **VC4C** compiler, converting OpenCL kernels into machine code. This compiler also provides an implementation of the OpenCL built-in functions.
-* The **VC4CLStdLib**, the platform-specific implementation of the OpenCL C standard library, is linked in with the kernel by **VC4C**
+* The **[VC4C](https://github.com/doe300/VC4C)** compiler, converting OpenCL kernels into machine code. This compiler also provides an implementation of the OpenCL built-in functions.
+* The **[VC4CLStdLib](https://github.com/doe300/VC4CLStdLib)**, the platform-specific implementation of the OpenCL C standard library, is linked in with the kernel by **VC4C**
 
 ## OpenCL-Support
 The VC4CL implementation supports the **EMBEDDED PROFILE** of the [OpenCL standard version 1.2](https://Fwww.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf).
