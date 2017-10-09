@@ -10,12 +10,34 @@ The implementation consists of:
 
 ## OpenCL-Support
 The VC4CL implementation supports the **EMBEDDED PROFILE** of the [OpenCL standard version 1.2](https://Fwww.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf).
-Aditionally the [`cl_khr_icd` extension](https://Fwww.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf) is supported, to allow VC4CL to be found by an installable client driver loader (**ICD**). This enables VC4CL to be used in parallel with another OpenCL implementation, e.g. [pocl](https://github.com/pocl/pocl), which executes OpenCL code on the host CPU.
+Additionally the [`cl_khr_icd` extension](https://Fwww.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf) is supported, to allow VC4CL to be found by an installable client driver loader (**ICD**). This enables VC4CL to be used in parallel with another OpenCL implementation, e.g. [pocl](https://github.com/pocl/pocl), which executes OpenCL code on the host CPU.
 
 The OpenCL version 1.2 was selected as target standard version, since it is the last version of the OpenCL standard where all mandatory features can be supported.
 
-VC4CL supports the **EMBEDDED PROFILE** of the OpenCL-standard, which is a trimmed version of the default **FULL PROFILE**. The most notable features, which are not supported by the VC4CL implementation are the `long` data-type and partitioning devices. See [Standard Support](StandardSupport.md) for more details of (not) supported features.
+VC4CL supports the **EMBEDDED PROFILE** of the OpenCL-standard, which is a trimmed version of the default **FULL PROFILE**. The most notable features, which are not supported by the VC4CL implementation are the `long` data-type and partitioning devices. See [RuntimeLibrary](doc/RuntimeLibrary.md) for more details of (not) supported features.
 
 ## VideoCore IV GPU
 The VideoCore IV GPU, in the configuration as found in the Raspberry Pi models, has a theoretical maximum performance of **24 GPFLOS** and is therefore very powerful in comparison to the host CPU.
 The GPU (which is located on the same chip as the CPU) has 12 cores, able of running independent instructions each, supports a SIMD vector-width of 16 elements natively and can access the RAM directly via DMA.
+
+## Required software
+
+- A C++11-capable compiler
+- The [VC4C](https://github.com/doe300/VC4C) compiler to compile OpenCL C-code
+- The Khronos ICD Loader (available in the official Raspbian repository as `sudo apt-get install ocl-icd-opencl-dev`) for building with ICD-support (e.g. allows to run several OpenCL implementations on one machine)
+- The OpenCL headers in version >= 1.2 (available in the Raspbian repositories as `sudo apt-get install opencl-headers`)
+ 
+
+## Build
+
+The following configuration options are available in CMake:
+
+- `BUILD_TESTING` toggles building of test program
+- `BUILD_DEBUG` toggles building debug or release program
+- `CROSS_COMPILE` toggles whether to cross-compile for the Raspberry Pi, requires the [Raspberry Pi cross-compiler](https://github.com/raspberrypi/tools) to be installed
+- `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler, defaults to `/opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64` (e.g. for the cross compiler cloned into the directory `/opt/raspberrypi/tools/`)
+- `INCLUDE_COMPILER` whether to include the [VC4C](https://github.com/doe300/VC4C) compiler
+- `VC4C_HEADER_PATH` sets the path to the VC4C include headers, defaults to `../VC4C/include/VC4C.h` or `lib/vc4c/include/VC4C.h`
+- `BUILD_ICD` toggles whether to build with support for the Khronos ICD loader, requires the ICD loader to be installed system-wide
+- `IMAGE_SUPPORT` toggles whether to enable the very experimental image-support
+- `REGISTER_POKE_KERNELS` toggles the use of register-poking to start kernels (if disabled, uses the mailbox system-calls). Enabling this increases performance up to 10%, but may crash the system, if any other application accesses the GPU at the same time!

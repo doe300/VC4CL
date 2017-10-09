@@ -17,12 +17,15 @@ option(BUILD_DEBUG "Build with debugging symbols. Otherwise build for performanc
 option(CROSS_COMPILE "Cross compile for Raspbian" OFF)
 
 if(CROSS_COMPILE)
-	message(STATUS "Cross compiling for Raspbian...")
+	if(NOT CROSS_COMPILER_PATH)
+		set(CROSS_COMPILER_PATH "/opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64")
+	endif()
+	message(STATUS "Cross compiling for Raspbian with compiler: ${CROSS_COMPILER_PATH}")
 	#Set Cross compiler
-	SET(CMAKE_SYSTEM_NAME "Linux")
-	SET(CMAKE_C_COMPILER   /opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-gcc)
-	SET(CMAKE_CXX_COMPILER /opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-g++)
-	SET(CMAKE_FIND_ROOT_PATH  /opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64 /opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf)
+	SET(CMAKE_SYSTEM_NAME 		"Linux")
+	SET(CMAKE_C_COMPILER   		"${CROSS_COMPILER_PATH}/bin/arm-linux-gnueabihf-gcc")
+	SET(CMAKE_CXX_COMPILER 		"${CROSS_COMPILER_PATH}/bin/arm-linux-gnueabihf-g++")
+	SET(CMAKE_FIND_ROOT_PATH  	"${CROSS_COMPILER_PATH} ${CROSS_COMPILER_PATH}/arm-linux-gnueabihf")
 endif()
 
 project (VC4CL VERSION 0.4)
@@ -55,13 +58,22 @@ find_package(OpenCL REQUIRED)
 message(STATUS "Found headers for OpenCL up to version ${OpenCL_VERSION_STRING} located in ${OpenCL_INCLUDE_DIRS}")
 include_directories(${OpenCL_INCLUDE_DIRS})
 
-if(INCLUDE_COMPILER AND EXISTS "${PROJECT_SOURCE_DIR}/lib/vc4c/include/VC4C.h")
-#	add_subdirectory(lib/vc4c build/vc4c)
-	add_definitions(-DCOMPILER_HEADER="${PROJECT_SOURCE_DIR}/lib/vc4c/include/VC4C.h")
-	add_definitions(-DHAS_COMPILER=1)
-else()
-	message(STATUS "No VC4CC compiler found!")
-	add_definitions(-DHAS_COMPILER=0)
+if(INCLUDE_COMPILER)
+	if(NOT VC4C_HEADER_PATH)
+		find_file(VC4C_HEADER_PATH_FOUND "VC4C.h" HINTS "${PROJECT_SOURCE_DIR}/lib/vc4c/include" "${PROJECT_SOURCE_DIR}/../VC4C/include")
+		if(VC4C_HEADER_PATH_FOUND)
+			set(VC4C_HEADER_PATH "${VC4C_HEADER_PATH_FOUND}")
+		endif()
+	endif()
+	if(VC4C_HEADER_PATH)
+		message(STATUS "VC4C header found at: ${VC4C_HEADER_PATH}")
+		add_definitions(-DCOMPILER_HEADER="${VC4C_HEADER_PATH}")
+		add_definitions(-DHAS_COMPILER=1)
+	
+	else()
+		message(STATUS "No VC4CC compiler found!")
+		add_definitions(-DHAS_COMPILER=0)
+	endif()
 endif()
 
 # Enable Khronos ICD loader
@@ -121,4 +133,4 @@ endif (BUILD_TESTING)
 # Installation targets
 ##
 # Adds custom uninstall command
-add_custom_target(uninstall "${CMAKE_COMMAND}" -P "cmake_uninstall.cmake")
+add_custom_target(uninstall_vc4cl "${CMAKE_COMMAND}" -P "cmake_uninstall.cmake")
