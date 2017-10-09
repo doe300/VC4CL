@@ -8,8 +8,6 @@ The implementation consists of:
 * The **[VC4C](https://github.com/doe300/VC4C)** compiler, converting OpenCL kernels into machine code. This compiler also provides an implementation of the OpenCL built-in functions.
 * The **[VC4CLStdLib](https://github.com/doe300/VC4CLStdLib)**, the platform-specific implementation of the OpenCL C standard library, is linked in with the kernel by **VC4C**
 
-**NOTE**: Any application using this library, must be run as root!
-
 ## OpenCL-Support
 The VC4CL implementation supports the **EMBEDDED PROFILE** of the [OpenCL standard version 1.2](https://Fwww.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf).
 Additionally the [`cl_khr_icd` extension](https://Fwww.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf) is supported, to allow VC4CL to be found by an installable client driver loader (**ICD**). This enables VC4CL to be used in parallel with another OpenCL implementation, e.g. [pocl](https://github.com/pocl/pocl), which executes OpenCL code on the host CPU.
@@ -47,4 +45,12 @@ The following configuration options are available in CMake:
 
 ## Khronos ICD Loader
 The Khronos ICD Loaders allows multiple OpenCL implementation to be used in parallel (e.g. VC4CL and [pocl](https://github.com/pocl/pocl)), but requires a bit of manual configuration:
-Create a file `/etc/OpenCL/vendors/VC4CL.icd` with a single line containing the absolute path to the VC4CL library. 
+Create a file `/etc/OpenCL/vendors/VC4CL.icd` with a single line containing the absolute path to the VC4CL library.
+
+The program clinfo can be used to test, whether the ICD loader finds the VC4CL implementation. **Note**: the program version in the official Raspbian repository is too old and has a bug (see [fix](https://github.com/Oblomov/clinfo/commit/4728656fcb1ff5d506b8ef2103af83ce11ceae36)), so it must be compiled from the [github](https://github.com/Oblomov/clinfo) repository.
+
+## Security Considerations
+Because of the DMA-interface which has no MMU between the GPU and the RAM, code executed on the GPU can **access any part of the main memory**!
+This means, an OpenCL kernel could be used to read sensitive data or write into kernel memory!
+
+**Therefore, any program using the VC4CL implementation must be run as root!**
