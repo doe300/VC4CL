@@ -6,7 +6,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 # General configuration
 ####
 option(INCLUDE_COMPILER "Includes the VC4C compiler" ON)
-option(BUILD_TESTING "Build testing program" ON)
+option(BUILD_TESTING "Build testing program" OFF)
 option(BUILD_ICD "Build with support for ICD" ON)
 option(IMAGE_SUPPORT "Experimental image support" OFF)
 # Option whether to use register-poking (faster) or mailbox-calls (synchronized system-wide) to run kernels
@@ -110,9 +110,6 @@ add_subdirectory(./src build)
 add_subdirectory(./tools build/tools)
 
 if (BUILD_TESTING)
-	if(NOT SUBMODULES_UPDATED)
-	   include(cmake/submodules.cmake)
-	endif()
 	if(NOT TARGET cpptest-lite)
 		# only build cpptest-lite, if it doesn't exist yet (e.g. built by VC4CC)
 		ExternalProject_Add(cpptest-lite-project
@@ -124,7 +121,6 @@ if (BUILD_TESTING)
 	  		EXCLUDE_FROM_ALL	TRUE
 	  		TIMEOUT 			30		#Timeout for downloads, in seconds
 		)
-		add_subdirectory(lib/cpptest-lite build/cpptest-lite)
 	endif()
 	add_subdirectory(test build/test)
 endif (BUILD_TESTING)

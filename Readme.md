@@ -14,7 +14,7 @@ Additionally the [`cl_khr_icd` extension](https://Fwww.khronos.org/registry/Open
 
 The OpenCL version 1.2 was selected as target standard version, since it is the last version of the OpenCL standard where all mandatory features can be supported.
 
-VC4CL supports the **EMBEDDED PROFILE** of the OpenCL-standard, which is a trimmed version of the default **FULL PROFILE**. The most notable features, which are not supported by the VC4CL implementation are the `long` data-type and partitioning devices. See [RuntimeLibrary](doc/RuntimeLibrary.md) for more details of (not) supported features.
+VC4CL supports the **EMBEDDED PROFILE** of the OpenCL-standard, which is a trimmed version of the default **FULL PROFILE**. The most notable features, which are not supported by the VC4CL implementation are images, the `long` and `double` data-types, device-side `printf` and partitioning devices as well as linking of source files. See [RuntimeLibrary](doc/RuntimeLibrary.md) for more details of (not) supported features.
 
 ## VideoCore IV GPU
 The VideoCore IV GPU, in the configuration as found in the Raspberry Pi models, has a theoretical maximum performance of **24 GPFLOS** and is therefore very powerful in comparison to the host CPU.
@@ -41,3 +41,7 @@ The following configuration options are available in CMake:
 - `BUILD_ICD` toggles whether to build with support for the Khronos ICD loader, requires the ICD loader to be installed system-wide
 - `IMAGE_SUPPORT` toggles whether to enable the very experimental image-support
 - `REGISTER_POKE_KERNELS` toggles the use of register-poking to start kernels (if disabled, uses the mailbox system-calls). Enabling this increases performance up to 10%, but may crash the system, if any other application accesses the GPU at the same time!
+
+## Khronos ICD Loader
+The Khronos ICD Loaders allows multiple OpenCL implementation to be used in parallel (e.g. VC4CL and [pocl](https://github.com/pocl/pocl)), but requires a bit of manual configuration:
+Create a file `/etc/OpenCL/vendors/VC4CL.icd` with a single line containing the absolute path to the VC4CL library. 
