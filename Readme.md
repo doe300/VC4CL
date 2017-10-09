@@ -8,6 +8,8 @@ The implementation consists of:
 * The **[VC4C](https://github.com/doe300/VC4C)** compiler, converting OpenCL kernels into machine code. This compiler also provides an implementation of the OpenCL built-in functions.
 * The **[VC4CLStdLib](https://github.com/doe300/VC4CLStdLib)**, the platform-specific implementation of the OpenCL C standard library, is linked in with the kernel by **VC4C**
 
+**NOTE**: Any application using this library, must be run as root!
+
 ## OpenCL-Support
 The VC4CL implementation supports the **EMBEDDED PROFILE** of the [OpenCL standard version 1.2](https://Fwww.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf).
 Additionally the [`cl_khr_icd` extension](https://Fwww.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf) is supported, to allow VC4CL to be found by an installable client driver loader (**ICD**). This enables VC4CL to be used in parallel with another OpenCL implementation, e.g. [pocl](https://github.com/pocl/pocl), which executes OpenCL code on the host CPU.
@@ -38,6 +40,7 @@ The following configuration options are available in CMake:
 - `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler, defaults to `/opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64` (e.g. for the cross compiler cloned into the directory `/opt/raspberrypi/tools/`)
 - `INCLUDE_COMPILER` whether to include the [VC4C](https://github.com/doe300/VC4C) compiler
 - `VC4C_HEADER_PATH` sets the path to the VC4C include headers, defaults to `../VC4C/include/VC4C.h` or `lib/vc4c/include/VC4C.h`
+- `VC4CC_LIBRARY` sets the path to the VC4C compiler library, defaults to `../VC4C/build/libVC4CC.xxx` or `lib/vc4c/build/libVC4CC.xxx`
 - `BUILD_ICD` toggles whether to build with support for the Khronos ICD loader, requires the ICD loader to be installed system-wide
 - `IMAGE_SUPPORT` toggles whether to enable the very experimental image-support
 - `REGISTER_POKE_KERNELS` toggles the use of register-poking to start kernels (if disabled, uses the mailbox system-calls). Enabling this increases performance up to 10%, but may crash the system, if any other application accesses the GPU at the same time!

@@ -9,8 +9,7 @@ file( GLOB SRCS *.cpp */*.cpp)
 #Build QPUAsm
 add_library( VC4CL SHARED ${SRCS} ${HDRS} )
 
-if(INCLUDE_COMPILER AND EXISTS "${PROJECT_SOURCE_DIR}/lib/vc4c/include/c_interface.h")
-	find_library(VC4CC_LIBRARY NAMES VC4CC libVC4CC HINTS "${PROJECT_SOURCE_DIR}/lib/vc4c/build")
+if(INCLUDE_COMPILER AND EXISTS "${VC4C_HEADER_PATH}")
 	target_link_libraries(VC4CL ${VC4CC_LIBRARY})
 endif()
 
