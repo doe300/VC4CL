@@ -5,8 +5,9 @@ PASSED
 
 ## Basic (basic/test_basic)
 Run with work-size of 8
+
 | Test name                           | Status | Reason |
-|-------------------------------------|--------||
+|-------------------------------------|--------|--------|
 | hostptr                             | PASSED ||
 | fpmath_float                        | PASSED ||
 | fpmath_float2                       | PASSED ||
@@ -57,11 +58,11 @@ Run with work-size of 8
 | imagenpot                           | skipped ||
 | vload_global                        | FAILED | result value mismatch |
 | vload_local                         | FAILED | compilation error (CL_COMPILER_NOT_AVAILABLE) |
-| vload_constant                      | FAILED | compilation error: vloadn |
-| vload_private
+| vload_constant                      | FAILED | result value mismatch |
+| vload_private                       | FAILED | std::bad_alloc |
 | vstore_global                       | FAILED ||
 | vstore_local                        | FAILED | compilation error (CL_COMPILER_NOT_AVAILABLE) |
-| vstore_private
+| vstore_private                      | FAILED | std::bad_alloc |
 | createkernelsinprogram              | PASSED ||
 | imagedim_pow2                       | skipped ||
 | imagedim_non_pow2                   | skipped ||
@@ -81,7 +82,7 @@ Run with work-size of 8
 | explicit_s2v_double                 | skipped ||
 | enqueue_map_buffer                  | PASSED ||
 | enqueue_map_image                   | skipped ||
-| work_item_functions                 | FAILED | return value mismatch |
+| work_item_functions                 | FAILED | return value mismatch ("get_global_size(0) did not return proper value for 1 dimensions (expected 11, got 0)") |
 | astype                              | FAILED | result mismatch for signed <-> unsigned of same bit-width |
 | async_copy_global_to_local          | FAILED | compilation error |
 | async_copy_local_to_global          | FAILED | compilation error |
@@ -94,7 +95,7 @@ Run with work-size of 8
 | kernel_limit_constants              | PASSED | *Skipping INFINITY and NAN tests on embedded device (INF/NAN not supported on this device)* | 
 | kernel_preprocessor_macros          | PASSED ||
 | parameter_types                     | PASSED ||
-| vector_creation                     | FAILED | compilation error (vload2, vload3) |
+| vector_creation                     | FAILED | compilation error for 8-element vectors (registers?!) |
 | vec_type_hint                       | PASSED ||
 | kernel_memory_alignment_local       | FAILED | vector of sizes 2 and 4 are not aligned correctly |
 | kernel_memory_alignment_global      | PASSED ||
@@ -106,8 +107,9 @@ Run with work-size of 8
 
 ## API (api/test_api)
 Run with work-size of 8
+
 | Test name                           | Status | Reason |
-|-------------------------------------|--------||
+|-------------------------------------|--------|--------|
 | get_platform_info                   | PASSED ||
 | get_sampler_info                    | skipped ||
 | get_command_queue_info              | PASSED ||
@@ -185,7 +187,7 @@ Run with work-size of 8
 ## Compiler (compiler/test_compiler)
 
 | Test name                                              | Status | Reason |
-|--------------------------------------------------------|--------||
+|--------------------------------------------------------|--------|--------|
 | load_program_source                                    | PASSED ||
 | load_multistring_source                                | PASSED ||
 | load_two_kernel_source                                 | PASSED ||
@@ -247,23 +249,23 @@ Run with work-size of 8
 Run with work-size of 8
 
 | Test name       | Status | Reason |
-|-----------------|--------||
+|-----------------|--------|--------|
 | clamp           | PASSED ||
 | degrees         | PASSED ||
 | fmax            | PASSED ||
-| fmaxf           | FAILED | result value mismatch |
+| fmaxf           | PASSED ||
 | fmin            | PASSED ||
-| fminf           | FAILED | result value mismatch |
+| fminf           | PASSED ||
 | max             | PASSED ||
-| maxf            | FAILED | result value mismatch |
+| maxf            | PASSED ||
 | min             | PASSED ||
-| minf            | FAILED | result value mismatch |
-| mix             | FAILED ||
+| minf            | FAILED | result value mismatch (min(0x1.8fe16p+25, 0x1.7c4aap+26) = *0x1.8fe16p+25 vs 0x1.7c4aap+26) |
+| mix             | PASSED ||
 | radians         | PASSED ||
-| step            | FAILED | result value mismatch (float2) |
-| stepf           | FAILED | result value mismatch (float2) |
-| smoothstep      | FAILED | result value mismatch |
-| smoothstepf     | FAILED | result value mismatch |
+| step            | PASSED ||
+| stepf           | PASSED ||
+| smoothstep      | PASSED ||
+| smoothstepf     | PASSED ||
 | sign            | PASSED ||
 
 
@@ -272,9 +274,9 @@ Run with work-size of 8
 
 | Test name             | Status | Reason |
 |-----------------------|--------||
-| geom_cross            | FAILED | result value mismatch |
+| geom_cross            | FAILED | result value mismatch (vloadn?) |
 | geom_dot              | FAILED ||
-| geom_distance         | FAILED | value mismatch, got -inf where not expected |
+| geom_distance         | FAILED | value mismatch, got -inf where not expected (sqrt?) |
 | geom_fast_distance    | FAILED | value mismatch, got 0 where not expected |
 | geom_length           | FAILED | value mismatch, got -inf where not expected |
 | geom_fast_length      | FAILED | value mismatch, got 0 where not expected |
@@ -286,30 +288,30 @@ Run with work-size of 8
 Run with work-size of 8
 
 | Test name                       | Status | Reason |
-|---------------------------------|--------||
-| relational_any                  | FAILED | result value mismatch |
-| relational_all                  | FAILED ||
+|---------------------------------|--------|--------|
+| relational_any                  | FAILED | result value mismatch (for all types) |
+| relational_all                  | FAILED | result value mismatch (for all types with less than 16 elements) |
 | relational_bitselect            | FAILED | value mismatch |
 | relational_select_signed
 | relational_select_unsigned
-| relational_isequal
-| relational_isnotequal
-| relational_isgreater
-| relational_isgreaterequal
+| relational_isequal              | FAILED | fails for NaN (does not recognize as equal) |
+| relational_isnotequal           | FAILED | fails for NaN (does not recognize as equal) |
+| relational_isgreater            | FAILED | fails for comparisons with NaN |
+| relational_isgreaterequal       | FAILED | fails for comparisons with NaN |
 | relational_isless
 | relational_islessequal
 | relational_islessgreater
-| shuffle_copy                    | FAILED | value mismatch, compilation error (vstore3) |
-| shuffle_function_call
+| shuffle_copy                    | FAILED | value mismatch, contains some random wrong values for vector-size > 1 |
+| shuffle_function_call           | FAILED | value mismatch, contains some random wrong values for vector-size > 1 |
 | shuffle_array_cast
-| shuffle_built_in
-| shuffle_built_in_dual_input
+| shuffle_built_in                | FAILED | value mismatch, actual result is one value replicated, expected result has different values |
+| shuffle_built_in_dual_input     | FAILED | value mismatch, contains some random wrong values for vector-size > 2 |
 
 ## Thread Dimensions (thread_dimensions/test_thread_dimensions)
 Run with work-size of 8
 
 | Test name                       | Status | Reason |
-|---------------------------------|--------||
+|---------------------------------|--------|--------|
 | quick_1d_explicit_local         | FAILED | error in precompilation, appending source file |
 | quick_2d_explicit_local
 | quick_3d_explicit_local
@@ -325,8 +327,9 @@ Run with work-size of 8
 		
 		
 ## Atomics (atomics/test_atomics)
+
 | Test name                       | Status | Reason |
-|---------------------------------|--------||
+|---------------------------------|--------|--------|
 | atomic_add                      | FAILED | value mismatch |
 | atomic_sub                      | FAILED | value mismatch |
 | atomic_xchg                     | PASSED ||
@@ -343,8 +346,9 @@ Run with work-size of 8
 
 ## Profiling (profiling/test_profiling)
 PASSES all for 8 work-items
+
 | Test name                       | Status | Reason |
-|---------------------------------|--------||
+|---------------------------------|--------|--------|
 | read_array_int                  | PASSED ||
 | read_array_uint                 | PASSED ||
 | read_array_long                 | skipped ||
@@ -378,9 +382,10 @@ PASSES all for 8 work-items
 | execute                         | skipped ||
 
 ## Events (events/test_events)
+
 | Test name                                                          | Status | Reason |
-|--------------------------------------------------------------------|--------||
-| event_get_execute_status                                           | PASSED |
+|--------------------------------------------------------------------|--------|--------|
+| event_get_execute_status                                           | PASSED ||
 | event_get_write_array_status                                       | PASSED ||
 | event_get_read_array_status                                        | PASSED ||
 | event_get_info                                                     | PASSED ||
@@ -410,8 +415,9 @@ PASSES all for 8 work-items
 | userevents_multithreaded                                           | FAILED | "Unable to create user gate event!" |
 
 ## Allocations (allocations/test_allocations)
+
 | Test name                       | Status | Reason |
-|---------------------------------|--------||
+|---------------------------------|--------|--------|
 | single 5 all                    | FAILED | allocation failed |
 | multiple 5 all
 
@@ -422,8 +428,9 @@ Not supported
 ## Buffers (buffers/test_buffers)
 Run with work-size of 8
 TODO: All buffer_map_* tests fail for CL_MEM_USE_HOST_PTR
+
 | Test name                               | Status | Reason |
-|-----------------------------------------|--------||
+|-----------------------------------------|--------|--------|
 | buffer_read_async_int                   | PASSED ||
 | buffer_read_async_uint                  | PASSED ||
 | buffer_read_async_long                  | skipped ||
@@ -600,18 +607,19 @@ Test does not exist
 not supported
 
 ## Select (select/test_select)
-FAILED (work-size exceeds maximum)
+FAILED (fails to set kernel arguments, error -50)
 
 ## Contractions (contractions/contractions)
-FAILED (work-size exceeds maximum)
+FAILED (value mismatch, got unexpected zeros)
 
 ## Math (math_brute_force/bruteforce)
 
 
 ## Integer Ops (integer_ops/test_integer_ops)
 *All tests fail at least for (u)char, very often resulting in wrong 0x00 *
+
 | Test name                       | Status | Reason |
-|---------------------------------|--------||
+|---------------------------------|--------|--------|
 | integer_clz                     | FAILED | value mismatch |
 | integer_hadd                    | FAILED | value mismatch |
 | integer_rhadd                   | FAILED | value mismatch |
@@ -684,7 +692,7 @@ FAILED (work-size exceeds maximum)
 | quick_int_math                     | FAILED | CL_OUT_OF_RESOURCES *runs VERY long* |
 | quick_int_logic                    | FAILED | result mismatch, CL_OUT_OF_RESOURCES |
 | quick_int_shift                    | FAILED | result value mismatch + CL_OUT_OF_RESOURCES |
-| quick_int_compare
+| quick_int_compare                  | FAILED | result value mismatch + CL_OUT_OF_RESOURCES |
 | quick_uint_math
 | quick_uint_logic
 | quick_uint_shift

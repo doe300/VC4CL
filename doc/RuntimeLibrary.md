@@ -56,7 +56,7 @@ Since access to the memory (shared with the CPU), is always synchronized among a
 * **clEnqueueCopyImageToBuffer** - images are not supported
 * **clEnqueueCopyBufferToImage** - images are not supported
 * **clEnqueueMapImage** - images are not supported
-* **clEnqueueUnmapMemObject** - supported, but is no-op since device-memory is always mapped to host-memory
+* **clEnqueueUnmapMemObject** - supported, device-memory is always mapped to host-memory
 * **clEnqueueMigrateMemObjects** - **TBD**
 * **clGetMemObjectInfo** - supports all parameters specified in OpenCL 1.2
 * **clGetImageInfo** - images are not supported
@@ -129,3 +129,6 @@ See [ICD loader specification](https://www.khronos.org/registry/OpenCL/extension
 See [Intermediate Language Programs](https://www.khronos.org/registry/OpenCL/specs/opencl-1.2-extensions.pdf#page=153) for details.
 
 * **clCreateProgramWithILKHR** - supported, but optional, since **CreateProgramWithSource** also accepts SPIR-V source
+
+### Querying device temperature (cl_altera_device_temperature)
+See [extension specification](https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_device_temperature.txt) for details.

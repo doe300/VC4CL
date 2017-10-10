@@ -1,4 +1,4 @@
-## Readme
+# VC4CL
 
 **VC4CL** is an implementation of the **OpenCL 1.2** standard for the VideoCore IV GPU (found in all Raspberry Pi models).
 
