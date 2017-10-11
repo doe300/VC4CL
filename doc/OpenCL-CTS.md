@@ -1,9 +1,9 @@
 # Tests
 
-## Computeinfo (computeinfo/computeinfo)
+### Computeinfo (computeinfo/computeinfo)
 PASSED
 
-## Basic (basic/test_basic)
+### Basic (basic/test_basic)
 Run with work-size of 8
 
 | Test name                           | Status | Reason |
@@ -105,7 +105,7 @@ Run with work-size of 8
 | get_global_offset                   | PASSED ||
 
 
-## API (api/test_api)
+### API (api/test_api)
 Run with work-size of 8
 
 | Test name                           | Status | Reason |
@@ -184,7 +184,7 @@ Run with work-size of 8
 | get_image2d_array_info              | skipped ||
 
 
-## Compiler (compiler/test_compiler)
+### Compiler (compiler/test_compiler)
 
 | Test name                                              | Status | Reason |
 |--------------------------------------------------------|--------|--------|
@@ -245,7 +245,7 @@ Run with work-size of 8
 | compile_and_link_status_options_log                    | FAILED | Unable to compile a simple program! (CL_COMPILER_NOT_AVAILABLE) |
 
 
-## Common Functions (commonfns/test_commonfns)
+### Common Functions (commonfns/test_commonfns)
 Run with work-size of 8
 
 | Test name       | Status | Reason |
@@ -269,11 +269,11 @@ Run with work-size of 8
 | sign            | PASSED ||
 
 
-## Geometric Functions (geometrics/test_geometrics)
+### Geometric Functions (geometrics/test_geometrics)
 Run with work-size of 8
 
 | Test name             | Status | Reason |
-|-----------------------|--------||
+|-----------------------|--------|--------|
 | geom_cross            | FAILED | result value mismatch (vloadn?) |
 | geom_dot              | FAILED ||
 | geom_distance         | FAILED | value mismatch, got -inf where not expected (sqrt?) |
@@ -284,7 +284,7 @@ Run with work-size of 8
 | geom_fast_normalize   | PASSED ||
 
  
-## Relationals (relationals/test_relationals)
+### Relationals (relationals/test_relationals)
 Run with work-size of 8
 
 | Test name                       | Status | Reason |
@@ -307,7 +307,7 @@ Run with work-size of 8
 | shuffle_built_in                | FAILED | value mismatch, actual result is one value replicated, expected result has different values |
 | shuffle_built_in_dual_input     | FAILED | value mismatch, contains some random wrong values for vector-size > 2 |
 
-## Thread Dimensions (thread_dimensions/test_thread_dimensions)
+### Thread Dimensions (thread_dimensions/test_thread_dimensions)
 Run with work-size of 8
 
 | Test name                       | Status | Reason |
@@ -326,7 +326,7 @@ Run with work-size of 8
 | full_3d_implicit_local
 		
 		
-## Atomics (atomics/test_atomics)
+### Atomics (atomics/test_atomics)
 
 | Test name                       | Status | Reason |
 |---------------------------------|--------|--------|
@@ -344,7 +344,7 @@ Run with work-size of 8
 | atomic_add_index                | FAILED | "wrong number of instances" |
 | atomic_add_index_bin            | FAILED | "FAILED to set kernel arguments: CL_INVALID_ARG_VALUE" |
 
-## Profiling (profiling/test_profiling)
+### Profiling (profiling/test_profiling)
 PASSES all for 8 work-items
 
 | Test name                       | Status | Reason |
@@ -381,7 +381,7 @@ PASSES all for 8 work-items
 | copy_array_to_image             | skipped ||
 | execute                         | skipped ||
 
-## Events (events/test_events)
+### Events (events/test_events)
 
 | Test name                                                          | Status | Reason |
 |--------------------------------------------------------------------|--------|--------|
@@ -414,7 +414,7 @@ PASSES all for 8 work-items
 | callbacks_simultaneous                                             | FAILED | error -14 in wait-list |
 | userevents_multithreaded                                           | FAILED | "Unable to create user gate event!" |
 
-## Allocations (allocations/test_allocations)
+### Allocations (allocations/test_allocations)
 
 | Test name                       | Status | Reason |
 |---------------------------------|--------|--------|
@@ -422,10 +422,10 @@ PASSES all for 8 work-items
 | multiple 5 all
 
 
-## Printf (printf/test_printf)
+### Printf (printf/test_printf)
 Not supported 
 
-## Buffers (buffers/test_buffers)
+### Buffers (buffers/test_buffers)
 Run with work-size of 8
 TODO: All buffer_map_* tests fail for CL_MEM_USE_HOST_PTR
 
@@ -525,97 +525,97 @@ TODO: All buffer_map_* tests fail for CL_MEM_USE_HOST_PTR
 | buffer_migrate                          | FAILED | Failed set kernel argument 1.! (CL_INVALID_ARG_VALUE) in buffers/test_buffer_migrate.c:276 |
 | image_migrate                           | skipped ||
 
-## Images (API Info) (images/clGetInfo/test_cl_get_info)
+### Images (API Info) (images/clGetInfo/test_cl_get_info)
 SKIPPED
 
-## Images (Kernel Methods) (images/kernel_image_methods/test_kernel_image_methods )
+### Images (Kernel Methods) (images/kernel_image_methods/test_kernel_image_methods )
 SKIPPED
 
-## Images (Kernel) (images/kernel_read_write/test_image_streams CL_FILTER_NEAREST)
+### Images (Kernel) (images/kernel_read_write/test_image_streams CL_FILTER_NEAREST)
 SKIPPED
 
-## Images (Kernel pitch) (images/kernel_read_write/test_image_streams use_pitches CL_FILTER_NEAREST)
+### Images (Kernel pitch) (images/kernel_read_write/test_image_streams use_pitches CL_FILTER_NEAREST)
 SKIPPED
 
-## Images (Kernel max size) (images/kernel_read_write/test_image_streams max_images CL_FILTER_NEAREST)
+### Images (Kernel max size) (images/kernel_read_write/test_image_streams max_images CL_FILTER_NEAREST)
 SKIPPED
 
-## Images (clCopyImage) (images/clCopyImage/test_cl_copy_images)
+### Images (clCopyImage) (images/clCopyImage/test_cl_copy_images)
 SKIPPED
 
-## Images (clCopyImage max size) (images/clCopyImage/test_cl_copy_images max_images )
+### Images (clCopyImage max size) (images/clCopyImage/test_cl_copy_images max_images )
 SKIPPED
 
-## Images (clReadWriteImage) (images/clReadWriteImage/test_cl_read_write_images )
+### Images (clReadWriteImage) (images/clReadWriteImage/test_cl_read_write_images )
 SKIPPED
 
-## Images (clReadWriteImage pitch) (images/clReadWriteImage/test_cl_read_write_images use_pitches )
+### Images (clReadWriteImage pitch) (images/clReadWriteImage/test_cl_read_write_images use_pitches )
 SKIPPED
 
-## Images (clReadWriteImage max size) (images/clReadWriteImage/test_cl_read_write_images max_images )
+### Images (clReadWriteImage max size) (images/clReadWriteImage/test_cl_read_write_images max_images )
 SKIPPED
 
-## Images (clFillImage) (images/clFillImage/test_cl_fill_images )
+### Images (clFillImage) (images/clFillImage/test_cl_fill_images )
 SKIPPED
 
-## Images (clFillImage pitch) (images/clFillImage/test_cl_fill_images use_pitches )
+### Images (clFillImage pitch) (images/clFillImage/test_cl_fill_images use_pitches )
 SKIPPED
 
-## Images (clFillImage max size) (images/clFillImage/test_cl_fill_images max_images )
+### Images (clFillImage max size) (images/clFillImage/test_cl_fill_images max_images )
 SKIPPED
 
-## Images (Samplerless) (images/samplerlessReads/test_samplerless_reads )
+### Images (Samplerless) (images/samplerlessReads/test_samplerless_reads )
 SKIPPED
 
-## Images (Samplerless pitch) (images/samplerlessReads/test_samplerless_reads use_pitches )
+### Images (Samplerless pitch) (images/samplerlessReads/test_samplerless_reads use_pitches )
 SKIPPED
 
-## Images (Samplerless max size) (images/samplerlessReads/test_samplerless_reads max_images )
+### Images (Samplerless max size) (images/samplerlessReads/test_samplerless_reads max_images )
 SKIPPED
 
-## Mem (Host Flags) (mem_host_flags/test_mem_host_flags)
+### Mem (Host Flags) (mem_host_flags/test_mem_host_flags)
 Test does not exist
 
-## Headers (cl_typen) (headers/test_headers)
+### Headers (cl_typen) (headers/test_headers)
 ??
 
-## Headers (cl.h standalone) (headers/test_cl_h)
+### Headers (cl.h standalone) (headers/test_cl_h)
 PASSED
 
-## Headers (cl_platform.h standalone) (headers/test_cl_platform_h)
+### Headers (cl_platform.h standalone) (headers/test_cl_platform_h)
 PASSED
 
-## Headers (cl_gl.h standalone) (headers/test_cl_gl_h)
+### Headers (cl_gl.h standalone) (headers/test_cl_gl_h)
 not supported
 
-## Headers (opencl.h standalone) (headers/test_opencl_h)
+### Headers (opencl.h standalone) (headers/test_opencl_h)
 PASSED
 
-## Headers (cl.h standalone C99) (headers/test_cl_h_c99)
+### Headers (cl.h standalone C99) (headers/test_cl_h_c99)
 Test does not exist
 
-## Headers (cl_platform.h standalone C99) (headers/test_cl_platform_h_c99)
+### Headers (cl_platform.h standalone C99) (headers/test_cl_platform_h_c99)
 Test does not exist
 
-## Headers (cl_gl.h standalone C99) (headers/test_cl_gl_h_c99)
+### Headers (cl_gl.h standalone C99) (headers/test_cl_gl_h_c99)
 not supported
 
-## Headers (opencl.h standalone C99) (headers/test_opencl_h_c99)
+### Headers (opencl.h standalone C99) (headers/test_opencl_h_c99)
 Test does not exist
 
-## OpenCL-GL Sharing (gl/test_gl)
+### OpenCL-GL Sharing (gl/test_gl)
 not supported
 
-## Select (select/test_select)
+### Select (select/test_select)
 FAILED (fails to set kernel arguments, error -50)
 
-## Contractions (contractions/contractions)
+### Contractions (contractions/contractions)
 FAILED (value mismatch, got unexpected zeros)
 
-## Math (math_brute_force/bruteforce)
+### Math (math_brute_force/bruteforce)
 
 
-## Integer Ops (integer_ops/test_integer_ops)
+### Integer Ops (integer_ops/test_integer_ops)
 *All tests fail at least for (u)char, very often resulting in wrong 0x00 *
 
 | Test name                       | Status | Reason |
@@ -716,5 +716,5 @@ FAILED (value mismatch, got unexpected zeros)
 | vector_scalar                     | FAILED | result value mismatch |
 
 
-## Half Ops (half/Test_half)
+### Half Ops (half/Test_half)
 PASSED, but has error with not enough space to allocate

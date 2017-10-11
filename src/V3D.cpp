@@ -80,6 +80,7 @@ uint32_t V3D::getSystemInfo(const SystemInfo key) const
 			//"Contains the amount of VPM memory reserved for all user programs, in multiples of 256 bytes (4x 16-way 32-bit vectors)."
 			return (v3dBasePointer[V3D_VPMBASE] & 0x1F) * 256;
 		case SystemInfo::SEMAPHORES_COUNT:
+			//TODO returns zero for v3d_info, should be 16
 			return (v3dBasePointer[V3D_IDENT1] >> 16) & 0xFF;
 		case SystemInfo::SLICE_TMU_COUNT:
 			return (v3dBasePointer[V3D_IDENT1] >> 12) & 0xF;
@@ -91,6 +92,18 @@ uint32_t V3D::getSystemInfo(const SystemInfo key) const
 			return 12;
 			//FIXME somehow from time to time (e.g. every first call after reboot??) this returns 196, but why??
 			//return ((*(uint32_t*)(mmap_ptr + V3D_IDENT1) >> 4) & 0xF) * ((*(uint32_t*)(mmap_ptr + V3D_IDENT1) >> 8) & 0xF);
+		case SystemInfo::HDR_SUPPORT:
+			return (v3dBasePointer[V3D_IDENT1] >> 24) & 0x1;
+		case SystemInfo::V3D_REVISION:
+			return (v3dBasePointer[V3D_IDENT1]) & 0xF;
+		case SystemInfo::USER_PROGRAMS_COMPLETED_COUNT:
+			return (v3dBasePointer[V3D_SRQCS] >> 16) & 0xFF;
+		case SystemInfo::USER_REQUESTS_COUNT:
+			return (v3dBasePointer[V3D_SRQCS] >> 8) & 0xFF;
+		case SystemInfo::PROGRAM_QUEUE_FULL:
+			return (v3dBasePointer[V3D_SRQCS] >> 7) & 0x1;
+		case SystemInfo::PROGRAM_QUEUE_LENGTH:
+			return (v3dBasePointer[V3D_SRQCS]) & 0x3F;
 	}
 	return 0;
 }

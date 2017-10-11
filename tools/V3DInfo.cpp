@@ -8,7 +8,7 @@
 #include <iomanip>
 
 #include "src/Mailbox.h"
-#include "src/V3D.h"
+#include "common.h"
 
 using namespace vc4cl;
 
@@ -70,13 +70,19 @@ static void printMailboxInfo()
 static void printV3DInfo()
 {
 	std::cout << "V3D Status Register Info:" << std::endl;
-	std::cout << std::setw(NAME_LENGTH) << "VPM Memory size:" << std::setw(VAL_LENGTH) << V3D::instance().getSystemInfo(SystemInfo::VPM_MEMORY_SIZE) / 1024 << " KB" << std::endl;
+	std::cout << std::setw(NAME_LENGTH) << "V3D revision:" << std::setw(VAL_LENGTH) << V3D::instance().getSystemInfo(SystemInfo::V3D_REVISION) << std::endl;
+	std::cout << std::setw(NAME_LENGTH) << "HDR support:" << std::setw(VAL_LENGTH) << (V3D::instance().getSystemInfo(SystemInfo::HDR_SUPPORT) ? "yes" : "no") << std::endl;
 	std::cout << std::setw(NAME_LENGTH) << "Semaphores:" << std::setw(VAL_LENGTH) << V3D::instance().getSystemInfo(SystemInfo::SEMAPHORES_COUNT) << std::endl;
 	std::cout << std::setw(NAME_LENGTH) << "QPUs:" << std::setw(VAL_LENGTH) << V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT) << std::endl;
 	std::cout << std::setw(NAME_LENGTH) << "Slices:" << std::setw(VAL_LENGTH) << V3D::instance().getSystemInfo(SystemInfo::SLICES_COUNT) << std::endl;
+	std::cout << std::setw(NAME_LENGTH) << "VPM Memory size:" << std::setw(VAL_LENGTH) << V3D::instance().getSystemInfo(SystemInfo::VPM_MEMORY_SIZE) / 1024 << " KB" << std::endl;
 	std::cout << std::setw(NAME_LENGTH) << "VPM User size:" << std::setw(VAL_LENGTH) << V3D::instance().getSystemInfo(SystemInfo::VPM_USER_MEMORY_SIZE) / 1024 << " KB" << std::endl;
+	std::cout << std::setw(NAME_LENGTH) << "Program queue:" << std::setw(VAL_LENGTH) << ((std::to_string(V3D::instance().getSystemInfo(SystemInfo::USER_REQUESTS_COUNT)) + "/") +
+			(std::to_string(V3D::instance().getSystemInfo(SystemInfo::USER_PROGRAMS_COMPLETED_COUNT)) + "/") + std::to_string(V3D::instance().getSystemInfo(SystemInfo::PROGRAM_QUEUE_LENGTH)))
+			<< " requests/completed/in queue" << std::endl;
+	std::cout << std::setw(NAME_LENGTH) << "Errors:" << std::setw(VAL_LENGTH) << getErrors() << std::endl;
 
-	//TODO queue info (V3D_SRQCS), cache info(V3D_L2CACTL), HDR support(V3D_IDENT1), performance counters, errors
+	//TODO performance counters ??
 }
 
 int main(int argc, char** argv)
