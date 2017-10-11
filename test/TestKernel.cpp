@@ -21,7 +21,7 @@ static const char arg0_name[] = "in";
 static const size_t work_size[VC4CL_NUM_DIMENSIONS] = {1, 2, 1}; //TODO {8, 8, 8};
 static std::string sourceCode;
 
-TestKernel::TestKernel() : context(NULL), program(NULL), queue(NULL), kernel(NULL)
+TestKernel::TestKernel() : context(nullptr), program(nullptr), queue(nullptr), in_buffer(nullptr), out_buffer(nullptr), kernel(nullptr)
 {
     TEST_ADD(TestKernel::testCreateKernel);
     TEST_ADD(TestKernel::testCreateKernelsInProgram);
@@ -72,7 +72,7 @@ void TestKernel::testCreateKernelsInProgram()
     cl_kernel kernels[16];
     cl_int state = VC4CL_FUNC(clCreateKernelsInProgram)(program, 16, kernels, &num_kernels);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT_EQUALS(1, num_kernels);
+    TEST_ASSERT_EQUALS(1u, num_kernels);
     TEST_ASSERT(kernels[0] != NULL);
     
     VC4CL_FUNC(clReleaseKernel)(kernels[0]);
@@ -82,7 +82,8 @@ void TestKernel::testSetKernelArg()
 {
     cl_char16 arg0;
     cl_int state = VC4CL_FUNC(clSetKernelArg)(kernel, 0, sizeof(arg0), &arg0);
-    TEST_ASSERT(state != CL_SUCCESS);
+    //TODO correct?
+    TEST_ASSERT_EQUALS(state, CL_SUCCESS);
     
     state = VC4CL_FUNC(clSetKernelArg)(kernel, 0, sizeof(in_buffer), &in_buffer);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -142,24 +143,24 @@ void TestKernel::testGetKernelWorkGroupInfo()
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_KERNEL_COMPILE_WORK_GROUP_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(3 * sizeof(size_t), info_size);
-    TEST_ASSERT_EQUALS(1, ((size_t*)buffer)[0]);
-    TEST_ASSERT_EQUALS(1, ((size_t*)buffer)[1]);
-    TEST_ASSERT_EQUALS(1, ((size_t*)buffer)[2]);
+    TEST_ASSERT_EQUALS(1u, ((size_t*)buffer)[0]);
+    TEST_ASSERT_EQUALS(1u, ((size_t*)buffer)[1]);
+    TEST_ASSERT_EQUALS(1u, ((size_t*)buffer)[2]);
     
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_KERNEL_LOCAL_MEM_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_ulong), info_size);
-    TEST_ASSERT_EQUALS(0, *(cl_ulong*)buffer);
+    TEST_ASSERT_EQUALS(0u, *(cl_ulong*)buffer);
     
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(size_t), info_size);
-    TEST_ASSERT_EQUALS(1, *(size_t*)buffer);
+    TEST_ASSERT_EQUALS(1u, *(size_t*)buffer);
     
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_KERNEL_PRIVATE_MEM_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_ulong), info_size);
-    TEST_ASSERT_EQUALS(0, *(cl_ulong*)buffer);
+    TEST_ASSERT_EQUALS(0u, *(cl_ulong*)buffer);
     
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), 0xDEADBEAF, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_INVALID_VALUE, state);
@@ -173,8 +174,8 @@ void TestKernel::testGetKernelArgInfo()
     TEST_ASSERT_EQUALS(CL_INVALID_ARG_INDEX, state);
     
     state = VC4CL_FUNC(clGetKernelArgInfo)(kernel, 0, CL_KERNEL_ARG_ADDRESS_QUALIFIER, 1024, buffer, &info_size);
-    TEST_ASSERT_EQUALS(CL_KERNEL_ARG_INFO_NOT_AVAILABLE, state);
-    
+    TEST_ASSERT_EQUALS(CL_KERNEL_ARG_ADDRESS_GLOBAL, state);
+
     state = VC4CL_FUNC(clGetKernelArgInfo)(kernel, 0, CL_KERNEL_ARG_ACCESS_QUALIFIER, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_kernel_arg_access_qualifier), info_size);
@@ -184,7 +185,7 @@ void TestKernel::testGetKernelArgInfo()
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
     state = VC4CL_FUNC(clGetKernelArgInfo)(kernel, 0, CL_KERNEL_ARG_TYPE_QUALIFIER, 1024, buffer, &info_size);
-    TEST_ASSERT_EQUALS(CL_KERNEL_ARG_INFO_NOT_AVAILABLE, state);
+    TEST_ASSERT_EQUALS(CL_KERNEL_ARG_TYPE_CONST, state);
     
     state = VC4CL_FUNC(clGetKernelArgInfo)(kernel, 0, CL_KERNEL_ARG_NAME, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -239,9 +240,6 @@ void TestKernel::testEnqueueNativeKernel()
 void TestKernel::testKernelResult()
 {
     TEST_ASSERT_EQUALS(0, memcmp(input, toType<Buffer>(in_buffer)->deviceBuffer->hostPointer, sizeof(input)));
-    //FIXME somehow replicates the first char (in input!!): "HHHHello World!"
-    //but works e.g. with int4* instead of char16*
-    //same error "HeHello World!" for short8*
     TEST_ASSERT_EQUALS(0, memcmp(input, toType<Buffer>(out_buffer)->deviceBuffer->hostPointer, sizeof(input)));
 #ifdef DEBUG_MODE
     char* buffer = (char*)toType<Buffer>(in_buffer)->deviceBuffer->hostPointer;

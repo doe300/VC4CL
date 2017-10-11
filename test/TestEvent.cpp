@@ -94,7 +94,7 @@ void TestEvent::testGetEventInfo()
 
 static void event_callback(cl_event event, cl_int event_command_exec_status, void *user_data)
 {
-    ++((TestEvent*)user_data)->event_count;
+    ++reinterpret_cast<TestEvent*>(user_data)->event_count;
 }
 
 void TestEvent::testSetEventCallback()

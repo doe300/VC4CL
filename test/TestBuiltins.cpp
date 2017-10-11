@@ -14,7 +14,7 @@ using namespace vc4cl;
 
 #define GET(buffer, type, index) ((type*)toType<Buffer>(buffer)->deviceBuffer->hostPointer)[index]
 
-TestBuiltins::TestBuiltins() : context(NULL), queue(NULL), program(NULL)
+TestBuiltins::TestBuiltins() : context(nullptr), queue(nullptr), program(nullptr), in(nullptr), out0(nullptr), out1(nullptr)
 {
     TEST_ADD(TestBuiltins::testMathFunctions);
     TEST_ADD(TestBuiltins::testIntegerFunctions);

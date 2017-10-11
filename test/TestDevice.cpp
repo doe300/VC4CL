@@ -38,12 +38,12 @@ void TestDevice::testGetDeviceIDs()
     
     state = VC4CL_FUNC(clGetDeviceIDs)(NULL, CL_DEVICE_TYPE_DEFAULT, 8, ids, &num_devices);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT_EQUALS(1, num_devices);
+    TEST_ASSERT_EQUALS(1u, num_devices);
     TEST_ASSERT_EQUALS(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), ids[0]);
     
     state = VC4CL_FUNC(clGetDeviceIDs)(NULL, CL_DEVICE_TYPE_GPU, 8, ids, &num_devices);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT_EQUALS(1, num_devices);
+    TEST_ASSERT_EQUALS(1u, num_devices);
     TEST_ASSERT_EQUALS(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), ids[0]);
     
     device = ids[0];
@@ -57,7 +57,7 @@ void TestDevice::testGetDeviceInfo()
     cl_int state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_ADDRESS_BITS, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(32, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(32u, *(cl_uint*)buffer);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_AVAILABLE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -66,7 +66,7 @@ void TestDevice::testGetDeviceInfo()
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_BUILT_IN_KERNELS, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT_EQUALS(1, info_size);
+    TEST_ASSERT_EQUALS(1u, info_size);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_COMPILER_AVAILABLE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -124,7 +124,11 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_IMAGE_SUPPORT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_bool), info_size);
+#ifdef IMAGE_SUPPORT
     TEST_ASSERT_EQUALS(CL_TRUE, *(cl_bool*)buffer);
+#else
+    TEST_ASSERT_EQUALS(CL_FALSE, *(cl_bool*)buffer);
+#endif
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_LINKER_AVAILABLE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -218,7 +222,7 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(16, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(16u, *(cl_uint*)buffer);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -270,12 +274,12 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(16, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(16u, *(cl_uint*)buffer);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(16, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(16u, *(cl_uint*)buffer);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -285,7 +289,7 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(16, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(16u, *(cl_uint*)buffer);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -323,13 +327,12 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_REFERENCE_COUNT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(1, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(1u, *(cl_uint*)buffer);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_SINGLE_FP_CONFIG, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_device_fp_config), info_size);
     TEST_ASSERT((*(cl_device_fp_config*)buffer) & CL_FP_ROUND_TO_ZERO);
-    TEST_ASSERT((*(cl_device_fp_config*)buffer) & CL_FP_INF_NAN);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_TYPE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);

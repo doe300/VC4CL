@@ -14,7 +14,7 @@
 
 using namespace vc4cl;
 
-TestBuffer::TestBuffer() : num_callback_called(0), context(NULL), buffer(NULL), mapped_ptr(NULL)
+TestBuffer::TestBuffer() : num_callback_called(0), context(nullptr), buffer(nullptr), queue(nullptr), mapped_ptr(nullptr)
 {
     TEST_ADD(TestBuffer::testCreateBuffer);
     TEST_ADD(TestBuffer::testCreateSubBuffer);
@@ -273,7 +273,7 @@ void TestBuffer::testRetainMemObject()
 
 static void destructCallback(cl_mem memobj, void* data)
 {
-    ++((TestBuffer*)data)->num_callback_called;
+    ++reinterpret_cast<TestBuffer*>(data)->num_callback_called;
 }
 
 void TestBuffer::testReleaseMemObject()
