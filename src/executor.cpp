@@ -106,7 +106,7 @@ static bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, uintptr_t> control
 cl_int executeKernel(Event* event)
 {
 	CHECK_EVENT(event)
-	KernelSource& args = dynamic_cast<KernelSource&>(*event->source.get());
+	KernelExecution& args = dynamic_cast<KernelExecution&>(*event->action.get());
 	Kernel* kernel = args.kernel;
 	CHECK_KERNEL(kernel)
 	

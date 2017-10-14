@@ -65,12 +65,96 @@ namespace vc4cl
 
 		std::vector<std::pair<BufferCallback, void*>> callbacks;
 
-		Buffer* parent;
+		object_wrapper<Buffer> parent;
 		size_t offset = 0;
 
 		std::unique_ptr<Image> img;
 
 		CHECK_RETURN Event* createBufferActionEvent(CommandQueue* queue, CommandType command_type, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_int* errcode_ret) const;
+	};
+
+	//TODO reference counters(add wrapper for automatic counter!)
+
+	struct BufferMapping : public EventAction
+	{
+		object_wrapper<Buffer> buffer;
+		void* hostPtr;
+		bool unmap;
+
+		BufferMapping(Buffer*buffer, void* hostPtr, bool unmap);
+
+		cl_int operator()(Event* event) override;
+	};
+
+	struct BufferAccess : public EventAction
+	{
+		object_wrapper<Buffer> buffer;
+		std::size_t bufferOffset;
+		void* hostPtr;
+		std::size_t hostOffset;
+		std::size_t numBytes;
+		bool writeToBuffer;
+
+		BufferAccess(Buffer* buffer, void* hostPtr, std::size_t numBytes, bool writeBuffer);
+
+		cl_int operator()(Event* event) override;
+	};
+
+	struct BufferRectAccess : public BufferAccess
+	{
+		std::size_t region[3];
+		std::size_t bufferOrigin[3];
+		std::size_t bufferRowPitch;
+		std::size_t bufferSlicePitch;
+		std::size_t hostOrigin[3];
+		std::size_t hostRowPitch;
+		std::size_t hostSlicePitch;
+
+		BufferRectAccess(Buffer* buffer, void* hostPtr, const std::size_t region[3], bool writeBuffer);
+
+		//TODO override operator()
+	};
+	
+	struct BufferFill : public EventAction
+	{
+		object_wrapper<Buffer> buffer;
+		std::size_t bufferOffset;
+		std::vector<char> pattern;
+		std::size_t numBytes;
+
+		BufferFill(Buffer* buffer, const void* pattern, std::size_t patternSize, std::size_t numBytes);
+
+		cl_int operator()(Event* event) override;
+	};
+
+	struct BufferCopy : public EventAction
+	{
+		object_wrapper<Buffer> sourceBuffer;
+		std::size_t sourceOffset;
+		object_wrapper<Buffer> destBuffer;
+		std::size_t destOffset;
+		std::size_t numBytes;
+
+		BufferCopy(Buffer* src, Buffer* dest, std::size_t numBytes);
+
+		cl_int operator()(Event* event) override;
+	};
+
+	struct BufferRectCopy : public EventAction
+	{
+		object_wrapper<Buffer> sourceBuffer;
+		object_wrapper<Buffer> destBuffer;
+		std::size_t region[3];
+		std::size_t sourceOrigin[3];
+		std::size_t sourceRowPitch;
+		std::size_t sourceSlicePitch;
+		std::size_t destOrigin[3];
+		std::size_t destRowPitch;
+		std::size_t destSlicePitch;
+
+		BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t region[3]);
+
+		cl_int operator()(Event* event) override;
 	};
 
 } /* namespace vc4cl */

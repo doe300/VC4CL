@@ -6,71 +6,19 @@
 
 #include "queue_handler.h"
 #include "Event.h"
-#include "Kernel.h"
-#include "Buffer.h"
 
 #include <chrono>
 
 using namespace vc4cl;
 
-EventSource::EventSource()
+EventAction::EventAction()
 {
 
 }
 
-BufferArg::BufferArg(Buffer* buffer) : buffer(buffer), hostPtr(nullptr), offset(0), size(0), pattern({})
-{
-	if(buffer != nullptr)
-	{
-		if(buffer->retain() != CL_SUCCESS)
-			throw std::runtime_error("Failed to retain buffer in buffer event-arg!");
-	}
-}
-
-BufferArg::~BufferArg()
-{
-	if(buffer != nullptr)
-	{
-		ignoreReturnValue(buffer->release(), __FILE__, __LINE__, "There is no way of handling an error here");
-	}
-}
-
-void BufferArg::setPattern(const void* pattern, const size_t patternSize)
-{
-	this->pattern.resize(patternSize);
-	memcpy(this->pattern.data(), pattern, patternSize);
-}
-
-BufferSource::BufferSource(Buffer* source, void* dest) : source(source), dest(nullptr)
-{
-	this->dest.hostPtr = dest;
-}
-
-BufferSource::BufferSource(Buffer* source, Buffer* dest) : source(source), dest(dest)
+EventAction::~EventAction()
 {
 
-}
-
-BufferSource::BufferSource(void* source, Buffer* dest) : source(nullptr), dest(dest)
-{
-	this->source.hostPtr = source;
-}
-
-BufferSource::BufferSource(void* source, void* dest) : source(nullptr), dest(nullptr)
-{
-	this->source.hostPtr = source;
-	this->dest.hostPtr = dest;
-}
-
-KernelSource::KernelSource(Kernel* kernel) : kernel(kernel), numDimensions(0)
-{
-	if(kernel->retain() != CL_SUCCESS)
-		throw std::runtime_error("Failed to retain kernel in kernel event-arg!");
-}
-
-KernelSource::~KernelSource()
-{
-	ignoreReturnValue(kernel->release(), __FILE__, __LINE__, "There is no way of handling an error here");
 }
 
 Event::Event(Context* context, cl_int status, CommandType type) : HasContext(context), type(type), queue(nullptr), status(status), userStatusSet(CL_FALSE)

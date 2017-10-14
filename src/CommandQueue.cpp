@@ -69,29 +69,8 @@ cl_int CommandQueue::enqueueEvent(Event* event)
 	if(event->isFinished())
 		// cannot execute already finished/failed event
 		return returnError(CL_INVALID_EVENT, __FILE__, __LINE__, buildString("Event has already finished with status: %d", event->getStatus()));
-
-	if(event->type == CommandType::KERNEL_NDRANGE || event->type == CommandType::KERNEL_TASK)
-	{
-		CHECK_KERNEL(dynamic_cast<KernelSource*>(event->source.get())->kernel)
-	}
-	if(event->type == CommandType::BUFFER_READ || event->type == CommandType::BUFFER_READ_RECT ||
-			event->type == CommandType::BUFFER_COPY || event->type == CommandType::BUFFER_COPY_RECT ||
-			event->type == CommandType::BUFFER_MAP || event->type == CommandType::BUFFER_UNMAP)
-	{
-		CHECK_BUFFER(dynamic_cast<BufferSource*>(event->source.get())->source.buffer)
-	}
-	if(event->type == CommandType::BUFFER_WRITE || event->type == CommandType::BUFFER_WRITE_RECT ||
-			event->type == CommandType::BUFFER_COPY || event->type == CommandType::BUFFER_COPY_RECT ||
-			event->type == CommandType::BUFFER_FILL)
-	{
-		CHECK_BUFFER(dynamic_cast<BufferSource*>(event->source.get())->dest.buffer)
-	}
-	if(event->type == CommandType::SVM_FREE || event->type == CommandType::SVM_MEMCPY || event->type == CommandType::SVM_MEMFILL)
-	{
-		if(!event->source)
-			return CL_INVALID_EVENT;
-	}
-	//XXX verify images, ...
+	if(!event->action)
+		return CL_INVALID_EVENT;
 
 	cl_int status = event->prepareToQueue(this);
 

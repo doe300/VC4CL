@@ -72,76 +72,50 @@ namespace vc4cl
 		cl_ulong end_time = 0;
 	};
 
-	struct EventSource
+	struct EventAction
 	{
 	public:
-		EventSource();
+		EventAction();
 
-		virtual ~EventSource()
-		{
-		}
+		virtual ~EventAction();
+
+		CHECK_RETURN virtual cl_int operator()(Event* event) = 0;
 
 	private:
 		//prohibit copying or moving, since it might screw up with the manual reference counts
-		EventSource(const EventSource&) = delete;
-		EventSource(EventSource&&) = delete;
+		EventAction(const EventAction&) = delete;
+		EventAction(EventAction&&) = delete;
 
-		EventSource& operator=(const EventSource&) = delete;
-		EventSource& operator=(EventSource&&) = delete;
+		EventAction& operator=(const EventAction&) = delete;
+		EventAction& operator=(EventAction&&) = delete;
 	};
 
-	class Buffer;
-
-	struct BufferArg
+	/*
+	 * Event source to run a custom function
+	 */
+	struct CustomAction : public EventAction
 	{
-		 //the buffer/host-pointer to operate on
-		Buffer* buffer;
-		void* hostPtr;
-		//the offset (within the buffer)
-		size_t offset;
-		//the number of bytes to copy
-		size_t size;
-		//the object to fill a buffer with
-		std::vector<char> pattern;
+		const std::function<cl_int(Event*)> func;
 
-		BufferArg(Buffer* buffer);
-		~BufferArg();
+		CustomAction(const std::function<cl_int(Event*)> callback) : func(callback) { }
 
-		void setPattern(const void* pattern, const size_t patternSize);
-	};
-
-	struct BufferSource : public EventSource
-	{
-		BufferArg source;
-		BufferArg dest;
-
-		BufferSource(Buffer* source, void* dest);
-		BufferSource(Buffer* source, Buffer* dest);
-		BufferSource(void* source, Buffer* dest);
-		BufferSource(void* source, void* dest);
-	};
-
-	class Kernel;
-
-	struct KernelSource : public EventSource
-	{
-		Kernel* kernel;
-		cl_uchar numDimensions;
-		size_t globalOffsets[VC4CL_NUM_DIMENSIONS];
-		size_t globalSizes[VC4CL_NUM_DIMENSIONS];
-		size_t localSizes[VC4CL_NUM_DIMENSIONS];
-
-		KernelSource(Kernel* kernel);
-		virtual ~KernelSource();
-	};
-
-	struct CustomSource : public EventSource
-	{
-		std::function<cl_int(Event*)> func;
-
-		CHECK_RETURN cl_int operator()(Event* event) const
+		cl_int operator()(Event* event) override
 		{
 			return func(event);
+		}
+	};
+
+	/*
+	 * Event source doing nothing, just returns the given status
+	 */
+	struct NoAction : public EventAction
+	{
+		const cl_int status;
+		NoAction(cl_int status = CL_SUCCESS) : status(status) { }
+
+		cl_int operator()(Event* event) override
+		{
+			return status;
 		}
 	};
 
@@ -168,7 +142,7 @@ namespace vc4cl
 		void setEventWaitList(cl_uint numEvents, const cl_event* events);
 
 		const CommandType type;
-		std::unique_ptr<EventSource> source;
+		std::unique_ptr<EventAction> action;
 	private:
 		CommandQueue* queue;
 

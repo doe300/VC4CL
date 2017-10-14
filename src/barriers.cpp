@@ -52,6 +52,9 @@ cl_int VC4CL_FUNC(clEnqueueMarkerWithWaitList)(cl_command_queue command_queue, c
 	cl_int errcode = CL_SUCCESS;
 	Event* e = newObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::MARKER);
 	CHECK_ALLOCATION(e)
+	EventAction* action = newObject<NoAction>(CL_SUCCESS);
+	CHECK_ALLOCATION(action)
+	e->action.reset(action);
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	errcode = toType<CommandQueue>(command_queue)->enqueueEvent(e);
 	if(errcode == CL_SUCCESS && event != NULL)
@@ -104,6 +107,9 @@ cl_int VC4CL_FUNC(clEnqueueBarrierWithWaitList)(cl_command_queue command_queue, 
 	cl_int errcode = CL_SUCCESS;
 	Event* e = newObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::BARRIER);
 	CHECK_ALLOCATION(e)
+	EventAction* action = newObject<NoAction>(CL_SUCCESS);
+	CHECK_ALLOCATION(action)
+	e->action.reset(action);
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	errcode = toType<CommandQueue>(command_queue)->enqueueEvent(e);
 	if(errcode == CL_SUCCESS && event != NULL)

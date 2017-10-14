@@ -75,11 +75,6 @@ void vc4cl::waitForEvent(const Event* event)
 	}
 }
 
-static void copy_buffer(const void* in, const size_t in_offset, const size_t size, void* out, const size_t out_offset)
-{
-	memcpy(out + out_offset, in + in_offset, size);
-}
-
 static void runEventQueue()
 {
 	//Sets the POSIX thread name
@@ -90,145 +85,17 @@ static void runEventQueue()
 		if(event != nullptr)
 		{
 			event->updateStatus(CL_SUBMITTED);
-
-			switch(event->type)
+			event->updateStatus(CL_RUNNING);
+			if(event->action)
 			{
-				case CommandType::KERNEL_NDRANGE:
-				case CommandType::KERNEL_TASK:
-				{
-					event->updateStatus(CL_RUNNING);
-					//run kernel
-					cl_int result = executeKernel(event);
-					event->updateStatus(result);
-					break;
-				}
-				case CommandType::KERNEL_NATIVE:
-				{
-					event->updateStatus(CL_INVALID_OPERATION);
-					break;
-				}
-				case CommandType::MARKER:
-				case CommandType::BARRIER:
-				{
-					//simply complete
-					event->updateStatus(CL_RUNNING);
+				cl_int status = event->action->operator()(event);
+				if(status != CL_SUCCESS)
+					event->updateStatus(status);
+				else
 					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::BUFFER_READ:
-				case CommandType::BUFFER_READ_RECT:
-				{
-					event->updateStatus(CL_RUNNING);
-					BufferSource* source = dynamic_cast<BufferSource*>(event->source.get());
-					copy_buffer(source->source.buffer->deviceBuffer->hostPointer, source->source.offset, source->source.size, source->dest.hostPtr, source->dest.offset);
-					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::BUFFER_WRITE:
-				case CommandType::BUFFER_WRITE_RECT:
-				{
-					event->updateStatus(CL_RUNNING);
-					BufferSource* source = dynamic_cast<BufferSource*>(event->source.get());
-					copy_buffer(source->source.hostPtr, source->source.offset, source->source.size, source->dest.buffer->deviceBuffer->hostPointer, source->dest.offset);
-					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::BUFFER_FILL:
-				{
-					event->updateStatus(CL_RUNNING);
-					BufferSource* source = dynamic_cast<BufferSource*>(event->source.get());
-					uintptr_t start = (uintptr_t)source->dest.buffer->deviceBuffer->hostPointer;
-					uintptr_t end = start + source->source.size;
-					while(start < end)
-					{
-						copy_buffer(source->source.pattern.data(), 0, source->source.pattern.size(), (void*)start, source->dest.offset);
-						start += source->source.pattern.size();
-					}
-					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::BUFFER_COPY:
-				case CommandType::BUFFER_COPY_RECT:
-				{
-					event->updateStatus(CL_RUNNING);
-					BufferSource* source = dynamic_cast<BufferSource*>(event->source.get());
-					void* start = source->source.buffer->deviceBuffer->hostPointer;
-					void* dest = source->dest.buffer->deviceBuffer->hostPointer;
-					copy_buffer(start, source->source.offset, source->source.size, dest, source->dest.offset);
-					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::BUFFER_MAP:
-				{
-					//this command doesn't actually do anything, since GPU-memory is always mapped to host-memory
-					event->updateStatus(CL_RUNNING);
-					dynamic_cast<BufferSource*>(event->source.get())->source.buffer->mappings.push_back(dynamic_cast<BufferSource*>(event->source.get())->dest.hostPtr);
-					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::BUFFER_MIGRATE:
-				{
-					//this command doesn't actually do anything, since buffers are always located in GPU memory and accessible from host-memory
-					event->updateStatus(CL_RUNNING);
-					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::BUFFER_UNMAP:
-				{
-					//this command doesn't actually do anything, since GPU-memory is always mapped to host-memory
-					event->updateStatus(CL_RUNNING);
-					BufferSource* source = dynamic_cast<BufferSource*>(event->source.get());
-					source->source.buffer->mappings.remove(source->dest.hostPtr);
-					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::SVM_MEMCPY:
-				{
-					//simply memcpy source.size bytes from source to dest
-					event->updateStatus(CL_RUNNING);
-					BufferSource* source = dynamic_cast<BufferSource*>(event->source.get());
-					copy_buffer(source->source.hostPtr, 0, source->source.size, source->dest.hostPtr, 0);
-					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::SVM_MEMFILL:
-				{
-					event->updateStatus(CL_RUNNING);
-					BufferSource* source = dynamic_cast<BufferSource*>(event->source.get());
-					uintptr_t start = (uintptr_t)source->dest.hostPtr;
-					uintptr_t end = start + source->source.size;
-					while(start < end)
-					{
-						copy_buffer(source->source.pattern.data(), 0, source->source.pattern.size(), (void*)start, 0);
-						start += source->source.pattern.size();
-					}
-					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::SVM_MAP:
-				case CommandType::SVM_UNMAP:
-				{
-					//simply complete
-					event->updateStatus(CL_RUNNING);
-					event->updateStatus(CL_COMPLETE);
-					break;
-				}
-				case CommandType::SVM_FREE:
-				{
-					event->updateStatus(CL_RUNNING);
-					if(event->source)
-					{
-						cl_int status = dynamic_cast<CustomSource*>(event->source.get())->func(event);
-						if(status != CL_SUCCESS)
-							event->updateStatus(status);
-						else
-							event->updateStatus(CL_COMPLETE);
-					}
-					else
-						event->updateStatus(CL_COMPLETE);
-					break;
-				}
 			}
+			else
+				event->updateStatus(returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "No event source specified!"));
 
 			//TODO error-handling (via context-pfn_notify) on errors!
 			cl_int status = event->release();

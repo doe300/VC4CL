@@ -62,6 +62,36 @@ SharedVirtualMemory* SharedVirtualMemory::findSVM(const void* hostPtr)
 	return nullptr;
 }
 
+SVMMemcpy::SVMMemcpy(const void* src, void* dest, std::size_t numBytes) : sourcePtr(src), destPtr(dest), numBytes(numBytes)
+{
+
+}
+
+cl_int SVMMemcpy::operator()(Event* event)
+{
+	//simply memcpy source.size bytes from source to dest
+	memcpy(destPtr, sourcePtr, numBytes);
+	return CL_SUCCESS;
+}
+
+SVMFill::SVMFill(void* dest, const void* pattern, std::size_t patternSize, std::size_t numBytes) : SVMMemcpy(pattern, dest, numBytes)
+{
+	this->pattern.resize(patternSize);
+	memcpy(this->pattern.data(), pattern, patternSize);
+}
+
+cl_int SVMFill::operator()(Event* event)
+{
+	uintptr_t start = reinterpret_cast<uintptr_t>(destPtr);
+	uintptr_t end = start + numBytes;
+	while(start < end)
+	{
+		memcpy(reinterpret_cast<void*>(start), pattern.data(), pattern.size());
+		start += pattern.size();
+	}
+	return CL_SUCCESS;
+}
+
 /*!
  * OpenCL 2.0 specification, pages 167+:
  *  Allocates a shared virtual memory buffer (referred to as a SVM buffer) that can be shared by the host and all devices in an OpenCL context that support shared virtual memory.
@@ -203,9 +233,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMFreeARM)(cl_command_queue command_queue, cl_uint n
 	CommandQueue* queue = toType<CommandQueue>(command_queue);
 	Event* e = newObject<Event>(queue->context(), CL_QUEUED, CommandType::SVM_FREE);
 	CHECK_ALLOCATION(e)
-	CustomSource* source = newObject<CustomSource>();
-	CHECK_ALLOCATION(source)
-	source->func = [svmPointers, pfn_free_func, user_data](Event* ev) -> cl_int
+	const auto func = [svmPointers, pfn_free_func, user_data](Event* ev) -> cl_int
 	{
 		if(pfn_free_func != nullptr)
 			pfn_free_func(ev->getCommandQueue()->toBase(), svmPointers.size(), const_cast<void**>(svmPointers.data()), user_data);
@@ -214,7 +242,9 @@ cl_int VC4CL_FUNC(clEnqueueSVMFreeARM)(cl_command_queue command_queue, cl_uint n
 			allocatedSVMs.erase(ptr);
 		return CL_SUCCESS;
 	};
-	e->source.reset(source);
+	CustomAction* source = newObject<CustomAction>(func);
+	CHECK_ALLOCATION(source)
+	e->action.reset(source);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -288,10 +318,9 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemcpyARM)(cl_command_queue command_queue, cl_bool
 
 	Event* e = newObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_MEMCPY);
 	CHECK_ALLOCATION(e)
-	BufferSource* source = newObject<BufferSource>(const_cast<void*>(src_ptr), dst_ptr);
-	CHECK_ALLOCATION(source)
-	source->source.size = size;
-	e->source.reset(source);
+	SVMMemcpy* action = newObject<SVMMemcpy>(src_ptr, dst_ptr, size);
+	CHECK_ALLOCATION(action)
+	e->action.reset(action);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -371,11 +400,9 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemFillARM)(cl_command_queue command_queue, void* 
 
 	Event* e = newObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_MEMFILL);
 	CHECK_ALLOCATION(e)
-	BufferSource* source = newObject<BufferSource>(static_cast<void*>(nullptr), svm_ptr);
-	CHECK_ALLOCATION(source)
-	source->source.size = size;
-	source->source.setPattern(pattern, pattern_size);
-	e->source.reset(source);
+	SVMFill* action = newObject<SVMFill>(svm_ptr, pattern, pattern_size, size);
+	CHECK_ALLOCATION(action)
+	e->action.reset(action);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -443,6 +470,9 @@ cl_int VC4CL_FUNC(clEnqueueSVMMapARM)(cl_command_queue command_queue, cl_bool bl
 
 	Event* e = newObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_MAP);
 	CHECK_ALLOCATION(e)
+	EventAction* action = newObject<NoAction>(CL_SUCCESS);
+	CHECK_ALLOCATION(action)
+	e->action.reset(action);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -508,6 +538,9 @@ cl_int VC4CL_FUNC(clEnqueueSVMUnmapARM)(cl_command_queue command_queue, void* sv
 
 	Event* e = newObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_UNMAP);
 	CHECK_ALLOCATION(e)
+	EventAction* action = newObject<NoAction>(CL_SUCCESS);
+	CHECK_ALLOCATION(action)
+	e->action.reset(action);
 
 	if(event != NULL)
 		*event = e->toBase();

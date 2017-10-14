@@ -14,6 +14,8 @@
 
 using namespace vc4cl;
 
+extern cl_int executeKernel(Event* event);
+
 void KernelArgument::addScalar(const float f)
 {
 	ScalarValue v;
@@ -411,14 +413,14 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 	Event* kernelEvent = newObject<Event>(program->context(), CL_QUEUED, CommandType::KERNEL_NDRANGE);
 	CHECK_ALLOCATION(kernelEvent)
 
-	KernelSource* source = newObject<KernelSource>(this);
+	KernelExecution* source = newObject<KernelExecution>(this);
 	CHECK_ALLOCATION(source)
 	source->numDimensions = work_dim;
 	memcpy(source->globalOffsets, work_offsets, VC4CL_NUM_DIMENSIONS * sizeof(size_t));
 	memcpy(source->globalSizes, work_sizes, VC4CL_NUM_DIMENSIONS * sizeof(size_t));
 	memcpy(source->localSizes, local_sizes, VC4CL_NUM_DIMENSIONS * sizeof(size_t));
 
-	kernelEvent->source.reset(source);
+	kernelEvent->action.reset(source);
 
 	kernelEvent->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int ret_val = commandQueue->enqueueEvent(kernelEvent);
@@ -433,6 +435,22 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 		ignoreReturnValue(kernelEvent->release(), __FILE__, __LINE__, "At this point, this method already failed");
 
 	return ret_val;
+}
+
+KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), numDimensions(0)
+{
+	if(kernel->retain() != CL_SUCCESS)
+		throw std::runtime_error("Failed to retain kernel in kernel event-arg!");
+}
+
+KernelExecution::~KernelExecution()
+{
+	ignoreReturnValue(kernel->release(), __FILE__, __LINE__, "There is no way of handling an error here");
+}
+
+cl_int KernelExecution::operator()(Event* event)
+{
+	return executeKernel(event);
 }
 
 /*!

@@ -11,6 +11,7 @@
 
 #include "Context.h"
 #include "Mailbox.h"
+#include "Event.h"
 
 namespace vc4cl
 {
@@ -42,6 +43,26 @@ namespace vc4cl
 		static SharedVirtualMemory* findSVM(const void* hostPtr);
 	private:
 		std::shared_ptr<DeviceBuffer> buffer;
+	};
+
+	struct SVMMemcpy : public EventAction
+	{
+		const void* sourcePtr;
+		void* destPtr;
+		std::size_t numBytes;
+
+		SVMMemcpy(const void* src, void* dest, std::size_t numBytes);
+
+		cl_int operator()(Event* event) override;
+	};
+
+	struct SVMFill : public SVMMemcpy
+	{
+		std::vector<char> pattern;
+
+		SVMFill(void* dest, const void* pattern, std::size_t patternSize, std::size_t numBytes);
+
+		cl_int operator()(Event* event) override;
 	};
 
 } /* namespace vc4cl */

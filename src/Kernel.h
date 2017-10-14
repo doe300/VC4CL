@@ -54,6 +54,20 @@ namespace vc4cl
 		cl_ulong argsSetMask;
 	};
 
+	struct KernelExecution : public EventAction
+	{
+		Kernel* kernel;
+		cl_uchar numDimensions;
+		size_t globalOffsets[VC4CL_NUM_DIMENSIONS];
+		size_t globalSizes[VC4CL_NUM_DIMENSIONS];
+		size_t localSizes[VC4CL_NUM_DIMENSIONS];
+
+		KernelExecution(Kernel* kernel);
+		virtual ~KernelExecution();
+
+		cl_int operator()(Event* event) override;
+	};
+
 } /* namespace vc4cl */
 
 #endif /* VC4CL_KERNEL */

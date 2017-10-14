@@ -25,7 +25,7 @@ Buffer::Buffer(Context* context, cl_mem_flags flags) : HasContext(context), read
 
 Buffer::Buffer(Buffer* parent, cl_mem_flags flags) : Buffer(parent->context(), flags)
 {
-	this->parent = parent;
+	this->parent.reset(parent);
 	if(parent->retain() != CL_SUCCESS)
 		throw std::runtime_error("Failed to retain parent of sub-buffer!");
 }
@@ -37,17 +37,11 @@ Buffer::~Buffer()
 	{
 		callback.first(this->toBase(), callback.second);
 	}
-	//"If memobj is a buffer object, memobj cannot be deleted until all sub-buffer objects associated with memobj are deleted."
-	//-> is automatically locked, since sub-buffer increments reference_count on parent
-	if(parent != nullptr)
-	{
-		ignoreReturnValue(parent->release(), __FILE__, __LINE__, "There is no way of handling an error here");
-	}
 }
 
 Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer_create_type, const void* buffer_create_info, cl_int* errcode_ret)
 {
-	if(parent != NULL)
+	if(parent)
 		return returnError<Buffer*>(CL_INVALID_MEM_OBJECT, errcode_ret, __FILE__, __LINE__, "Parent is not a valid buffer!");
 
 	if(!readable && ((flags & CL_MEM_READ_WRITE) || (flags & CL_MEM_READ_ONLY)))
@@ -136,13 +130,11 @@ cl_int Buffer::enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, siz
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create buffer event!");
 	}
 
-	BufferSource* source = newObject<BufferSource>(this, ptr);
-	CHECK_ALLOCATION(source)
-	source->source.offset = offset;
-	source->source.size = size;
-	source->dest.offset = 0;
+	BufferAccess* access = newObject<BufferAccess>(this, ptr, size, false);
+	CHECK_ALLOCATION(access)
+	access->bufferOffset = offset;
 
-	e->source.reset(source);
+	e->action.reset(access);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -172,13 +164,11 @@ cl_int Buffer::enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, s
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create buffer event!");
 	}
 
-	BufferSource* source = newObject<BufferSource>((void*)ptr, this);
-	CHECK_ALLOCATION(source)
-	source->source.offset = 0;
-	source->source.size = size;
-	source->dest.offset = offset;
+	BufferAccess* access = newObject<BufferAccess>(this, const_cast<void*>(ptr), size, true);
+	CHECK_ALLOCATION(access)
+	access->bufferOffset = offset;
 
-	e->source.reset(source);
+	e->action.reset(access);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -209,9 +199,9 @@ static size_t calculate_size(const size_t* region)
 
 cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, cl_bool blocking_read, const size_t* buffer_origin, const size_t* host_origin, const size_t* region, size_t buffer_row_pitch, size_t buffer_slice_pitch, size_t host_row_pitch, size_t host_slice_pitch, void* ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+	//only used for range-checks
 	const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
 	const size_t size = calculate_size(region);
-	const size_t host_offset = calculate_offset(host_origin, host_row_pitch, host_slice_pitch);
 
 	if(size == 0 || buffer_offset + size > deviceBuffer->size)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid read size (%u)!", size));
@@ -230,13 +220,16 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, cl_bool blocking_read
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create buffer event!");
 	}
 
-	BufferSource* source = newObject<BufferSource>(this, ptr);
-	CHECK_ALLOCATION(source)
-	source->source.offset = offset;
-	source->source.size = size;
-	source->dest.offset = host_offset;
-
-	e->source.reset(source);
+	BufferRectAccess* access = newObject<BufferRectAccess>(this, ptr, region, false);
+	CHECK_ALLOCATION(access)
+	access->bufferOffset = offset;
+	memcpy(access->bufferOrigin, buffer_origin, 3 * sizeof(size_t));
+	access->bufferRowPitch = buffer_row_pitch;
+	access->bufferSlicePitch = buffer_slice_pitch;
+	memcpy(access->hostOrigin, host_origin, 3 * sizeof(size_t));
+	access->hostRowPitch = host_row_pitch;
+	access->hostSlicePitch = host_slice_pitch;
+	e->action.reset(access);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -254,9 +247,9 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, cl_bool blocking_read
 
 cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, cl_bool blocking_write, const size_t* buffer_origin, const size_t* host_origin, const size_t* region, size_t buffer_row_pitch, size_t buffer_slice_pitch, size_t host_row_pitch, size_t host_slice_pitch, const void* ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+	//only used for range-checks
 	const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
 	const size_t size = calculate_size(region);
-	const size_t host_offset = calculate_offset(host_origin, host_row_pitch, host_slice_pitch);
 
 	if(size == 0 || buffer_offset + size > deviceBuffer->size || ptr == NULL)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid write size (%u)!", size));
@@ -270,13 +263,16 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, cl_bool blocking_wri
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create buffer event!");
 	}
 
-	BufferSource* source = newObject<BufferSource>((void*)ptr, this);
-	CHECK_ALLOCATION(source)
-	source->source.offset = host_offset;
-	source->source.size = size;
-	source->dest.offset = offset;
-
-	e->source.reset(source);
+	BufferRectAccess* access = newObject<BufferRectAccess>(this, const_cast<void*>(ptr), region, true);
+	CHECK_ALLOCATION(access)
+	access->bufferOffset = offset;
+	memcpy(access->bufferOrigin, buffer_origin, 3 * sizeof(size_t));
+	access->bufferRowPitch = buffer_row_pitch;
+	access->bufferSlicePitch = buffer_slice_pitch;
+	memcpy(access->hostOrigin, host_origin, 3 * sizeof(size_t));
+	access->hostRowPitch = host_row_pitch;
+	access->hostSlicePitch = host_slice_pitch;
+	e->action.reset(access);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -298,12 +294,12 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid copy size (%u)!", size));
 	if(this == destination)
 		return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to itself!");
-	else if(destination->parent == this)
+	else if(destination->parent.get() == this)
 	{
 		if(src_offset <= destination->offset && destination->offset <= src_offset + size)
 			return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its child!");
 	}
-	else if(parent == destination)
+	else if(parent.get() == destination)
 	{
 		if(dst_offset <= offset && offset <= dst_offset + size)
 			return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its parent!");
@@ -319,14 +315,11 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
 	}
 
 	//set source and destination
-	BufferSource* source = newObject<BufferSource>(this, destination);
-	CHECK_ALLOCATION(source)
-	source->source.offset = src_offset;
-	source->source.size = size;
-	source->dest.offset = dst_offset;
-	source->dest.size = size;
-
-	e->source.reset(source);
+	BufferCopy* action = newObject<BufferCopy>(this, destination, size);
+	CHECK_ALLOCATION(action)
+	action->sourceOffset = src_offset;
+	action->destOffset = dst_offset;
+	e->action.reset(action);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -340,6 +333,7 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
 
 cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destination, const size_t* src_origin, const size_t* dst_origin, const size_t* region, size_t src_row_pitch, size_t src_slice_pitch, size_t dst_row_pitch, size_t dst_slice_pitch, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+	//only used for range-checks
 	const size_t src_offset = calculate_offset(src_origin, src_row_pitch, src_slice_pitch);
 	const size_t size = calculate_size(region);
 	const size_t dst_offset = calculate_offset(dst_origin, dst_row_pitch, dst_slice_pitch);
@@ -348,12 +342,12 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid copy size (%u)!", size));
 	if(destination == this)
 		return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to itself!");
-	else if(destination->parent == this)
+	else if(destination->parent.get() == this)
 	{
 		if(src_offset <= destination->offset && destination->offset <= src_offset + size)
 			return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its child!");
 	}
-	else if(parent == destination)
+	else if(parent.get() == destination)
 	{
 		if(dst_offset <= offset && offset <= dst_offset + size)
 			return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its parent!");
@@ -369,14 +363,16 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
 	}
 
 	//set source and destination
-	BufferSource* source = newObject<BufferSource>(this, destination);
-	CHECK_ALLOCATION(source)
-	source->source.offset = src_offset;
-	source->source.size = size;
-	source->dest.offset = dst_offset;
-	source->dest.size = size;
+	BufferRectCopy* action = newObject<BufferRectCopy>(this, destination, region);
+	CHECK_ALLOCATION(action)
+	memcpy(action->sourceOrigin, src_origin, 3 * sizeof(size_t));
+	action->sourceRowPitch =src_row_pitch;
+	action->sourceSlicePitch = src_slice_pitch;
+	memcpy(action->destOrigin, dst_origin, 3 * sizeof(size_t));
+	action->destRowPitch = dst_row_pitch;
+	action->destSlicePitch = dst_slice_pitch;
 
-	e->source.reset(source);
+	e->action.reset(action);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -405,16 +401,10 @@ cl_int Buffer::enqueueFill(CommandQueue* commandQueue, const void* pattern, size
 	}
 
 	//set source and destination
-	//OpenCL 1.2 specification, page 85: "The memory associated with pattern can be reused or freed after the function returns."
-	//so we need to copy the pattern
-	BufferSource* source = newObject<BufferSource>(static_cast<void*>(nullptr), this);
-	CHECK_ALLOCATION(source)
-	source->source.offset = 0;
-	source->source.size = size;
-	source->source.setPattern(pattern, pattern_size);
-	source->dest.offset = offset;
-
-	e->source.reset(source);
+	BufferFill* action = newObject<BufferFill>(this, pattern, pattern_size, size);
+	CHECK_ALLOCATION(action)
+	action->bufferOffset = offset;
+	e->action.reset(action);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -462,9 +452,9 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, cl_bool blocking_map, cl_ma
 		out_ptr = deviceBuffer->hostPointer + offset;
 	}
 
-	BufferSource* source = newObject<BufferSource>(this, out_ptr);
-	CHECK_ALLOCATION_ERROR_CODE(source, errcode_ret, void*)
-	e->source.reset(source);
+	EventAction* action = newObject<BufferMapping>(this, out_ptr, false);
+	CHECK_ALLOCATION_ERROR_CODE(action, errcode_ret, void*)
+	e->action.reset(action);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -514,9 +504,9 @@ cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uin
 		return errcode;
 	}
 
-	BufferSource* source = newObject<BufferSource>(this, mapped_ptr);
-	CHECK_ALLOCATION(source)
-	e->source.reset(source);
+	EventAction* action = newObject<BufferMapping>(this, mapped_ptr, true);
+	CHECK_ALLOCATION(action)
+	e->action.reset(action);
 
 	if(event != NULL)
 		*event = e->toBase();
@@ -563,9 +553,9 @@ cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* pa
 		case CL_MEM_CONTEXT:
 			return returnValue<cl_context>(context()->toBase(), param_value_size, param_value, param_value_size_ret);
 		case CL_MEM_ASSOCIATED_MEMOBJECT:
-			return returnValue<cl_mem>(parent != nullptr ? parent->toBase() : nullptr, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_mem>(parent ? parent->toBase() : nullptr, param_value_size, param_value, param_value_size_ret);
 		case CL_MEM_OFFSET:
-			if(parent != nullptr)
+			if(parent)
 				return returnValue<size_t>(offset, param_value_size, param_value, param_value_size_ret);
 			return returnValue<size_t>(0, param_value_size, param_value, param_value_size_ret);
 	}
@@ -609,6 +599,87 @@ Event* Buffer::createBufferActionEvent(CommandQueue* commandQueue, CommandType c
 	Event* event = newObject<Event>(const_cast<Context*>(context()), CL_QUEUED, command_type);
 	CHECK_ALLOCATION_ERROR_CODE(event, errcode_ret, Event*)
 	RETURN_OBJECT(event, errcode_ret)
+}
+
+BufferMapping::BufferMapping(Buffer* buffer, void* hostPtr, bool unmap) : buffer(buffer), hostPtr(hostPtr), unmap(unmap)
+{
+
+}
+
+cl_int BufferMapping::operator ()(Event* event)
+{
+	//this command doesn't actually do anything, since GPU-memory is always mapped to host-memory
+	if(unmap)
+		buffer->mappings.remove(hostPtr);
+	else
+		buffer->mappings.push_back(hostPtr);
+	return CL_SUCCESS;
+}
+
+BufferAccess::BufferAccess(Buffer* buffer, void* hostPtr, std::size_t numBytes, bool writeBuffer) : buffer(buffer), bufferOffset(0), hostPtr(hostPtr), hostOffset(0), numBytes(numBytes), writeToBuffer(writeBuffer)
+{
+
+}
+
+cl_int BufferAccess::operator()(Event* event)
+{
+	if(writeToBuffer)
+		memcpy(static_cast<char*>(buffer->deviceBuffer->hostPointer) + bufferOffset, static_cast<char*>(hostPtr) + hostOffset, numBytes);
+	else
+		memcpy(static_cast<char*>(hostPtr) + hostOffset, static_cast<char*>(buffer->deviceBuffer->hostPointer) + bufferOffset, numBytes);
+	return CL_SUCCESS;
+
+}
+
+BufferRectAccess::BufferRectAccess(Buffer* buffer, void* hostPtr, const std::size_t region[3], bool writeBuffer) : BufferAccess(buffer, hostPtr, region[0] * region[1] * region[2], writeBuffer),
+		region({0, 0, 0}), bufferOrigin({0, 0, 0}), bufferRowPitch(0), bufferSlicePitch(0), hostOrigin({0, 0, 0}), hostRowPitch(0), hostSlicePitch(0)
+{
+	memcpy(this->region, region, 3 * sizeof(size_t));
+}
+
+BufferFill::BufferFill(Buffer* buffer, const void* pattern, std::size_t patternSize, std::size_t numBytes) : buffer(buffer), bufferOffset(0), numBytes(numBytes)
+{
+	//OpenCL 1.2 specification, page 85: "The memory associated with pattern can be reused or freed after the function returns."
+	//so we need to copy the pattern
+	this->pattern.resize(patternSize);
+	memcpy(this->pattern.data(), pattern, patternSize);
+}
+
+cl_int BufferFill::operator()(Event* event)
+{
+	uintptr_t start = reinterpret_cast<uintptr_t>(buffer->deviceBuffer->hostPointer) + bufferOffset;
+	uintptr_t end = start + numBytes;
+	while(start < end)
+	{
+		memcpy(reinterpret_cast<void*>(start), pattern.data(), pattern.size());
+		start += pattern.size();
+	}
+	return CL_SUCCESS;
+}
+
+BufferCopy::BufferCopy(Buffer* src, Buffer* dest, std::size_t numBytes) : sourceBuffer(src), sourceOffset(0), destBuffer(dest), destOffset(0), numBytes(numBytes)
+{
+
+}
+
+cl_int BufferCopy::operator()(Event* event)
+{
+	uintptr_t src = reinterpret_cast<uintptr_t>(sourceBuffer->deviceBuffer->hostPointer) + sourceOffset;
+	uintptr_t dest = reinterpret_cast<uintptr_t>(destBuffer->deviceBuffer->hostPointer) + destOffset;
+	memcpy(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), numBytes);
+	return CL_SUCCESS;
+}
+
+BufferRectCopy::BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t region[3]) : sourceBuffer(src), destBuffer(dest), region({0, 0, 0}), sourceOrigin({0, 0, 0}), sourceRowPitch(0), sourceSlicePitch(0),
+		destOrigin({0, 0, 0}), destRowPitch(0), destSlicePitch(0)
+{
+	memcpy(this->region, region, 3 * sizeof(size_t));
+}
+
+cl_int BufferRectCopy::operator()(Event* event)
+{
+	//TODO implement
+	return CL_INVALID_OPERATION;
 }
 
 /*!
@@ -1451,6 +1522,10 @@ cl_int VC4CL_FUNC(clEnqueueMigrateMemObjects)(cl_command_queue command_queue, cl
 	//All buffers are always on the single device (the VideoCore IV GPU), so no migration is required
 	Event* e = newObject<Event>(commandQueue->context(), CL_QUEUED, CommandType::BUFFER_MIGRATE);
 	CHECK_ALLOCATION(e)
+	//this command doesn't actually do anything, since buffers are always located in GPU memory and accessible from host-memory
+	EventAction* action = newObject<NoAction>(CL_SUCCESS);
+	CHECK_ALLOCATION(action)
+	e->action.reset(action);
 	if(event != nullptr)
 		*event = e->toBase();
 
