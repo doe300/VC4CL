@@ -26,8 +26,6 @@ Buffer::Buffer(Context* context, cl_mem_flags flags) : HasContext(context), read
 Buffer::Buffer(Buffer* parent, cl_mem_flags flags) : Buffer(parent->context(), flags)
 {
 	this->parent.reset(parent);
-	if(parent->retain() != CL_SUCCESS)
-		throw std::runtime_error("Failed to retain parent of sub-buffer!");
 }
 
 Buffer::~Buffer()

@@ -81,6 +81,109 @@ namespace vc4cl
 		Object& operator=(const Object&) = delete;
 		Object& operator=(Object&&) = delete;
 	};
+
+	template<typename T>
+	struct object_wrapper
+	{
+	public:
+		constexpr object_wrapper() : ref(nullptr)
+		{
+
+		}
+
+		explicit object_wrapper(T* object) : ref(object)
+		{
+			retainPointer();
+		}
+
+		object_wrapper(const object_wrapper& other) : ref(other.ref)
+		{
+			retainPointer();
+		}
+
+		object_wrapper(object_wrapper&& other) : ref(other.ref)
+		{
+			//neither retain (here) nor release (with destruction of the other wrapper)
+			other.ref = nullptr;
+		}
+
+		~object_wrapper()
+		{
+			releasePointer();
+		}
+
+		object_wrapper& operator=(const object_wrapper& other)
+		{
+			if(ref == other.ref)
+				return *this;
+
+			releasePointer();
+			ref = other.ref;
+			retainPointer();
+
+			return *this;
+		}
+
+		object_wrapper& operator=(object_wrapper&& other)
+		{
+			if(ref == other.ref)
+				return *this;
+
+			releasePointer();
+			ref = other.ref;
+			//neither retain (here) nor release (with destruction of the other wrapper)
+			other.ref = nullptr;
+
+			return *this;
+		}
+
+		T* get()
+		{
+			return ref;
+		}
+
+		const T* get() const
+		{
+			return ref;
+		}
+
+		T* operator->()
+		{
+			return ref;
+		}
+
+		const T* operator->() const
+		{
+			return ref;
+		}
+
+		explicit operator bool() const
+		{
+			return ref != nullptr;
+		}
+
+		void reset(T* ptr)
+		{
+			releasePointer();
+			ref = ptr;
+			retainPointer();
+		}
+
+	private:
+		T* ref;
+
+		void releasePointer()
+		{
+			if(ref != nullptr)
+				ignoreReturnValue(ref->release(), __FILE__, __LINE__, "No way to handle error here!");
+		}
+
+		void retainPointer()
+		{
+			if(ref != nullptr && ref->retain() != CL_SUCCESS)
+				throw std::runtime_error("Failed to retain object!");
+		}
+	};
 };
 
 #endif /* VC4CL_OBJECT_H */

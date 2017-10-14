@@ -27,10 +27,6 @@ Event::Event(Context* context, cl_int status, CommandType type) : HasContext(con
 
 Event::~Event()
 {
-	if(queue != nullptr)
-	{
-		ignoreReturnValue(queue->release(), __FILE__, __LINE__, "There is no way of handling an error here");
-	}
 }
 
 cl_int Event::setUserEventStatus(cl_int execution_status)
@@ -52,7 +48,7 @@ cl_int Event::getInfo(cl_event_info param_name, size_t param_value_size, void* p
 	switch(param_name)
 	{
 		case CL_EVENT_COMMAND_QUEUE:
-			return returnValue<cl_command_queue>(queue == nullptr ? nullptr : queue->toBase(), param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_command_queue>(!queue ? nullptr : const_cast<CommandQueue*>(queue.get())->toBase(), param_value_size, param_value, param_value_size_ret);
 		case CL_EVENT_CONTEXT:
 			return returnValue<cl_context>(const_cast<cl_context>(context()->toBase()), param_value_size, param_value, param_value_size_ret);
 		case CL_EVENT_COMMAND_TYPE:
@@ -79,7 +75,7 @@ cl_int Event::setCallback(cl_int command_exec_callback_type, EventCallback callb
 
 cl_int Event::getProfilingInfo(cl_profiling_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const
 {
-	if(queue == NULL || !queue->isProfilingEnabled() || status != CL_COMPLETE || userStatusSet == CL_TRUE)
+	if(!queue || !queue->isProfilingEnabled() || status != CL_COMPLETE || userStatusSet == CL_TRUE)
 		return CL_PROFILING_INFO_NOT_AVAILABLE;
 
 	switch(param_name)
@@ -101,7 +97,7 @@ cl_int Event::waitFor() const
 {
 	if(!checkReferences())
 		return CL_INVALID_EVENT;
-	CHECK_COMMAND_QUEUE(queue)
+	CHECK_COMMAND_QUEUE(queue.get())
 
 	for(Event* e : waitList)
 	{
@@ -147,18 +143,16 @@ void Event::updateStatus(cl_int status, cl_bool fireCallbacks)
 
 CommandQueue* Event::getCommandQueue()
 {
-	return queue;
+	return queue.get();
 }
 
 cl_int Event::prepareToQueue(CommandQueue* queue)
 {
-	if(this->queue != nullptr || queue == nullptr)
+	if(this->queue || queue == nullptr)
 		return CL_INVALID_COMMAND_QUEUE;
-	this->queue = queue;
-	cl_int status = queue->retain();
-	if(status != CL_SUCCESS)
-		return status;
-	status = retain();
+	CHECK_COMMAND_QUEUE(queue)
+	this->queue.reset(queue);
+	cl_int status = retain();
 	if(status != CL_SUCCESS)
 		return status;
 	profile.end_time = 0;

@@ -65,23 +65,20 @@ void Context::fireCallback(const std::string& errorInfo, const void* privateInfo
 
 HasContext::HasContext(Context* context) : c(context)
 {
-	if(c->retain() != CL_SUCCESS)
-		throw std::runtime_error("Failed to retain context!");
 }
 
 HasContext::~HasContext()
 {
-	ignoreReturnValue(c->release(), __FILE__, __LINE__, "There is no way of handling an error here");
 }
 
 const Context* HasContext::context() const
 {
-	return c;
+	return c.get();
 }
 
 Context* HasContext::context()
 {
-	return c;
+	return c.get();
 }
 
 /*!

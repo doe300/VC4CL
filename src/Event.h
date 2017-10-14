@@ -144,7 +144,7 @@ namespace vc4cl
 		const CommandType type;
 		std::unique_ptr<EventAction> action;
 	private:
-		CommandQueue* queue;
+		object_wrapper<CommandQueue> queue;
 
 		cl_int status;
 		cl_bool userStatusSet;

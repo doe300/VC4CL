@@ -57,13 +57,10 @@ std::string KernelArgument::to_string() const
 Kernel::Kernel(Program* program, const KernelInfo& info) : program(program), info(info), argsSetMask(0)
 {
 	args.resize(info.params.size());
-	if(program->retain() != CL_SUCCESS)
-		throw std::runtime_error("Failed to retain program in kernel!");
 }
 
 Kernel::~Kernel()
 {
-	ignoreReturnValue(program->release(), __FILE__, __LINE__, "There is no way of handling an error here");
 }
 
 cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value, const bool isSVMPointer)
@@ -439,13 +436,10 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 
 KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), numDimensions(0)
 {
-	if(kernel->retain() != CL_SUCCESS)
-		throw std::runtime_error("Failed to retain kernel in kernel event-arg!");
 }
 
 KernelExecution::~KernelExecution()
 {
-	ignoreReturnValue(kernel->release(), __FILE__, __LINE__, "There is no way of handling an error here");
 }
 
 cl_int KernelExecution::operator()(Event* event)

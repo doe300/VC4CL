@@ -107,7 +107,7 @@ cl_int executeKernel(Event* event)
 {
 	CHECK_EVENT(event)
 	KernelExecution& args = dynamic_cast<KernelExecution&>(*event->action.get());
-	Kernel* kernel = args.kernel;
+	Kernel* kernel = args.kernel.get();
 	CHECK_KERNEL(kernel)
 	
 	//the number of QPUs is the product of all local sizes

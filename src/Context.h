@@ -54,7 +54,7 @@ namespace vc4cl
 		Context* context();
 
 	private:
-		Context* c;
+		object_wrapper<Context> c;
 	};
 
 } /* namespace vc4cl */
