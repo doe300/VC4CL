@@ -161,7 +161,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 #endif
 	}
 
-	argsSetMask |= 1 << arg_index;
+	argsSetMask.set(arg_index, 1);
 
 	return CL_SUCCESS;
 }

@@ -110,8 +110,7 @@ namespace vc4cl
      */
     //the number of UNIFORMS seems to be unlimited, see official documentation, page 91, table 67
     //but since we load all parameters at start-up, we can only hold 64 (with 64 registers)
-    //TODO this is not correct, e.g. for literal vector parameters, which only use a single register
-    //XXX if we increase this, we need to increase the type of Kernel#argsSetMask
+    //TODO this is not correct, e.g. for literal vector parameters, which only use a single register (but several parameter values)
     static constexpr cl_uint VC4CL_MAX_PARAMETER = 64;
     //according to tests, values are always rounded to zero
     static constexpr cl_uint VC4CL_FLOATING_CONFIG = CL_FP_ROUND_TO_ZERO;

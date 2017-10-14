@@ -73,8 +73,6 @@ namespace vc4cl
 		CHECK_RETURN Event* createBufferActionEvent(CommandQueue* queue, CommandType command_type, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_int* errcode_ret) const;
 	};
 
-	//TODO reference counters(add wrapper for automatic counter!)
-
 	struct BufferMapping : public EventAction
 	{
 		object_wrapper<Buffer> buffer;
@@ -112,7 +110,7 @@ namespace vc4cl
 
 		BufferRectAccess(Buffer* buffer, void* hostPtr, const std::size_t region[3], bool writeBuffer);
 
-		//TODO override operator()
+		cl_int operator()(Event* event) override;
 	};
 	
 	struct BufferFill : public EventAction

@@ -8,6 +8,7 @@
 #define VC4CL_KERNEL
 
 #include <vector>
+#include <bitset>
 
 #include "Object.h"
 #include "Program.h"
@@ -51,7 +52,7 @@ namespace vc4cl
 		KernelInfo info;
 
 		std::vector<KernelArgument> args;
-		cl_ulong argsSetMask;
+		std::bitset<VC4CL_MAX_PARAMETER> argsSetMask;
 	};
 
 	struct KernelExecution : public EventAction

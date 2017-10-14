@@ -106,6 +106,7 @@ static void runEventQueue()
 		}
 		else
 		{
+			//TODO sometimes locks infinite (race condition on event set after the check above but before the wait()?)
 			std::unique_lock<std::mutex> lock(eventMutex);
 			eventAvailable.wait(lock);
 			eventProcessed.notify_all();

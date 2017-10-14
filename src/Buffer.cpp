@@ -630,9 +630,33 @@ cl_int BufferAccess::operator()(Event* event)
 }
 
 BufferRectAccess::BufferRectAccess(Buffer* buffer, void* hostPtr, const std::size_t region[3], bool writeBuffer) : BufferAccess(buffer, hostPtr, region[0] * region[1] * region[2], writeBuffer),
-		region({0, 0, 0}), bufferOrigin({0, 0, 0}), bufferRowPitch(0), bufferSlicePitch(0), hostOrigin({0, 0, 0}), hostRowPitch(0), hostSlicePitch(0)
+		region{0, 0, 0}, bufferOrigin{0, 0, 0}, bufferRowPitch(0), bufferSlicePitch(0), hostOrigin{0, 0, 0}, hostRowPitch(0), hostSlicePitch(0)
 {
 	memcpy(this->region, region, 3 * sizeof(size_t));
+}
+
+cl_int BufferRectAccess::operator()(Event* event)
+{
+	//copied from POCL (https://github.com/pocl/pocl/blob/master/lib/CL/devices/basic/basic.c), functions pocl_basic_write_rect and pocl_basic_read_rect
+	uintptr_t devicePointer = reinterpret_cast<uintptr_t>(buffer->deviceBuffer->hostPointer) + bufferOrigin[0] + bufferOrigin[1] * bufferRowPitch + bufferOrigin[2] * bufferSlicePitch;
+	uintptr_t hostPointer = reinterpret_cast<uintptr_t>(hostPtr) + hostOrigin[0] + hostOrigin[1] * hostRowPitch + hostOrigin[2] * hostSlicePitch;
+
+	/* TODO: (from pocl) handle overlapping regions. Can there be any? */
+	for(std::size_t z = 0; z < region[2]; ++z)
+	{
+		for(std::size_t y = 0; y < region[1]; ++y)
+		{
+			if(writeToBuffer)
+			{
+				memcpy(reinterpret_cast<void*>(devicePointer + bufferRowPitch * y + bufferSlicePitch * z), reinterpret_cast<void*>(hostPointer + hostRowPitch * y + hostSlicePitch * z), region[0]);
+			}
+			else
+			{
+				memcpy(reinterpret_cast<void*>(hostPointer + hostRowPitch * y + hostSlicePitch * z), reinterpret_cast<void*>(devicePointer + bufferRowPitch * y + bufferSlicePitch * z), region[0]);
+			}
+		}
+	}
+	return CL_SUCCESS;
 }
 
 BufferFill::BufferFill(Buffer* buffer, const void* pattern, std::size_t patternSize, std::size_t numBytes) : buffer(buffer), bufferOffset(0), numBytes(numBytes)
@@ -668,16 +692,27 @@ cl_int BufferCopy::operator()(Event* event)
 	return CL_SUCCESS;
 }
 
-BufferRectCopy::BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t region[3]) : sourceBuffer(src), destBuffer(dest), region({0, 0, 0}), sourceOrigin({0, 0, 0}), sourceRowPitch(0), sourceSlicePitch(0),
-		destOrigin({0, 0, 0}), destRowPitch(0), destSlicePitch(0)
+BufferRectCopy::BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t region[3]) : sourceBuffer(src), destBuffer(dest), region{0, 0, 0}, sourceOrigin{0, 0, 0}, sourceRowPitch(0), sourceSlicePitch(0),
+		destOrigin{0, 0, 0}, destRowPitch(0), destSlicePitch(0)
 {
 	memcpy(this->region, region, 3 * sizeof(size_t));
 }
 
 cl_int BufferRectCopy::operator()(Event* event)
 {
-	//TODO implement
-	return CL_INVALID_OPERATION;
+	//copied from POCL (https://github.com/pocl/pocl/blob/master/lib/CL/devices/basic/basic.c), function pocl_basic_copy_rect
+	uintptr_t sourcePointer = reinterpret_cast<uintptr_t>(sourceBuffer->deviceBuffer->hostPointer) + sourceOrigin[0] + sourceOrigin[1] * sourceRowPitch + sourceOrigin[2] * sourceSlicePitch;
+	uintptr_t destPointer = reinterpret_cast<uintptr_t>(destBuffer->deviceBuffer->hostPointer) + destOrigin[0] + destOrigin[1] * destRowPitch + destOrigin[2] * destSlicePitch;
+
+	/* TODO: (from pocl) handle overlapping regions. Can there be any? */
+	for(std::size_t z = 0; z < region[2]; ++z)
+	{
+		for(std::size_t y = 0; y < region[1]; ++y)
+		{
+			memcpy(reinterpret_cast<void*>(destPointer + destRowPitch * y + destSlicePitch * z), reinterpret_cast<void*>(sourcePointer + sourceRowPitch * y + sourceSlicePitch * z), region[0]);
+		}
+	}
+	return CL_SUCCESS;
 }
 
 /*!
