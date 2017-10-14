@@ -189,6 +189,7 @@ bool V3D::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uintptr_t> addressPa
 	//see https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/hello_pi/hello_fft/gpu_fft_base.c, function gpu_fft_base_exec_direct
 	//TODO interrupts?? not in Broadcom spec
 	//https://vc4-notes.tumblr.com/post/125039428234/v3d-registers-not-on-videocore-iv-3d-architecture
+	//see errata: https://elinux.org/VideoCore_IV_3D_Architecture_Reference_Guide_errata
 
 	//clear cache (if set)
 	if(flushBuffer)

@@ -19,11 +19,12 @@
 
 using namespace vc4cl;
 
-//TODO rewrite, so compile is OpenCL C -> SPIR-V/LLVM-IR
-//and link is SPIR-V/LLVM-IR -> asm
-//+ can use linker in SPIR-V Tools to support multiple input programs
-//+ more accurate wrt meanings of compilation and linking
-//- need extra buffer for intermediate code
+/*
+ * TODO rewrite, so compile is OpenCL C -> SPIR-V/LLVM-IR and link is SPIR-V/LLVM-IR -> asm
+ * + can use linker in SPIR-V Tools to support multiple input programs
+ * + more accurate wrt meanings of compilation and linking
+ * - need extra buffer for intermediate code
+ */
 
 size_t KernelInfo::getExplicitUniformCount() const
 {
@@ -74,8 +75,6 @@ static cl_int compile_program(Program* program, const std::string& options)
 		program->buildInfo.status = CL_SUCCESS;
 		program->binaryCode.resize(numBytes, '\0');
 
-		//somehow fails to copy the last few (e.g. 32) bytes
-		//std::copy(std::istream_iterator<char>(binaryCode), std::istream_iterator<char>(), std::back_inserter(program->binaryCode));
 		memcpy(program->binaryCode.data(), binaryCode.str().data(), numBytes);
 
 	}

@@ -304,8 +304,8 @@ Run with work-size of 8
 | shuffle_copy                    | FAILED | value mismatch, contains some random wrong values for vector-size > 1 |
 | shuffle_function_call           | FAILED | value mismatch, contains some random wrong values for vector-size > 1 |
 | shuffle_array_cast
-| shuffle_built_in                | FAILED | value mismatch, actual result is one value replicated, expected result has different values |
-| shuffle_built_in_dual_input     | FAILED | value mismatch, contains some random wrong values for vector-size > 2 |
+| shuffle_built_in                | FAILED | hangs/freezes (no CPU usage) in ushort8 -> ushort8 |
+| shuffle_built_in_dual_input     | FAILED | value mismatch (only short8 -> short2, int8 -> int2, uint8 -> uint2), compilation error (uint2 -> uint4) |
 
 ### Thread Dimensions (thread_dimensions/test_thread_dimensions)
 Run with work-size of 8
