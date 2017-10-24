@@ -99,7 +99,7 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_ulong), info_size);
-    TEST_ASSERT_EQUALS(VC4CL_CACHE_SIZE, *(cl_ulong*)buffer);
+    TEST_ASSERT_EQUALS(device_config::CACHE_SIZE, *(cl_ulong*)buffer);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_GLOBAL_MEM_CACHE_TYPE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -109,7 +109,7 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(VC4CL_CACHE_LINE_SIZE, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(device_config::CACHE_LINE_SIZE, *(cl_uint*)buffer);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_HALF_FP_CONFIG, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -313,7 +313,7 @@ void TestDevice::testGetDeviceInfo()
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_PROFILE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(VC4CL_PLATFORM_PROFILE.compare((char*)buffer) == 0);
+    TEST_ASSERT(platform_config::PROFILE.compare((char*)buffer) == 0);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_PROFILING_TIMER_RESOLUTION, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -345,7 +345,7 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_VENDOR_ID, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(VC4CL_DEVICE_VENDOR_ID, *(cl_uint*)buffer);    
+    TEST_ASSERT_EQUALS(device_config::VENDOR_ID, *(cl_uint*)buffer);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_VERSION, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);

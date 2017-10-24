@@ -41,23 +41,23 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			return returnValue<cl_device_type>(CL_DEVICE_TYPE_GPU, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_VENDOR_ID:
 			//"A unique device vendor identifier. An example of a unique device identifier could be the PCIe ID"
-			return returnValue<cl_uint>(VC4CL_DEVICE_VENDOR_ID, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(device_config::VENDOR_ID, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MAX_COMPUTE_UNITS:
 			//"The number of parallel compute units on the OpenCL device. A work-group executes on a single compute unit.
 			// The minimum value is 1."
-			return returnValue<cl_uint>(VC4CL_NUM_COMPUTE_UNITS, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(device_config::NUM_COMPUTE_UNITS, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:
 			//"Maximum dimensions that specify the global and local work-item IDs used by the data parallel execution model.
 			// The minimum value is 3 for devices that are not of type CL_DEVICE_TYPE_CUSTOM."
-			return returnValue<cl_uint>(VC4CL_NUM_DIMENSIONS, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(kernel_config::NUM_DIMENSIONS, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MAX_WORK_ITEM_SIZES:
 		{
 			//"Maximum number of work-items that can be specified in each dimension of the work-group.
 			// Returns n size_t entries, where n is the value returned by the query for CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS.
 			// The minimum value is (1, 1, 1)."
 			size_t numQPUs = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
-			size_t tmp[VC4CL_NUM_DIMENSIONS] = {numQPUs, numQPUs, numQPUs};
-			return returnValue(tmp, sizeof(size_t), VC4CL_NUM_DIMENSIONS, param_value_size, param_value, param_value_size_ret);
+			size_t tmp[kernel_config::NUM_DIMENSIONS] = {numQPUs, numQPUs, numQPUs};
+			return returnValue(tmp, sizeof(size_t), kernel_config::NUM_DIMENSIONS, param_value_size, param_value, param_value_size_ret);
 		}
 		case CL_DEVICE_MAX_WORK_GROUP_SIZE:
 			//"Maximum number of work-items in a work-group executing a kernel on a single compute unit, using the data parallel execution model."
@@ -67,20 +67,20 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			// The vector width is defined as the number of scalar elements that can be stored in the vector. "
 		case CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR:
 			//"Returns the native ISA vector width. The vector width is defined as the number of scalar elements that can be stored in the vector."
-			return returnValue<cl_uint>(VC4CL_PREFERRED_VECTOR_WIDTH, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(device_config::PREFERRED_VECTOR_WIDTH, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT:
 		case CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT:
-			return returnValue<cl_uint>(VC4CL_PREFERRED_VECTOR_WIDTH, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(device_config::PREFERRED_VECTOR_WIDTH, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT:
 		case CL_DEVICE_NATIVE_VECTOR_WIDTH_INT:
-			return returnValue<cl_uint>(VC4CL_PREFERRED_VECTOR_WIDTH, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(device_config::PREFERRED_VECTOR_WIDTH, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG:
 		case CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG:
 			//not supported
 			return returnValue<cl_uint>(0, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT:
 		case CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT:
-			return returnValue<cl_uint>(VC4CL_PREFERRED_VECTOR_WIDTH, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(device_config::PREFERRED_VECTOR_WIDTH, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE:
 			//"If double precision is not supported, CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE must return 0."
 		case CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE:
@@ -118,37 +118,37 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 #endif
 		case CL_DEVICE_MAX_READ_IMAGE_ARGS:
 			//"Max number of simultaneous image objects that can be read by a kernel."
-			return returnValue<cl_uint>(VC4CL_MAX_PARAMETER, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(kernel_config::MAX_PARAMETER_COUNT, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MAX_WRITE_IMAGE_ARGS:
 			//"Max number of simultaneous image objects that can be written to by a kernel."
-			return returnValue<cl_uint>(VC4CL_MAX_PARAMETER, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(kernel_config::MAX_PARAMETER_COUNT, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_IMAGE2D_MAX_WIDTH:
 			//"Max width of 2D image in pixels.  The minimum value is 2048 [...]"
-			return returnValue<size_t>(VC4CL_IMAGE_DIMENSION_MAX, param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(kernel_config::MAX_IMAGE_DIMENSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_IMAGE2D_MAX_HEIGHT:
 			//"Max width of 2D image in pixels.  The minimum value is 2048 [...]"
-			return returnValue<size_t>(VC4CL_IMAGE_DIMENSION_MAX, param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(kernel_config::MAX_IMAGE_DIMENSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_IMAGE3D_MAX_WIDTH:
 			//"Max width of 2D image in pixels.  The minimum value is 0 [...]"
-			return returnValue<size_t>(VC4CL_IMAGE_DIMENSION_MAX, param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(kernel_config::MAX_IMAGE_DIMENSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_IMAGE3D_MAX_HEIGHT:
 			//"Max width of 2D image in pixels.  The minimum value is 0 [...]"
-			return returnValue<size_t>(VC4CL_IMAGE_DIMENSION_MAX, param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(kernel_config::MAX_IMAGE_DIMENSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_IMAGE3D_MAX_DEPTH:
 			//"Max width of 2D image in pixels.  The minimum value is 0 [...]"
-			return returnValue<size_t>(VC4CL_IMAGE_DIMENSION_MAX, param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(kernel_config::MAX_IMAGE_DIMENSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
 			//"Max width of 2D image in pixels.  The minimum value is 2048 [...]"
-			return returnValue<size_t>(VC4CL_IMAGE_DIMENSION_MAX, param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(kernel_config::MAX_IMAGE_DIMENSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
 			//"Max width of 2D image in pixels.  The minimum value is 256 [...]"
-			return returnValue<size_t>(VC4CL_IMAGE_DIMENSION_MAX, param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(kernel_config::MAX_IMAGE_DIMENSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MAX_SAMPLERS:
 			//"Maximum number of samplers that can be used in a kernel."
-			return returnValue<cl_uint>(VC4CL_MAX_PARAMETER, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(kernel_config::MAX_PARAMETER_COUNT, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MAX_PARAMETER_SIZE:
 			//"Max size in bytes of the arguments that can be passed to a kernel. The minimum value is 1024 (256 for EMBEDDED PROFILE)."
-			return returnValue<size_t>(VC4CL_MAX_PARAMETER * 4 /* 32-bit integers */, param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(kernel_config::MAX_PARAMETER_COUNT * 4 /* 32-bit integers */, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
 			//"The minimum value is the size (in bits) of the largest OpenCL built-in data type supported by the device."
 			//XXX what exactly is this?? Need to be 4KB, since we align all buffers to 4KB (for now) ??
@@ -163,7 +163,7 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			//For EMBEDDED PROFILE:
 			//"The mandated minimum single precision floating-point capability [...] is
 			//  CL_FP_ROUND_TO_ZERO or CL_FP_ROUND_TO_NEAREST"
-			return returnValue<cl_device_fp_config>(VC4CL_FLOATING_CONFIG, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_device_fp_config>(device_config::FLOATING_POINT_CONFIG, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_DOUBLE_FP_CONFIG:
 			//"Double precision is an optional feature so the mandated minimum double precision floating-point capability is 0."
 		case CL_DEVICE_HALF_FP_CONFIG:
@@ -178,10 +178,10 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			return returnValue<cl_device_mem_cache_type>(CL_READ_WRITE_CACHE, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE:
 			//"Size of global memory cache line in bytes."
-			return returnValue<cl_uint>(VC4CL_CACHE_LINE_SIZE, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(device_config::CACHE_LINE_SIZE, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_GLOBAL_MEM_CACHE_SIZE:
 			//"Size of global memory cache in bytes."
-			return returnValue<cl_ulong>(VC4CL_CACHE_SIZE, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_ulong>(device_config::CACHE_SIZE, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_GLOBAL_MEM_SIZE:
 			//"Size of global device memory in bytes."
 			return returnValue<cl_ulong>(mailbox().getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
@@ -190,7 +190,7 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			return returnValue<cl_ulong>(mailbox().getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MAX_CONSTANT_ARGS:
 			//"Max number of arguments declared with the __constant qualifier in a kernel.  The minimum value is 8 (4 for EMBEDDED PROFILE)"
-			return returnValue<cl_uint>(VC4CL_MAX_PARAMETER, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(kernel_config::MAX_PARAMETER_COUNT, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_LOCAL_MEM_TYPE:
 			//"Type of local memory supported.  This can be set to CL_LOCAL implying dedicated local memory storage such as SRAM, or CL_GLOBAL."
 			//memory is always global
@@ -236,30 +236,30 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			//"The platform associated with this device."
 			return returnValue<cl_platform_id>(Platform::getVC4CLPlatform().toBase(), param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_NAME:
-			return returnString(VC4CL_DEVICE_NAME, param_value_size, param_value, param_value_size_ret);
+			return returnString(device_config::NAME, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_VENDOR:
-			return returnString(VC4CL_DEVICE_VENDOR, param_value_size, param_value, param_value_size_ret);
+			return returnString(device_config::VENDOR, param_value_size, param_value, param_value_size_ret);
 		case CL_DRIVER_VERSION:
 			//"OpenCL software driver version string in the form major_number.minor_number"
-			return returnString(VC4CL_VERSION, param_value_size, param_value, param_value_size_ret);
+			return returnString(platform_config::VC4CL_VERSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_PROFILE:
 			//"OpenCL profile string.  Returns the profile name supported by the device"
-			return returnString(VC4CL_PLATFORM_PROFILE, param_value_size, param_value, param_value_size_ret);
+			return returnString(platform_config::PROFILE, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_VERSION:
 			//"OpenCL version string.  Returns the OpenCL version supported by the device.
 			// This version string has the following format:
 			// OpenCL<space><major_version.minor_version><space><vendor-specific information>"
-			return returnString(VC4CL_PLATFORM_VERSION, param_value_size, param_value, param_value_size_ret);
+			return returnString(platform_config::VERSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_OPENCL_C_VERSION:
 			//"OpenCL C version string.  Returns the highest OpenCL C version supported by the compiler.
 			// This version string has the following format:
 			// OpenCL<space>C<space><major_version.minor_version><space><vendor-specific information>"
-			return returnString(VC4CL_DEVICE_COMPILER_VERSION, param_value_size, param_value, param_value_size_ret);
+			return returnString(device_config::COMPILER_VERSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_EXTENSIONS:
 			//Returns a space separated list of extension names (the extension names themselves do not contain any spaces) supported by the device.
 			// The following approved Khronos extension names must be returned by all device that support OpenCL C 1.2:
 			// cl_khr_global_int32_base_atomics, cl_khr_global_int32_extended_atomics, cl_khr_local_int32_base_atomics, cl_khr_local_int32_extended_atomics, cl_khr_byte_addressable_store"
-			return returnString(joinStrings(VC4CL_DEVICE_EXTENSIONS), param_value_size, param_value, param_value_size_ret);
+			return returnString(joinStrings(device_config::EXTENSIONS), param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_PRINTF_BUFFER_SIZE:
 			//"Maximum size of the internal buffer that holds the output of printf calls from a kernel.
 			// The minimum value for the FULL profile is 1 MB (1KB for EMBEDDED PROFILE)."

@@ -143,15 +143,6 @@ namespace vc4cl
     #define CHECK_BUFFER(buffer) CHECK_OBJECT(buffer, CL_INVALID_MEM_OBJECT)
     #define CHECK_BUFFER_ERROR_CODE(buffer, errcode_ret, type) CHECK_OBJECT_ERROR_CODE(buffer, CL_INVALID_MEM_OBJECT, errcode_ret, type)
 
-    #define CHECK_IMAGE(img) \
-    CHECK_BUFFER(img) \
-    if(img->image() == nullptr) \
-        return returnError(CL_INVALID_MEM_OBJECT, __FILE__, __LINE__, "Buffer has no image set!");
-    #define CHECK_IMAGE_ERROR_CODE(img, errcode_ret, type) \
-    CHECK_BUFFER_ERROR_CODE(img, errcode_ret, type) \
-    if(img->image() == nullptr) \
-        return returnError<type>(CL_INVALID_MEM_OBJECT, errcode_ret, __FILE__, __LINE__, "Buffer has no image set!");
-
     #define CHECK_SAMPLER(sampler) CHECK_OBJECT(sampler, CL_INVALID_SAMPLER)
     #define CHECK_SAMPLER_ERROR_CODE(sampler, errcode_ret, type) CHECK_OBJECT_ERROR_CODE(sampler, CL_INVALID_SAMPLER, errcode_ret, type)
 

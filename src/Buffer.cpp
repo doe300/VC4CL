@@ -72,7 +72,7 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 			return returnError<Buffer*>(CL_INVALID_BUFFER_SIZE, errcode_ret, __FILE__, __LINE__, "Sub buffer has no size!");
 		if(hostPtr != NULL && region->origin + region->size > deviceBuffer->size)
 			return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Sub buffer maximum (%u) exceeds parent's (%u) size!", region->origin + region->size, deviceBuffer->size));
-		if(region->origin % VC4CL_BUFFER_ALIGNMENT != 0)
+		if(region->origin % device_config::BUFFER_ALIGNMENT != 0)
 			return returnError<Buffer*>(CL_MISALIGNED_SUB_BUFFER_OFFSET, errcode_ret, __FILE__, __LINE__, "Sub-buffer has invalid alignment of!");
 	}
 
@@ -221,10 +221,10 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, cl_bool blocking_read
 	BufferRectAccess* access = newObject<BufferRectAccess>(this, ptr, region, false);
 	CHECK_ALLOCATION(access)
 	access->bufferOffset = offset;
-	memcpy(access->bufferOrigin, buffer_origin, 3 * sizeof(size_t));
+	memcpy(access->bufferOrigin.data(), buffer_origin, 3 * sizeof(size_t));
 	access->bufferRowPitch = buffer_row_pitch;
 	access->bufferSlicePitch = buffer_slice_pitch;
-	memcpy(access->hostOrigin, host_origin, 3 * sizeof(size_t));
+	memcpy(access->hostOrigin.data(), host_origin, 3 * sizeof(size_t));
 	access->hostRowPitch = host_row_pitch;
 	access->hostSlicePitch = host_slice_pitch;
 	e->action.reset(access);
@@ -264,10 +264,10 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, cl_bool blocking_wri
 	BufferRectAccess* access = newObject<BufferRectAccess>(this, const_cast<void*>(ptr), region, true);
 	CHECK_ALLOCATION(access)
 	access->bufferOffset = offset;
-	memcpy(access->bufferOrigin, buffer_origin, 3 * sizeof(size_t));
+	memcpy(access->bufferOrigin.data(), buffer_origin, 3 * sizeof(size_t));
 	access->bufferRowPitch = buffer_row_pitch;
 	access->bufferSlicePitch = buffer_slice_pitch;
-	memcpy(access->hostOrigin, host_origin, 3 * sizeof(size_t));
+	memcpy(access->hostOrigin.data(), host_origin, 3 * sizeof(size_t));
 	access->hostRowPitch = host_row_pitch;
 	access->hostSlicePitch = host_slice_pitch;
 	e->action.reset(access);
@@ -363,10 +363,10 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
 	//set source and destination
 	BufferRectCopy* action = newObject<BufferRectCopy>(this, destination, region);
 	CHECK_ALLOCATION(action)
-	memcpy(action->sourceOrigin, src_origin, 3 * sizeof(size_t));
+	memcpy(action->sourceOrigin.data(), src_origin, 3 * sizeof(size_t));
 	action->sourceRowPitch =src_row_pitch;
 	action->sourceSlicePitch = src_slice_pitch;
-	memcpy(action->destOrigin, dst_origin, 3 * sizeof(size_t));
+	memcpy(action->destOrigin.data(), dst_origin, 3 * sizeof(size_t));
 	action->destRowPitch = dst_row_pitch;
 	action->destSlicePitch = dst_slice_pitch;
 
@@ -532,8 +532,6 @@ cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* pa
 	switch(param_name)
 	{
 		case CL_MEM_TYPE:
-			if(img)
-				return returnValue<cl_mem_object_type>(img->image_type, param_value_size, param_value, param_value_size_ret);
 			return returnValue<cl_mem_object_type>(CL_MEM_OBJECT_BUFFER, param_value_size, param_value, param_value_size_ret);
 		case CL_MEM_FLAGS:
 			return returnValue<cl_mem_flags>(flags, param_value_size, param_value, param_value_size_ret);
@@ -559,11 +557,6 @@ cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* pa
 	}
 
 	return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_mem_info value %u", param_name));
-}
-
-std::unique_ptr<Image>& Buffer::image()
-{
-	return img;
 }
 
 void Buffer::setUseHostPointer(void* hostPtr, size_t hostSize)
@@ -632,7 +625,7 @@ cl_int BufferAccess::operator()(Event* event)
 BufferRectAccess::BufferRectAccess(Buffer* buffer, void* hostPtr, const std::size_t region[3], bool writeBuffer) : BufferAccess(buffer, hostPtr, region[0] * region[1] * region[2], writeBuffer),
 		region{0, 0, 0}, bufferOrigin{0, 0, 0}, bufferRowPitch(0), bufferSlicePitch(0), hostOrigin{0, 0, 0}, hostRowPitch(0), hostSlicePitch(0)
 {
-	memcpy(this->region, region, 3 * sizeof(size_t));
+	memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
 
 cl_int BufferRectAccess::operator()(Event* event)
@@ -695,7 +688,7 @@ cl_int BufferCopy::operator()(Event* event)
 BufferRectCopy::BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t region[3]) : sourceBuffer(src), destBuffer(dest), region{0, 0, 0}, sourceOrigin{0, 0, 0}, sourceRowPitch(0), sourceSlicePitch(0),
 		destOrigin{0, 0, 0}, destRowPitch(0), destSlicePitch(0)
 {
-	memcpy(this->region, region, 3 * sizeof(size_t));
+	memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
 
 cl_int BufferRectCopy::operator()(Event* event)

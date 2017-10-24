@@ -43,7 +43,7 @@ static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data
 	return (raw_size / PAGE_ALIGNMENT + 1) * PAGE_ALIGNMENT;
 }
 
-static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions, const size_t global_offsets[VC4CL_NUM_DIMENSIONS], const size_t global_sizes[VC4CL_NUM_DIMENSIONS], const size_t local_sizes[VC4CL_NUM_DIMENSIONS], const size_t group_indices[VC4CL_NUM_DIMENSIONS], const size_t local_indices[VC4CL_NUM_DIMENSIONS], const void* global_data, const unsigned iterationIndex)
+static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_offsets, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& group_indices, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_indices, const void* global_data, const unsigned iterationIndex)
 {
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Setting work-item infos:" << std::endl;
@@ -74,7 +74,7 @@ static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions,
 	return ptr;
 }
 
-static cl_bool increment_index(size_t indices[VC4CL_NUM_DIMENSIONS], const size_t limits[VC4CL_NUM_DIMENSIONS], const size_t offset)
+static cl_bool increment_index(std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& indices, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& limits, const size_t offset)
 {
 	indices[0] += offset;
 	if(indices[0] >= limits[0])
@@ -117,13 +117,13 @@ cl_int executeKernel(Event* event)
 	
 
 	//first work-group has group_ids 0,0,0
-	const size_t group_limits[VC4CL_NUM_DIMENSIONS] = {
+	const std::array<std::size_t,kernel_config::NUM_DIMENSIONS> group_limits = {
 		args.globalSizes[0] / args.localSizes[0],
 		args.globalSizes[1] / args.localSizes[1],
 		args.globalSizes[2] / args.localSizes[2],
 	};
-	size_t group_indices[VC4CL_NUM_DIMENSIONS] = {0, 0, 0};
-	size_t local_indices[VC4CL_NUM_DIMENSIONS] = {0, 0, 0};
+	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> group_indices = {0, 0, 0};
+	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> local_indices = {0, 0, 0};
 	//Number of iterations for the "Kernel Loop Optimization"
 	size_t numIterations = std::min(MAX_ITERATIONS, group_limits[0]);
 	//make sure, the number of iterations divides the local size

@@ -52,16 +52,16 @@ namespace vc4cl
 		KernelInfo info;
 
 		std::vector<KernelArgument> args;
-		std::bitset<VC4CL_MAX_PARAMETER> argsSetMask;
+		std::bitset<kernel_config::MAX_PARAMETER_COUNT> argsSetMask;
 	};
 
 	struct KernelExecution : public EventAction
 	{
 		object_wrapper<Kernel> kernel;
 		cl_uchar numDimensions;
-		size_t globalOffsets[VC4CL_NUM_DIMENSIONS];
-		size_t globalSizes[VC4CL_NUM_DIMENSIONS];
-		size_t localSizes[VC4CL_NUM_DIMENSIONS];
+		std::array<std::size_t,kernel_config::NUM_DIMENSIONS> globalOffsets;
+		std::array<std::size_t,kernel_config::NUM_DIMENSIONS> globalSizes;
+		std::array<std::size_t,kernel_config::NUM_DIMENSIONS> localSizes;
 
 		KernelExecution(Kernel* kernel);
 		virtual ~KernelExecution();

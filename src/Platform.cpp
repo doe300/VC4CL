@@ -33,25 +33,25 @@ cl_int Platform::getInfo(cl_platform_info param_name, size_t param_value_size, v
 	{
 		case CL_PLATFORM_NAME:
 			//"Platform name string."
-			return returnString(VC4CL_PLATFORM_NAME, param_value_size, param_value, param_value_size_ret);
+			return returnString(platform_config::NAME, param_value_size, param_value, param_value_size_ret);
 		case CL_PLATFORM_PROFILE:
 			//"OpenCL profile string.  Returns the profile name supported by the implementation.
 			// EMBEDDED_PROFILE - if the implementation supports the OpenCL embedded profile."
-			return returnString(VC4CL_PLATFORM_PROFILE, param_value_size, param_value, param_value_size_ret);
+			return returnString(platform_config::PROFILE, param_value_size, param_value, param_value_size_ret);
 		case CL_PLATFORM_VENDOR:
 			//"Platform vendor string."
-			return returnString(VC4CL_PLATFORM_VENDOR, param_value_size, param_value, param_value_size_ret);
+			return returnString(platform_config::VENDOR, param_value_size, param_value, param_value_size_ret);
 		case CL_PLATFORM_VERSION:
 			//"Returns the OpenCL version supported by the implementation. [...]
 			// OpenCL<space><major_version.minor_version><space><platform-specific information> The major_version.minor_version value returned will be 1.2"
-			return returnString(VC4CL_PLATFORM_VERSION, param_value_size, param_value, param_value_size_ret);
+			return returnString(platform_config::VERSION, param_value_size, param_value, param_value_size_ret);
 		case CL_PLATFORM_EXTENSIONS:
 			//"Returns a space separated list of extension names [...] supported by the platform."
-			return returnString(joinStrings(VC4CL_PLATFORM_EXTENSIONS), param_value_size, param_value, param_value_size_ret);
+			return returnString(joinStrings(platform_config::EXTENSIONS), param_value_size, param_value, param_value_size_ret);
 		case CL_PLATFORM_ICD_SUFFIX_KHR:
 			//enabled by the cl_khr_icd extension
 			//"The function name suffix used to identify extension functions to be directed to this platform by the ICD Loader."
-			return returnString(VC4CL_PLATFORM_ICD_SUFFIX, param_value_size, param_value, param_value_size_ret);
+			return returnString(platform_config::ICD_SUFFIX, param_value_size, param_value, param_value_size_ret);
 		default:
 			//invalid parameter-type
 			return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_platform_info value %d", param_name));

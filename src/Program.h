@@ -77,7 +77,7 @@ namespace vc4cl
 		//the kernel-name
 		std::string name;
 		//the work-group size specified at compile-time
-		size_t compileGroupSizes[VC4CL_NUM_DIMENSIONS];
+		std::array<std::size_t,kernel_config::NUM_DIMENSIONS> compileGroupSizes;
 		//the info for all explicit parameters
 		std::vector<ParamInfo> params;
 

@@ -198,7 +198,7 @@ cl_int Kernel::getWorkGroupInfo(cl_kernel_work_group_info param_name, size_t par
 			//"[...] query the maximum work-group size that can be used to execute a kernel on a specific device [...]"
 			return returnValue<size_t>(V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT), param_value_size, param_value, param_value_size_ret);
 		case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
-			return returnValue(info.compileGroupSizes, sizeof(size_t), 3, param_value_size, param_value, param_value_size_ret);
+			return returnValue(info.compileGroupSizes.data(), sizeof(size_t), 3, param_value_size, param_value, param_value_size_ret);
 		case CL_KERNEL_LOCAL_MEM_SIZE:
 			return returnValue<cl_ulong>(0, param_value_size, param_value, param_value_size_ret);
 		case CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
@@ -239,7 +239,7 @@ cl_int Kernel::getArgInfo(cl_uint arg_index, cl_kernel_arg_info param_name, size
 /*
  * Tries to split the global sizes into the sizes specified at compile-time
  */
-static cl_bool split_compile_work_size(size_t compile_group_sizes[VC4CL_NUM_DIMENSIONS], const size_t* global_sizes, size_t* local_sizes)
+static cl_bool split_compile_work_size(const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& compile_group_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_sizes, std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_sizes)
 {
 	if(compile_group_sizes[0] == 0 && compile_group_sizes[1] == 0 && compile_group_sizes[2] == 0)
 		//no compile-time sizes set
@@ -266,7 +266,7 @@ static cl_bool split_compile_work_size(size_t compile_group_sizes[VC4CL_NUM_DIME
  * - the size of a work-group is as large as possible, which is equivalent to
  * - the number of work-groups is as small as possible
  */
-static cl_int split_global_work_size(const size_t* global_sizes, size_t* local_sizes, cl_uint num_dimensions)
+static cl_int split_global_work_size(const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_sizes, std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_sizes, cl_uint num_dimensions)
 {
 	const size_t total_sizes = global_sizes[0] * global_sizes[1] * global_sizes[2];
 	const cl_uint max_group_size = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
@@ -339,9 +339,9 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 		return returnError(CL_INVALID_KERNEL_ARGS, __FILE__, __LINE__, "Not all kernel-arguments are set!");
 	}
 
-	if(work_dim > VC4CL_NUM_DIMENSIONS || work_dim < 1)
+	if(work_dim > kernel_config::NUM_DIMENSIONS || work_dim < 1)
 	{
-		return returnError(CL_INVALID_WORK_DIMENSION, __FILE__, __LINE__, buildString("Illegal number of work-group dimensions: %u (of 1 to %u)", work_dim, VC4CL_NUM_DIMENSIONS));
+		return returnError(CL_INVALID_WORK_DIMENSION, __FILE__, __LINE__, buildString("Illegal number of work-group dimensions: %u (of 1 to %u)", work_dim, kernel_config::NUM_DIMENSIONS));
 	}
 
 	if(global_work_size == NULL)
@@ -351,16 +351,16 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 
 	CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
 
-	size_t work_offsets[VC4CL_NUM_DIMENSIONS];
-	size_t work_sizes[VC4CL_NUM_DIMENSIONS];
-	size_t local_sizes[VC4CL_NUM_DIMENSIONS];
+	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> work_offsets;
+	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> work_sizes;
+	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> local_sizes;
 	if(global_work_offset == NULL)
-		memset(work_offsets, 0, VC4CL_NUM_DIMENSIONS * sizeof(size_t));
+		work_offsets.fill(0);
 	else
-		memcpy(work_offsets, global_work_offset, work_dim * sizeof(size_t));
-	memcpy(work_sizes, global_work_size, work_dim * sizeof(size_t));
+		memcpy(work_offsets.data(), global_work_offset, work_dim * sizeof(size_t));
+	memcpy(work_sizes.data(), global_work_size, work_dim * sizeof(size_t));
 	//fill to 3 dimensions
-	for(size_t i = work_dim; i < VC4CL_NUM_DIMENSIONS; ++i)
+	for(size_t i = work_dim; i < kernel_config::NUM_DIMENSIONS; ++i)
 	{
 		work_offsets[i] = 0;
 		work_sizes[i] = 1;
@@ -382,24 +382,24 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 		}
 	}
 	else
-		memcpy(local_sizes, local_work_size, work_dim * sizeof(size_t));
-	if(work_sizes[0] > VC4CL_MAX_WORK_ITEM_DIMENSIONS[0] ||
-			work_sizes[1] > VC4CL_MAX_WORK_ITEM_DIMENSIONS[1] ||
-			work_sizes[2] > VC4CL_MAX_WORK_ITEM_DIMENSIONS[2])
+		memcpy(local_sizes.data(), local_work_size, work_dim * sizeof(size_t));
+	if(work_sizes[0] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[0] ||
+			work_sizes[1] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[1] ||
+			work_sizes[2] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[2])
 	{
-		return returnError(CL_INVALID_GLOBAL_WORK_SIZE, __FILE__, __LINE__, buildString("Global-work-size exceeds maxima: %u (%u), %u (%u), %u (%u)", work_sizes[0], VC4CL_MAX_WORK_ITEM_DIMENSIONS[0], work_sizes[1], VC4CL_MAX_WORK_ITEM_DIMENSIONS[1], work_sizes[2], VC4CL_MAX_WORK_ITEM_DIMENSIONS[2]));
+		return returnError(CL_INVALID_GLOBAL_WORK_SIZE, __FILE__, __LINE__, buildString("Global-work-size exceeds maxima: %u (%u), %u (%u), %u (%u)", work_sizes[0], kernel_config::MAX_WORK_ITEM_DIMENSIONS[0], work_sizes[1], kernel_config::MAX_WORK_ITEM_DIMENSIONS[1], work_sizes[2], kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]));
 	}
-	if(work_sizes[0] + work_offsets[0] > VC4CL_MAX_WORK_ITEM_DIMENSIONS[0] ||
-			work_sizes[1] + work_offsets[1] > VC4CL_MAX_WORK_ITEM_DIMENSIONS[1] ||
-			work_sizes[2] + work_offsets[2] > VC4CL_MAX_WORK_ITEM_DIMENSIONS[2])
+	if(work_sizes[0] + work_offsets[0] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[0] ||
+			work_sizes[1] + work_offsets[1] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[1] ||
+			work_sizes[2] + work_offsets[2] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[2])
 	{
-		return returnError(CL_INVALID_GLOBAL_OFFSET, __FILE__, __LINE__, buildString("Global-work-size and offset exceeds maxima: %u (%u), %u (%u), %u (%u)", work_sizes[0] + work_offsets[0], VC4CL_MAX_WORK_ITEM_DIMENSIONS[0], work_sizes[1] + work_offsets[1], VC4CL_MAX_WORK_ITEM_DIMENSIONS[1], work_sizes[2] + work_offsets[2], VC4CL_MAX_WORK_ITEM_DIMENSIONS[2]));
+		return returnError(CL_INVALID_GLOBAL_OFFSET, __FILE__, __LINE__, buildString("Global-work-size and offset exceeds maxima: %u (%u), %u (%u), %u (%u)", work_sizes[0] + work_offsets[0], kernel_config::MAX_WORK_ITEM_DIMENSIONS[0], work_sizes[1] + work_offsets[1], kernel_config::MAX_WORK_ITEM_DIMENSIONS[1], work_sizes[2] + work_offsets[2], kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]));
 	}
 	if(local_sizes[0] * local_sizes[1] * local_sizes[2] > V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT))
 		return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__, buildString("Local work-sizes exceed maximum: %u * %u * %u > %u", local_sizes[0], local_sizes[1], local_sizes[2], V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT)));
 
 	//check divisibility of local_sizes[i] by work_sizes[i]
-	for(cl_uint i = 0; i < VC4CL_NUM_DIMENSIONS; ++i)
+	for(cl_uint i = 0; i < kernel_config::NUM_DIMENSIONS; ++i)
 	{
 		if(work_sizes[i] % local_sizes[i] != 0)
 		{
@@ -413,9 +413,9 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 	KernelExecution* source = newObject<KernelExecution>(this);
 	CHECK_ALLOCATION(source)
 	source->numDimensions = work_dim;
-	memcpy(source->globalOffsets, work_offsets, VC4CL_NUM_DIMENSIONS * sizeof(size_t));
-	memcpy(source->globalSizes, work_sizes, VC4CL_NUM_DIMENSIONS * sizeof(size_t));
-	memcpy(source->localSizes, local_sizes, VC4CL_NUM_DIMENSIONS * sizeof(size_t));
+	source->globalOffsets = work_offsets;
+	source->globalSizes = work_sizes;
+	source->localSizes = local_sizes;
 
 	kernelEvent->action.reset(source);
 

@@ -14,7 +14,6 @@
 #include "Object.h"
 #include "CommandQueue.h"
 #include "Event.h"
-#include "Image.h"
 #include "Mailbox.h"
 
 namespace vc4cl
@@ -39,9 +38,8 @@ namespace vc4cl
 		CHECK_RETURN void* enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_flags mapFlags, size_t offset, size_t size, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event, cl_int* errcode_ret);
 		CHECK_RETURN cl_int setDestructorCallback(BufferCallback callback, void* userData);
 		CHECK_RETURN cl_int enqueueUnmap(CommandQueue* commandQueue, void* mappedPtr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
-		CHECK_RETURN cl_int getInfo(cl_mem_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
+		CHECK_RETURN virtual cl_int getInfo(cl_mem_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 
-		std::unique_ptr<Image>& image();
 		void setUseHostPointer(void* hostPtr, size_t hostSize);
 		void setAllocateHostPointer(size_t hostSize);
 		void setCopyHostPointer(void* hostPtr, size_t hostSize);
@@ -67,8 +65,6 @@ namespace vc4cl
 
 		object_wrapper<Buffer> parent;
 		size_t offset = 0;
-
-		std::unique_ptr<Image> img;
 
 		CHECK_RETURN Event* createBufferActionEvent(CommandQueue* queue, CommandType command_type, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_int* errcode_ret) const;
 	};
@@ -100,11 +96,11 @@ namespace vc4cl
 
 	struct BufferRectAccess : public BufferAccess
 	{
-		std::size_t region[3];
-		std::size_t bufferOrigin[3];
+		std::array<std::size_t,3> region;
+		std::array<std::size_t,3> bufferOrigin;
 		std::size_t bufferRowPitch;
 		std::size_t bufferSlicePitch;
-		std::size_t hostOrigin[3];
+		std::array<std::size_t,3> hostOrigin;
 		std::size_t hostRowPitch;
 		std::size_t hostSlicePitch;
 
@@ -142,11 +138,11 @@ namespace vc4cl
 	{
 		object_wrapper<Buffer> sourceBuffer;
 		object_wrapper<Buffer> destBuffer;
-		std::size_t region[3];
-		std::size_t sourceOrigin[3];
+		std::array<std::size_t,3> region;
+		std::array<std::size_t,3> sourceOrigin;
 		std::size_t sourceRowPitch;
 		std::size_t sourceSlicePitch;
-		std::size_t destOrigin[3];
+		std::array<std::size_t,3> destOrigin;
 		std::size_t destRowPitch;
 		std::size_t destSlicePitch;
 

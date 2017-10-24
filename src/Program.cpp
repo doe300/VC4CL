@@ -86,7 +86,7 @@ static cl_int compile_program(Program* program, const std::string& options)
 #endif
 	}
 	//copy log whether build failed or not
-	//this method s not supported by the Raspbian GCC
+	//this method is not supported by the Raspbian GCC
 	//std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> logConverter;
 	//program->buildInfo.log = logConverter.to_bytes(logStream.str());
 	//XXX alternatively could use std::wcstombs
@@ -479,7 +479,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBinary)(cl_context context, cl_uint num
 	// -> there is no implementation-specific IR, so only machine-code is supported
 
 	//check whether the argument is a "valid" QPU code
-	if(*((cl_uint*)binaries[0]) != VC4CL_BINARY_MAGIC_NUMBER)
+	if(*((cl_uint*)binaries[0]) != kernel_config::BINARY_MAGIC_NUMBER)
 		return returnError<cl_program>(CL_INVALID_BINARY, errcode_ret, __FILE__, __LINE__, "Invalid binary data given, magic number does not match!");
 
 	const std::vector<char> buffer(binaries[0], binaries[0] + lengths[0]);

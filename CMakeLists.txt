@@ -29,7 +29,7 @@ if(CROSS_COMPILE)
 endif()
 
 project (VC4CL VERSION 0.4)
-add_definitions(-DVC4CL_VERSION="${PROJECT_VERSION}")
+add_definitions(-DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
 
 # append usage of C++ to compiler flags, also optimize for speed and enable all warnings
 if(BUILD_DEBUG)
