@@ -41,23 +41,23 @@ void TestPlatform::testGetPlatformInfo()
     
     cl_int state = VC4CL_FUNC(clGetPlatformInfo)(platform, CL_PLATFORM_NAME, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(VC4CL_PLATFORM_NAME.compare(buffer) == 0);
+    TEST_ASSERT(platform_config::NAME.compare(buffer) == 0);
     
     state = VC4CL_FUNC(clGetPlatformInfo)(platform, CL_PLATFORM_PROFILE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(VC4CL_PLATFORM_PROFILE.compare(buffer) == 0);
+    TEST_ASSERT(platform_config::PROFILE.compare(buffer) == 0);
     
     state = VC4CL_FUNC(clGetPlatformInfo)(platform, CL_PLATFORM_VENDOR, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(VC4CL_PLATFORM_VENDOR.compare(buffer) == 0);
+    TEST_ASSERT(platform_config::VENDOR.compare(buffer) == 0);
     
     state = VC4CL_FUNC(clGetPlatformInfo)(platform, CL_PLATFORM_VERSION, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(VC4CL_PLATFORM_VERSION.compare(buffer) == 0);
+    TEST_ASSERT(platform_config::VERSION.compare(buffer) == 0);
     
     state = VC4CL_FUNC(clGetPlatformInfo)(platform, CL_PLATFORM_ICD_SUFFIX_KHR, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(VC4CL_PLATFORM_ICD_SUFFIX.compare(buffer) == 0);
+    TEST_ASSERT(platform_config::ICD_SUFFIX.compare(buffer) == 0);
     
     state = VC4CL_FUNC(clGetPlatformInfo)(platform, 0xDEADBEAF, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_INVALID_VALUE, state);
