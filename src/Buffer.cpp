@@ -54,13 +54,13 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 	if(!hostWriteable && (flags & CL_MEM_HOST_WRITE_ONLY))
 		return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Host writeability flag contradicts parent!");
 
-	cl_buffer_region* region;
+	const cl_buffer_region* region;
 	switch(buffer_create_type)
 	{
 		case CL_BUFFER_CREATE_TYPE_REGION:
-			if(((cl_buffer_region*)buffer_create_info)->size == 0)
+			if(static_cast<const cl_buffer_region*>(buffer_create_info)->size == 0)
 				return returnError<Buffer*>(CL_INVALID_BUFFER_SIZE, errcode_ret, __FILE__, __LINE__, "Sub buffer has no size!");
-			region = (cl_buffer_region*)buffer_create_info;
+			region = static_cast<const cl_buffer_region*>(buffer_create_info);
 			break;
 		default:
 			return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Invalid/Unsupported cl_buffer_create_type %u!", buffer_create_type));
@@ -436,21 +436,21 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, cl_bool blocking_map, cl_ma
 		return NULL;
 	}
 
-	void* out_ptr = nullptr;
+	uintptr_t out_ptr = reinterpret_cast<uintptr_t>(nullptr);
 	//"If the buffer object is created with CL_MEM_USE_HOST_PTR [...]"
 	if(useHostPtr == CL_TRUE && hostPtr != nullptr)
 	{
 		//"The host_ptr specified in clCreateBuffer is guaranteed to contain the latest bits [...]"
-		memcpy(hostPtr, deviceBuffer->hostPointer, std::min(hostSize, (size_t)deviceBuffer->size));
+		memcpy(hostPtr, deviceBuffer->hostPointer, std::min(hostSize, static_cast<size_t>(deviceBuffer->size)));
 		//"The pointer value returned by clEnqueueMapBuffer will be derived from the host_ptr specified when the buffer object is created."
-		out_ptr = hostPtr + offset;
+		out_ptr = reinterpret_cast<uintptr_t>(hostPtr) + offset;
 	}
 	else
 	{
-		out_ptr = deviceBuffer->hostPointer + offset;
+		out_ptr = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset;
 	}
 
-	EventAction* action = newObject<BufferMapping>(this, out_ptr, false);
+	EventAction* action = newObject<BufferMapping>(this, reinterpret_cast<void*>(out_ptr), false);
 	CHECK_ALLOCATION_ERROR_CODE(action, errcode_ret, void*)
 	e->action.reset(action);
 
@@ -468,7 +468,7 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, cl_bool blocking_map, cl_ma
 			return NULL;
 	}
 
-	RETURN_OBJECT(out_ptr, errcode_ret)
+	RETURN_OBJECT(reinterpret_cast<void*>(out_ptr), errcode_ret)
 }
 
 cl_int Buffer::setDestructorCallback(BufferCallback callback, void* userData)

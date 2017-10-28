@@ -262,7 +262,7 @@ void* vc4cl::mapmem(unsigned base, unsigned size)
       throw std::system_error(errno, std::system_category(), "Error in mapmem");
    }
    close(mem_fd);
-   return (char *)mem + offset;
+   return reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(mem) + offset);
 }
 
 void vc4cl::unmapmem(void *addr, unsigned size)

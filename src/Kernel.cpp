@@ -93,13 +93,13 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 			if(elementSize == 1 /* [u]char-types */)
 			{
 				//expand 8-bit to 32-bit
-				tmp = 0xFF & ((cl_uchar*)arg_value)[i];
+				tmp = 0xFF & static_cast<const cl_uchar*>(arg_value)[i];
 				args[arg_index].addScalar(tmp);
 			}
 			else if(elementSize == 2 /* [u]short-types */)
 			{
 				//expand 16-bit to 32-bit
-				tmp = 0xFFFF & ((cl_ushort*)arg_value)[i];
+				tmp = 0xFFFF & static_cast<const cl_ushort*>(arg_value)[i];
 				args[arg_index].addScalar(tmp);
 			}
 			else if(elementSize > 4)
@@ -109,7 +109,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 			}
 			else
 			{
-				args[arg_index].addScalar(((cl_uint*)arg_value)[i]);
+				args[arg_index].addScalar(static_cast<const cl_uint*>(arg_value)[i]);
 			}
 		}
 #ifdef DEBUG_MODE
@@ -125,7 +125,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 		//"If the argument is declared to be a pointer of a built-in scalar or vector type [...] the memory object specified as argument value must be a buffer object (or NULL)"
 		// -> no pointers to non-buffer objects are allowed! -> good, no extra checking required
 		void* pointer_arg = NULL;
-		if(arg_value != NULL && *((void**)arg_value) != NULL)
+		if(arg_value != NULL && *static_cast<const void* const *>(arg_value) != NULL)
 		{
 			if(isSVMPointer)
 			{
@@ -140,7 +140,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 					return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__, buildString("Invalid arg size for buffers: %d, must be %u", arg_size, sizeof(cl_mem)));
 				}
 
-				cl_mem buffer = *(cl_mem*)arg_value;
+				const cl_mem buffer = *static_cast<const cl_mem*>(arg_value);
 				CHECK_BUFFER(toType<Buffer>(buffer))
 				if(toType<Buffer>(buffer)->context() != program->context())
 					return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, buildString("Contexts of buffer and program do not match: %p != %p", toType<Buffer>(buffer)->context(), program->context()));
@@ -990,7 +990,7 @@ cl_int VC4CL_FUNC(clSetKernelExecInfoARM)(cl_kernel kernel, cl_kernel_exec_info_
 
 	if(param_name != CL_KERNEL_EXEC_INFO_SVM_PTRS_ARM && param_name != CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM_ARM)
 		return CL_INVALID_VALUE;
-	if(param_name == CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM_ARM && *((cl_bool*)param_value) == CL_TRUE)
+	if(param_name == CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM_ARM && *static_cast<const cl_bool*>(param_value) == CL_TRUE)
 		//we do not support system allocations!
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "System SVM allocations are not supported");
 

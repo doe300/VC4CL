@@ -67,7 +67,7 @@ void TestExecutions::testFibonacci()
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 
 	//test
-	int* result = (int*)toType<Buffer>(outBuffer)->deviceBuffer->hostPointer;
+	int* result = static_cast<int*>(toType<Buffer>(outBuffer)->deviceBuffer->hostPointer);
 	TEST_ASSERT_EQUALS(2, result[0]);
 	TEST_ASSERT_EQUALS(3, result[1]);
 	TEST_ASSERT_EQUALS(5, result[2]);

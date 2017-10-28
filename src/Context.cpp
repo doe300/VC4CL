@@ -26,7 +26,7 @@ cl_int Context::getInfo(cl_context_info param_name, size_t param_value_size, voi
 	if((explicitProperties & ContextProperty::PLATFORM) == ContextProperty::PLATFORM)
 	{
 		props[propertiesSize] = CL_CONTEXT_PLATFORM;
-		props[propertiesSize + 1] = (cl_context_properties)platform;
+		props[propertiesSize + 1] = reinterpret_cast<cl_context_properties>(platform);
 		propertiesSize += 2;
 	}
 	if((explicitProperties & ContextProperty::USER_SYNCHRONISATION) == ContextProperty::USER_SYNCHRONISATION)
@@ -142,7 +142,7 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 			{
 				explicitProperties = static_cast<ContextProperty>(explicitProperties | ContextProperty::PLATFORM);
 				++ptr;
-				platform = (cl_platform_id)*ptr;
+				platform = reinterpret_cast<cl_platform_id>(*ptr);
 				++ptr;
 			}
 			else if(*ptr == CL_CONTEXT_INTEROP_USER_SYNC)

@@ -65,17 +65,17 @@ void TestBuffer::testCreateSubBuffer()
     TEST_ASSERT(errcode != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, sub_buffer);
     
-    TEST_ASSERT_EQUALS(1, toType<Buffer>(buffer)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Buffer>(buffer)->getReferences());
     cl_buffer_region region;
     region.origin = 256;
     region.size = 512;
     sub_buffer = VC4CL_FUNC(clCreateSubBuffer)(buffer, 0, CL_BUFFER_CREATE_TYPE_REGION, &region, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
     TEST_ASSERT(sub_buffer != NULL);
-    TEST_ASSERT_EQUALS(2, toType<Buffer>(buffer)->getReferences());
+    TEST_ASSERT_EQUALS(2u, toType<Buffer>(buffer)->getReferences());
     errcode = VC4CL_FUNC(clReleaseMemObject)(sub_buffer);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    TEST_ASSERT_EQUALS(1, toType<Buffer>(buffer)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Buffer>(buffer)->getReferences());
 }
 
 void TestBuffer::testEnqueueReadBuffer()
@@ -91,7 +91,7 @@ void TestBuffer::testEnqueueReadBuffer()
     TEST_ASSERT(event != NULL);
     TEST_ASSERT_EQUALS(CL_COMPLETE, toType<Event>(event)->getStatus());
     
-    TEST_ASSERT_EQUALS(1, toType<Event>(event)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Event>(event)->getReferences());
     state = VC4CL_FUNC(clReleaseEvent)(event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }
@@ -109,7 +109,7 @@ void TestBuffer::testEnqueueWriteBuffer()
     TEST_ASSERT(event != NULL);
     TEST_ASSERT_EQUALS(CL_COMPLETE, toType<Event>(event)->getStatus());
     
-    TEST_ASSERT_EQUALS(1, toType<Event>(event)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Event>(event)->getReferences());
     state = VC4CL_FUNC(clReleaseEvent)(event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }
@@ -140,7 +140,7 @@ void TestBuffer::testEnqueueFillBuffer()
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(CL_COMPLETE, toType<Event>(event)->getStatus());
     
-    TEST_ASSERT_EQUALS(1, toType<Event>(event)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Event>(event)->getReferences());
     state = VC4CL_FUNC(clReleaseEvent)(event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }
@@ -175,9 +175,9 @@ void TestBuffer::testEnqueueMapBuffer()
     TEST_ASSERT(event != NULL);
     
     //value is set by fill-buffer
-    TEST_ASSERT_EQUALS(0x55, *(unsigned char*)mapped_ptr);
+    TEST_ASSERT_EQUALS(0x55, *static_cast<unsigned char*>(mapped_ptr));
     
-    TEST_ASSERT_EQUALS(1, toType<Event>(event)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Event>(event)->getReferences());
     errcode = VC4CL_FUNC(clReleaseEvent)(event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 }
@@ -189,47 +189,47 @@ void TestBuffer::testGetMemObjectInfo()
     cl_int state = VC4CL_FUNC(clGetMemObjectInfo)(buffer, CL_MEM_TYPE, 1024, tmp, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_mem_object_type), info_size);
-    TEST_ASSERT_EQUALS(CL_MEM_OBJECT_BUFFER, *(cl_mem_object_type*)tmp);
+    TEST_ASSERT_EQUALS(static_cast<cl_mem_object_type>(CL_MEM_OBJECT_BUFFER), *reinterpret_cast<cl_mem_object_type*>(tmp));
     
     state = VC4CL_FUNC(clGetMemObjectInfo)(buffer, CL_MEM_FLAGS, 1024, tmp, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_mem_flags), info_size);
-    TEST_ASSERT((*(cl_mem_flags*)tmp) & CL_MEM_READ_WRITE);
+    TEST_ASSERT(*reinterpret_cast<cl_mem_flags*>(tmp) & CL_MEM_READ_WRITE);
     
     state = VC4CL_FUNC(clGetMemObjectInfo)(buffer, CL_MEM_SIZE, 1024, tmp, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(size_t), info_size);
-    TEST_ASSERT_EQUALS(1024, *(size_t*)tmp);
+    TEST_ASSERT_EQUALS(static_cast<size_t>(1024), *reinterpret_cast<size_t*>(tmp));
     
     state = VC4CL_FUNC(clGetMemObjectInfo)(buffer, CL_MEM_HOST_PTR, 1024, tmp, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(void*), info_size);
-    TEST_ASSERT_EQUALS(nullptr, *(void**)tmp);
+    TEST_ASSERT_EQUALS(nullptr, *reinterpret_cast<void**>(tmp));
     
     state = VC4CL_FUNC(clGetMemObjectInfo)(buffer, CL_MEM_MAP_COUNT, 1024, tmp, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(1, *(cl_uint*)tmp);
+    TEST_ASSERT_EQUALS(1u, *reinterpret_cast<cl_uint*>(tmp));
     
     state = VC4CL_FUNC(clGetMemObjectInfo)(buffer, CL_MEM_REFERENCE_COUNT, 1024, tmp, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(1, *(cl_uint*)tmp);
+    TEST_ASSERT_EQUALS(1u, *reinterpret_cast<cl_uint*>(tmp));
     
     state = VC4CL_FUNC(clGetMemObjectInfo)(buffer, CL_MEM_CONTEXT, 1024, tmp, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_context), info_size);
-    TEST_ASSERT_EQUALS(context, *(cl_context*)tmp);
+    TEST_ASSERT_EQUALS(context, *reinterpret_cast<cl_context*>(tmp));
     
     state = VC4CL_FUNC(clGetMemObjectInfo)(buffer, CL_MEM_ASSOCIATED_MEMOBJECT, 1024, tmp, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_mem), info_size);
-    TEST_ASSERT_EQUALS(nullptr, *(cl_mem*)tmp);
+    TEST_ASSERT_EQUALS(nullptr, *reinterpret_cast<cl_mem*>(tmp));
     
     state = VC4CL_FUNC(clGetMemObjectInfo)(buffer, CL_MEM_OFFSET, 1024, tmp, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(size_t), info_size);
-    TEST_ASSERT_EQUALS(0, *(size_t*)tmp);
+    TEST_ASSERT_EQUALS(0u, *reinterpret_cast<size_t*>(tmp));
     
     state = VC4CL_FUNC(clGetMemObjectInfo)(buffer, 0xDEADBEAF, 1024, tmp, &info_size);
     TEST_ASSERT(state != CL_SUCCESS);
@@ -261,14 +261,14 @@ void TestBuffer::testEnqueueMigrateMemObjects()
 
 void TestBuffer::testRetainMemObject()
 {
-    TEST_ASSERT_EQUALS(1, toType<Buffer>(buffer)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Buffer>(buffer)->getReferences());
     cl_int state = VC4CL_FUNC(clRetainMemObject)(buffer);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    TEST_ASSERT_EQUALS(2, toType<Buffer>(buffer)->getReferences());
+    TEST_ASSERT_EQUALS(2u, toType<Buffer>(buffer)->getReferences());
     state = VC4CL_FUNC(clReleaseMemObject)(buffer);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT_EQUALS(1, toType<Buffer>(buffer)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Buffer>(buffer)->getReferences());
 }
 
 static void destructCallback(cl_mem memobj, void* data)
@@ -278,11 +278,11 @@ static void destructCallback(cl_mem memobj, void* data)
 
 void TestBuffer::testReleaseMemObject()
 {
-    TEST_ASSERT_EQUALS(1, toType<Buffer>(buffer)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Buffer>(buffer)->getReferences());
     cl_int state = VC4CL_FUNC(clReleaseMemObject)(buffer);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    TEST_ASSERT_EQUALS(1, num_callback_called);
+    TEST_ASSERT_EQUALS(1u, num_callback_called);
 }
 
 void TestBuffer::testSetMemObjectDestructorCallback()

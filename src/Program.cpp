@@ -90,7 +90,7 @@ static cl_int compile_program(Program* program, const std::string& options)
 	//std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> logConverter;
 	//program->buildInfo.log = logConverter.to_bytes(logStream.str());
 	//XXX alternatively could use std::wcstombs
-	program->buildInfo.log = std::string((const char*)logStream.str().data());
+	program->buildInfo.log = std::string(reinterpret_cast<const char*>(logStream.str().data()));
 
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Compilation complete with status: " << program->buildInfo.status << std::endl;
@@ -130,7 +130,7 @@ cl_int Program::link(const std::string& options, BuildCallback callback, void* u
 	kernelInfo.clear();
 
 	// extract kernel-info
-	cl_ulong* ptr = (cl_ulong*)binaryCode.data();
+	cl_ulong* ptr = reinterpret_cast<cl_ulong*>(binaryCode.data());
 	ptr += 1;	//skips magic number
 	//the minimum offset for the first kernel-function
 	cl_uint min_kernel_offset = UINT32_MAX;
@@ -145,11 +145,11 @@ cl_int Program::link(const std::string& options, BuildCallback callback, void* u
 	}
 
 	ptr += 1; //skips the 0-long as marker between header and data
-	if((cl_ulong*)(binaryCode.data() + (min_kernel_offset - 1) * sizeof(cl_ulong)) != ptr)
+	if(reinterpret_cast<cl_ulong*>(binaryCode.data() + (min_kernel_offset - 1) * sizeof(cl_ulong)) != ptr)
 	{
 		//if the pointer to the second next instruction after the header is not the pointer to the first kernel, there are global data
-		cl_uchar* global_data_ptr = (cl_uchar*)ptr;
-		const size_t globalDataSize = (cl_uchar*)(binaryCode.data() + (min_kernel_offset - 1) * sizeof(cl_ulong)) - global_data_ptr;
+		cl_uchar* global_data_ptr = reinterpret_cast<cl_uchar*>(ptr);
+		const size_t globalDataSize = reinterpret_cast<cl_uchar*>(binaryCode.data() + (min_kernel_offset - 1) * sizeof(cl_ulong)) - global_data_ptr;
 		globalData.reserve(globalDataSize);
 
 		std::copy(global_data_ptr, global_data_ptr + globalDataSize, std::back_inserter(globalData));
@@ -247,7 +247,7 @@ BuildStatus Program::getBuildStatus() const
 
 static std::string readString(cl_ulong** ptr, cl_uint stringLength)
 {
-	const std::string s((char*)*ptr, stringLength);
+	const std::string s(reinterpret_cast<char*>(*ptr), stringLength);
 	*ptr += stringLength / 8;
 	if(stringLength % 8 != 0)
 	{
@@ -261,10 +261,10 @@ cl_int Program::extractKernelInfo(cl_ulong** ptr, cl_uint* min_kernel_offset)
 	KernelInfo info;
 
 	//offset|length|name-length|num-params
-	info.offset = ((cl_ushort*)*ptr)[0];
-	info.length = ((cl_ushort*)*ptr)[1];
-	cl_uint nameLength = ((cl_ushort*)*ptr)[2];
-	cl_uint num_params = ((cl_ushort*)*ptr)[3];
+	info.offset = reinterpret_cast<cl_ushort*>(*ptr)[0];
+	info.length = reinterpret_cast<cl_ushort*>(*ptr)[1];
+	cl_uint nameLength = reinterpret_cast<cl_ushort*>(*ptr)[2];
+	cl_uint num_params = reinterpret_cast<cl_ushort*>(*ptr)[3];
 	*ptr += 1;
 	info.compileGroupSizes[0] = **ptr & 0xFFFF;
 	info.compileGroupSizes[1] = (**ptr >> 16) & 0xFFFF;
@@ -277,11 +277,11 @@ cl_int Program::extractKernelInfo(cl_ulong** ptr, cl_uint* min_kernel_offset)
 	for(cl_ushort i = 0; i < num_params; ++i)
 	{
 		ParamInfo param;
-		param.size = ((cl_ushort*)*ptr)[0] & 0xFF;
-		param.elements = (((cl_ushort*)*ptr)[0] >> 8) & 0xFF;
-		nameLength = ((cl_ushort*)*ptr)[1];
-		const cl_uint typeLength = ((cl_ushort*)*ptr)[2];
-		cl_ushort tmp = ((cl_ushort*)*ptr)[3];
+		param.size = reinterpret_cast<cl_ushort*>(*ptr)[0] & 0xFF;
+		param.elements = (reinterpret_cast<cl_ushort*>(*ptr)[0] >> 8) & 0xFF;
+		nameLength = reinterpret_cast<cl_ushort*>(*ptr)[1];
+		const cl_uint typeLength = reinterpret_cast<cl_ushort*>(*ptr)[2];
+		cl_ushort tmp = reinterpret_cast<cl_ushort*>(*ptr)[3];
 		param.pointer = (tmp >> 12) & 0x1;
 		param.output = (tmp >> 9) & 0x1;
 		param.input = (tmp >> 8) & 0x1;
@@ -297,7 +297,7 @@ cl_int Program::extractKernelInfo(cl_ulong** ptr, cl_uint* min_kernel_offset)
 		info.params.push_back(param);
 	}
 
-	*min_kernel_offset = std::min(*min_kernel_offset, (cl_uint)info.offset);
+	*min_kernel_offset = std::min(*min_kernel_offset, static_cast<cl_uint>(info.offset));
 
 	kernelInfo.push_back(info);
 
@@ -397,7 +397,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* 
 	if(il == NULL || length == 0)
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "IL source has no length!");
 
-	const std::vector<char> buffer((const char*)il, (const char*)il + length);
+	const std::vector<char> buffer(static_cast<const char*>(il), static_cast<const char*>(il) + length);
 	Program* program = newObject<Program>(toType<Context>(context), buffer, false);
 	CHECK_ALLOCATION_ERROR_CODE(program, errcode_ret, cl_program)
 
@@ -479,7 +479,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBinary)(cl_context context, cl_uint num
 	// -> there is no implementation-specific IR, so only machine-code is supported
 
 	//check whether the argument is a "valid" QPU code
-	if(*((cl_uint*)binaries[0]) != kernel_config::BINARY_MAGIC_NUMBER)
+	if(*reinterpret_cast<const cl_uint*>(binaries[0]) != kernel_config::BINARY_MAGIC_NUMBER)
 		return returnError<cl_program>(CL_INVALID_BINARY, errcode_ret, __FILE__, __LINE__, "Invalid binary data given, magic number does not match!");
 
 	const std::vector<char> buffer(binaries[0], binaries[0] + lengths[0]);

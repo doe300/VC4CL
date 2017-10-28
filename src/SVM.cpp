@@ -32,19 +32,19 @@ cl_int SharedVirtualMemory::getHostOffset(const void* hostPointer) const
 {
 	if(hostPointer < buffer->hostPointer)
 		return CL_INVALID_VALUE;
-	if(((intptr_t)hostPointer) >= ((intptr_t)buffer->hostPointer) + buffer->size)
+	if(reinterpret_cast<uintptr_t>(hostPointer) >= reinterpret_cast<uintptr_t>(buffer->hostPointer) + buffer->size)
 		return CL_INVALID_VALUE;
-	return ((intptr_t)hostPointer) - ((intptr_t)buffer->hostPointer);
+	return reinterpret_cast<intptr_t>(hostPointer) - reinterpret_cast<intptr_t>(buffer->hostPointer);
 }
 
 void* SharedVirtualMemory::getDevicePointer(const size_t offset)
 {
-	return buffer->qpuPointer + offset;
+	return reinterpret_cast<void*>(reinterpret_cast<const uintptr_t>(buffer->qpuPointer) + offset);
 }
 
 void* SharedVirtualMemory::getHostPointer(const size_t offset)
 {
-	return buffer->hostPointer + offset;
+	return reinterpret_cast<void*>(reinterpret_cast<const uintptr_t>(buffer->hostPointer) + offset);
 }
 
 SharedVirtualMemory* SharedVirtualMemory::findSVM(const void* hostPtr)
@@ -56,7 +56,7 @@ SharedVirtualMemory* SharedVirtualMemory::findSVM(const void* hostPtr)
 	//This is required for clSetKernelArgSVMPointer, where "The SVM pointer value specified as the argument value can be the pointer returned by clSVMAlloc or can be a pointer + offset into the SVM region."
 	for(auto& pair : allocatedSVMs)
 	{
-		if(pair.second.buffer->hostPointer <= hostPtr && pair.second.buffer->hostPointer + pair.second.buffer->size > hostPtr)
+		if(pair.second.buffer->hostPointer <= hostPtr && reinterpret_cast<const uintptr_t>(pair.second.buffer->hostPointer) + pair.second.buffer->size > reinterpret_cast<const uintptr_t>(hostPtr))
 			return &pair.second;
 	}
 	return nullptr;
@@ -301,9 +301,9 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemcpyARM)(cl_command_queue command_queue, cl_bool
 	CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
 	if(src_ptr == nullptr || dst_ptr == nullptr || size == 0)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot copy from/to NULL pointer or with a size of zero");
-	if(((uintptr_t)src_ptr) <= ((uintptr_t)dst_ptr) && (((uintptr_t)src_ptr) + size) > ((uintptr_t)dst_ptr))
+	if(reinterpret_cast<uintptr_t>(src_ptr) <= reinterpret_cast<uintptr_t>(dst_ptr) && (reinterpret_cast<uintptr_t>(src_ptr) + size) > reinterpret_cast<uintptr_t>(dst_ptr))
 		return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Source and destination areas overlay");
-	if(((uintptr_t)dst_ptr) <= ((uintptr_t)src_ptr) && (((uintptr_t)dst_ptr) + size) > ((uintptr_t)src_ptr))
+	if(reinterpret_cast<uintptr_t>(dst_ptr) <= reinterpret_cast<uintptr_t>(src_ptr) && (reinterpret_cast<uintptr_t>(dst_ptr) + size) > reinterpret_cast<uintptr_t>(src_ptr))
 		return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Source and destination areas overlay");
 
 	CommandQueue* commandQueue = toType<CommandQueue>(command_queue);
@@ -379,7 +379,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemFillARM)(cl_command_queue command_queue, void* 
 	CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
 	if(svm_ptr == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "SVM pointer is NULL");
-	if(((intptr_t)svm_ptr) % pattern_size != 0)
+	if(reinterpret_cast<uintptr_t>(svm_ptr) % pattern_size != 0)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("SVM pointer is not aligned to %d", pattern_size));
 	if(pattern == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Pattern pointer is NULL");

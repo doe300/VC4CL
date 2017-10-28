@@ -45,22 +45,22 @@ void TestCommandQueue::testGetCommandQueueInfo()
     cl_int state = VC4CL_FUNC(clGetCommandQueueInfo)(queue, CL_QUEUE_CONTEXT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_context), info_size);
-    TEST_ASSERT_EQUALS(context, *(cl_context*)buffer);
+    TEST_ASSERT_EQUALS(context, *reinterpret_cast<cl_context*>(buffer));
     
     state = VC4CL_FUNC(clGetCommandQueueInfo)(queue, CL_QUEUE_DEVICE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_device_id), info_size);
-    TEST_ASSERT_EQUALS(toType<Context>(context)->device->toBase(), *(cl_device_id*)buffer);
+    TEST_ASSERT_EQUALS(toType<Context>(context)->device->toBase(), *reinterpret_cast<cl_device_id*>(buffer));
     
     state = VC4CL_FUNC(clGetCommandQueueInfo)(queue, CL_QUEUE_REFERENCE_COUNT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(1, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(1u, *reinterpret_cast<cl_uint*>(buffer));
     
     state = VC4CL_FUNC(clGetCommandQueueInfo)(queue, CL_QUEUE_PROPERTIES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_command_queue_properties), info_size);
-    TEST_ASSERT((*(cl_command_queue_properties*)buffer) & CL_QUEUE_PROFILING_ENABLE);
+    TEST_ASSERT(*reinterpret_cast<cl_command_queue_properties*>(buffer) & CL_QUEUE_PROFILING_ENABLE);
     
     state = VC4CL_FUNC(clGetCommandQueueInfo)(queue, 0xDEADBEAF, 1024, buffer, &info_size);
     TEST_ASSERT(state != CL_SUCCESS);
@@ -68,25 +68,25 @@ void TestCommandQueue::testGetCommandQueueInfo()
 
 void TestCommandQueue::testRetainCommandQueue()
 {
-    TEST_ASSERT_EQUALS(1, toType<CommandQueue>(queue)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<CommandQueue>(queue)->getReferences());
     cl_int state = VC4CL_FUNC(clRetainCommandQueue)(queue);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT_EQUALS(2, toType<CommandQueue>(queue)->getReferences());
+    TEST_ASSERT_EQUALS(2u, toType<CommandQueue>(queue)->getReferences());
     
     //release again, so the next test destroys the queue
     state = VC4CL_FUNC(clReleaseCommandQueue)(queue);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    TEST_ASSERT_EQUALS(1, toType<CommandQueue>(queue)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<CommandQueue>(queue)->getReferences());
 }
 
 void TestCommandQueue::testReleaseCommandQueue()
 {
-    TEST_ASSERT_EQUALS(1, toType<CommandQueue>(queue)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<CommandQueue>(queue)->getReferences());
     cl_int state = VC4CL_FUNC(clReleaseCommandQueue)(queue);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    TEST_ASSERT_EQUALS(1, toType<Context>(context)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Context>(context)->getReferences());
     state = VC4CL_FUNC(clReleaseContext)(context);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }

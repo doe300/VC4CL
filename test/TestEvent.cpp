@@ -66,27 +66,27 @@ void TestEvent::testGetEventInfo()
     cl_int state = VC4CL_FUNC(clGetEventInfo)(user_event, CL_EVENT_COMMAND_QUEUE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_command_queue), info_size);
-    TEST_ASSERT_EQUALS(nullptr, *(cl_command_queue*)buffer);
+    TEST_ASSERT_EQUALS(nullptr, *reinterpret_cast<cl_command_queue*>(buffer));
     
     state = VC4CL_FUNC(clGetEventInfo)(user_event, CL_EVENT_CONTEXT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_context), info_size);
-    TEST_ASSERT_EQUALS(context, *(cl_context*)buffer);
+    TEST_ASSERT_EQUALS(context, *reinterpret_cast<cl_context*>(buffer));
     
     state = VC4CL_FUNC(clGetEventInfo)(user_event, CL_EVENT_COMMAND_TYPE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_command_type), info_size);
-    TEST_ASSERT_EQUALS(CL_COMMAND_USER, *(cl_command_type*)buffer);
+    TEST_ASSERT_EQUALS(static_cast<cl_command_type>(CL_COMMAND_USER), *reinterpret_cast<cl_command_type*>(buffer));
     
     state = VC4CL_FUNC(clGetEventInfo)(user_event, CL_EVENT_COMMAND_EXECUTION_STATUS, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_int), info_size);
-    TEST_ASSERT_EQUALS(-42, *(cl_int*)buffer);
+    TEST_ASSERT_EQUALS(-42, *reinterpret_cast<cl_int*>(buffer));
     
     state = VC4CL_FUNC(clGetEventInfo)(user_event, CL_EVENT_REFERENCE_COUNT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(1, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(1u, *reinterpret_cast<cl_uint*>(buffer));
     
     state = VC4CL_FUNC(clGetEventInfo)(user_event, 0xDEADBEAF, 1024, buffer, &info_size);
     TEST_ASSERT(state != CL_SUCCESS);
@@ -155,23 +155,23 @@ void TestEvent::testGetEventProfilingInfo()
 
 void TestEvent::testRetainEvent()
 {
-    TEST_ASSERT_EQUALS(1, toType<Event>(user_event)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Event>(user_event)->getReferences());
     cl_int state = VC4CL_FUNC(clRetainEvent)(user_event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    TEST_ASSERT_EQUALS(2, toType<Event>(user_event)->getReferences());
+    TEST_ASSERT_EQUALS(2u, toType<Event>(user_event)->getReferences());
     state = VC4CL_FUNC(clReleaseEvent)(user_event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT_EQUALS(1, toType<Event>(user_event)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Event>(user_event)->getReferences());
 }
 
 void TestEvent::testReleaseEvent()
 {
-    TEST_ASSERT_EQUALS(1, toType<Event>(user_event)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Event>(user_event)->getReferences());
     cl_int state = VC4CL_FUNC(clReleaseEvent)(user_event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    TEST_ASSERT_EQUALS(1, event_count);
+    TEST_ASSERT_EQUALS(1u, event_count);
 }
 
 void TestEvent::testFlush()

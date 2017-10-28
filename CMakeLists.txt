@@ -33,13 +33,13 @@ add_definitions(-DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
 
 # append usage of C++ to compiler flags, also optimize for speed and enable all warnings
 if(BUILD_DEBUG)
-	LIST(APPEND CMAKE_C_FLAGS "-std=gnu11 -g3 -Wall -Wextra -Wno-unused-parameter -Wno-ignored-attributes -pthread")
-	LIST(APPEND CMAKE_CXX_FLAGS "-std=c++0x -g3 -Wall -Wextra -Wno-unused-parameter -Wno-ignored-attributes -pthread")
+	LIST(APPEND CMAKE_C_FLAGS "-std=gnu11 -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
+	LIST(APPEND CMAKE_CXX_FLAGS "-std=c++0x -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
 	SET(CMAKE_BUILD_TYPE 		Debug)
 	add_definitions(-DDEBUG_MODE=1)
 else()
-	LIST(APPEND CMAKE_C_FLAGS "-std=gnu11 -O3 -Wall -Wextra -Wno-unused-parameter -Wno-ignored-attributes -pthread")
-	LIST(APPEND CMAKE_CXX_FLAGS "-std=c++0x -g3 -Wall -Wextra -Wno-unused-parameter -Wno-ignored-attributes -pthread")
+	LIST(APPEND CMAKE_C_FLAGS "-std=gnu11 -O3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
+	LIST(APPEND CMAKE_CXX_FLAGS "-std=c++0x -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
 	SET(CMAKE_BUILD_TYPE 		Release)
 endif()
 

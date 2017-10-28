@@ -12,7 +12,7 @@
 
 using namespace vc4cl;
 
-#define GET(buffer, type, index) ((type*)toType<Buffer>(buffer)->deviceBuffer->hostPointer)[index]
+#define GET(buffer, type, index) (reinterpret_cast<type*>(toType<Buffer>(buffer)->deviceBuffer->hostPointer)[index])
 
 TestBuiltins::TestBuiltins() : context(nullptr), queue(nullptr), program(nullptr), in(nullptr), out0(nullptr), out1(nullptr)
 {

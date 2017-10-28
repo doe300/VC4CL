@@ -49,22 +49,22 @@ void TestExtension::testPerformanceValues(bool shouldBeZero)
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     if(shouldBeZero)
     {
-        TEST_ASSERT_EQUALS(0, value);
+        TEST_ASSERT_EQUALS(0u, value);
     }
     else
     {
-        TEST_ASSERT(value > 0);
+        TEST_ASSERT(value > 0u);
     }
     
     state = VC4CL_FUNC(clGetPerformanceCounterValueVC4CL)(read_stalls, &value);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     if(shouldBeZero)
     {
-        TEST_ASSERT_EQUALS(0, value);
+        TEST_ASSERT_EQUALS(0u, value);
     }
     else
     {
-        TEST_ASSERT(value > 0);
+        TEST_ASSERT(value > 0u);
     }
 }
 

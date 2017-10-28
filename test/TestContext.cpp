@@ -30,7 +30,7 @@ void TestContext::testCreateContext()
     TEST_ASSERT_EQUALS(nullptr, context);
     TEST_ASSERT(errcode != CL_SUCCESS);
     
-    props[1] = (cl_context_properties)Platform::getVC4CLPlatform().toBase();
+    props[1] = reinterpret_cast<cl_context_properties>(Platform::getVC4CLPlatform().toBase());
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
     context = VC4CL_FUNC(clCreateContext)(props, 1, &device_id, NULL, NULL, &errcode);
     TEST_ASSERT(context != NULL);
@@ -43,7 +43,7 @@ void TestContext::testCreateContext()
 void TestContext::testCreateContextFromType()
 {
     cl_int errcode = CL_SUCCESS;
-    cl_context_properties props[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)Platform::getVC4CLPlatform().toBase(), 0};
+    cl_context_properties props[3] = {CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(Platform::getVC4CLPlatform().toBase()), 0};
     context = VC4CL_FUNC(clCreateContextFromType)(props, CL_DEVICE_TYPE_ACCELERATOR, NULL, NULL, &errcode);
     TEST_ASSERT_EQUALS(nullptr, context);
     TEST_ASSERT(errcode != CL_SUCCESS);
@@ -60,17 +60,17 @@ void TestContext::testGetContextInfo()
     cl_int state = VC4CL_FUNC(clGetContextInfo)(context, CL_CONTEXT_REFERENCE_COUNT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(1, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(1u, *reinterpret_cast<cl_uint*>(buffer));
     
     state = VC4CL_FUNC(clGetContextInfo)(context, CL_CONTEXT_NUM_DEVICES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(1, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(1u, *reinterpret_cast<cl_uint*>(buffer));
     
     state = VC4CL_FUNC(clGetContextInfo)(context, CL_CONTEXT_DEVICES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_device_id), info_size);
-    TEST_ASSERT_EQUALS(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), *(cl_device_id*)buffer);
+    TEST_ASSERT_EQUALS(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), *reinterpret_cast<cl_device_id*>(buffer));
     
     state = VC4CL_FUNC(clGetContextInfo)(context, CL_CONTEXT_PROPERTIES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -82,21 +82,21 @@ void TestContext::testGetContextInfo()
 
 void TestContext::testRetainContext()
 {
-    TEST_ASSERT_EQUALS(1, toType<Context>(context)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Context>(context)->getReferences());
     cl_int state = VC4CL_FUNC(clRetainContext)(context);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT_EQUALS(2, toType<Context>(context)->getReferences());
+    TEST_ASSERT_EQUALS(2u, toType<Context>(context)->getReferences());
     
     //release again, so the next test destroys the context
     state = VC4CL_FUNC(clReleaseContext)(context);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    TEST_ASSERT_EQUALS(1, toType<Context>(context)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Context>(context)->getReferences());
 }
 
 void TestContext::testReleaseContext()
 {
-    TEST_ASSERT_EQUALS(1, toType<Context>(context)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Context>(context)->getReferences());
     cl_int state = VC4CL_FUNC(clReleaseContext)(context);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }

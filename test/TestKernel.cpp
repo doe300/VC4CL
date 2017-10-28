@@ -18,7 +18,7 @@ static const char kernel_name[] = "hello_world";
 //static const char arg0_name[] = "0";    //as of CLang 3.9, the parameters are not named anymore
 static const char arg0_name[] = "in";
 
-static const size_t work_size[VC4CL_NUM_DIMENSIONS] = {1, 2, 1}; //TODO {8, 8, 8};
+static const size_t work_size[vc4cl::kernel_config::NUM_DIMENSIONS] = {1, 2, 1}; //TODO {8, 8, 8};
 static std::string sourceCode;
 
 TestKernel::TestKernel() : context(nullptr), program(nullptr), queue(nullptr), in_buffer(nullptr), out_buffer(nullptr), kernel(nullptr)
@@ -104,22 +104,22 @@ void TestKernel::testGetKernelInfo()
     state = VC4CL_FUNC(clGetKernelInfo)(kernel, CL_KERNEL_NUM_ARGS, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(2, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(2u, *reinterpret_cast<cl_uint*>(buffer));
     
     state = VC4CL_FUNC(clGetKernelInfo)(kernel, CL_KERNEL_REFERENCE_COUNT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(1, *(cl_uint*)buffer);
+    TEST_ASSERT_EQUALS(1u, *reinterpret_cast<cl_uint*>(buffer));
     
     state = VC4CL_FUNC(clGetKernelInfo)(kernel, CL_KERNEL_CONTEXT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_context), info_size);
-    TEST_ASSERT_EQUALS(context, *(cl_context*)buffer);
+    TEST_ASSERT_EQUALS(context, *reinterpret_cast<cl_context*>(buffer));
     
     state = VC4CL_FUNC(clGetKernelInfo)(kernel, CL_KERNEL_PROGRAM, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_program), info_size);
-    TEST_ASSERT_EQUALS(program, *(cl_program*)buffer);
+    TEST_ASSERT_EQUALS(program, *reinterpret_cast<cl_program*>(buffer));
     
     state = VC4CL_FUNC(clGetKernelInfo)(kernel, CL_KERNEL_ATTRIBUTES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -138,29 +138,29 @@ void TestKernel::testGetKernelWorkGroupInfo()
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_KERNEL_WORK_GROUP_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(size_t), info_size);
-    TEST_ASSERT((*(size_t*)buffer) >= 1);
+    TEST_ASSERT(*reinterpret_cast<size_t*>(buffer) >= 1u);
     
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_KERNEL_COMPILE_WORK_GROUP_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(3 * sizeof(size_t), info_size);
-    TEST_ASSERT_EQUALS(1u, ((size_t*)buffer)[0]);
-    TEST_ASSERT_EQUALS(1u, ((size_t*)buffer)[1]);
-    TEST_ASSERT_EQUALS(1u, ((size_t*)buffer)[2]);
+    TEST_ASSERT_EQUALS(1u, reinterpret_cast<size_t*>(buffer)[0]);
+    TEST_ASSERT_EQUALS(1u, reinterpret_cast<size_t*>(buffer)[1]);
+    TEST_ASSERT_EQUALS(1u, reinterpret_cast<size_t*>(buffer)[2]);
     
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_KERNEL_LOCAL_MEM_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_ulong), info_size);
-    TEST_ASSERT_EQUALS(0u, *(cl_ulong*)buffer);
+    TEST_ASSERT_EQUALS(0u, *reinterpret_cast<cl_ulong*>(buffer));
     
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(size_t), info_size);
-    TEST_ASSERT_EQUALS(1u, *(size_t*)buffer);
+    TEST_ASSERT_EQUALS(1u, *reinterpret_cast<size_t*>(buffer));
     
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_KERNEL_PRIVATE_MEM_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_ulong), info_size);
-    TEST_ASSERT_EQUALS(0u, *(cl_ulong*)buffer);
+    TEST_ASSERT_EQUALS(0u, *reinterpret_cast<cl_ulong*>(buffer));
     
     state = VC4CL_FUNC(clGetKernelWorkGroupInfo)(kernel, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), 0xDEADBEAF, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_INVALID_VALUE, state);
@@ -179,7 +179,7 @@ void TestKernel::testGetKernelArgInfo()
     state = VC4CL_FUNC(clGetKernelArgInfo)(kernel, 0, CL_KERNEL_ARG_ACCESS_QUALIFIER, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_kernel_arg_access_qualifier), info_size);
-    TEST_ASSERT_EQUALS(CL_KERNEL_ARG_ACCESS_NONE, *(cl_kernel_arg_access_qualifier*)buffer);
+    TEST_ASSERT_EQUALS(static_cast<cl_kernel_arg_access_qualifier>(CL_KERNEL_ARG_ACCESS_NONE), *reinterpret_cast<cl_kernel_arg_access_qualifier*>(buffer));
     
     state = VC4CL_FUNC(clGetKernelArgInfo)(kernel, 0, CL_KERNEL_ARG_TYPE_NAME, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -265,19 +265,19 @@ void TestKernel::testEnqueueTask()
 
 void TestKernel::testRetainKernel()
 {
-    TEST_ASSERT_EQUALS(1, toType<Kernel>(kernel)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Kernel>(kernel)->getReferences());
     cl_int state = VC4CL_FUNC(clRetainKernel)(kernel);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    TEST_ASSERT_EQUALS(2, toType<Kernel>(kernel)->getReferences());
+    TEST_ASSERT_EQUALS(2u, toType<Kernel>(kernel)->getReferences());
     state = VC4CL_FUNC(clReleaseKernel)(kernel);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT_EQUALS(1, toType<Kernel>(kernel)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Kernel>(kernel)->getReferences());
 }
 
 void TestKernel::testReleaseKernel()
 {
-    TEST_ASSERT_EQUALS(1, toType<Kernel>(kernel)->getReferences());
+    TEST_ASSERT_EQUALS(1u, toType<Kernel>(kernel)->getReferences());
     cl_int state = VC4CL_FUNC(clReleaseKernel)(kernel);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }

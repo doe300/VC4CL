@@ -135,7 +135,7 @@ bool Mailbox::executeCode(void* codeAddress, unsigned valueR0, unsigned valueR1,
 	p[i++] = 0x30010; // (the tag id)
 	p[i++] = 28; // (size of the buffer)
 	p[i++] = 28; // (size of the data)
-	p[i++] = (uintptr_t)codeAddress;
+	p[i++] = reinterpret_cast<uintptr_t>(codeAddress);
 	p[i++] = valueR0;
 	p[i++] = valueR1;
 	p[i++] = valueR2;
@@ -328,7 +328,7 @@ void* Mailbox::memLock(unsigned handle) const
 
    if(mailboxCall(p) < 0)
 	   return nullptr;
-   return (void*)p[5];
+   return reinterpret_cast<void*>(p[5]);
 }
 
 bool Mailbox::memUnlock(unsigned handle) const

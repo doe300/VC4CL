@@ -26,7 +26,7 @@ void TestPlatform::testGetPlatformIDs()
     cl_int status_code = VC4CL_FUNC(clGetPlatformIDs)(8, ids, &num_ids);
     
     TEST_ASSERT_EQUALS(CL_SUCCESS, status_code);
-    TEST_ASSERT_EQUALS(1, num_ids);
+    TEST_ASSERT_EQUALS(1u, num_ids);
     TEST_ASSERT(ids[0] != NULL);
     
     platform = ids[0];
