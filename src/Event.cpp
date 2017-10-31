@@ -69,7 +69,7 @@ cl_int Event::setCallback(cl_int command_exec_callback_type, EventCallback callb
 	if(command_exec_callback_type != CL_SUBMITTED && command_exec_callback_type != CL_RUNNING && command_exec_callback_type != CL_COMPLETE)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid type for event callback: %d!", command_exec_callback_type));
 
-	callbacks.emplace_back(callback, user_data);
+	callbacks.emplace_back(command_exec_callback_type, callback, user_data);
 	return CL_SUCCESS;
 }
 
@@ -124,7 +124,9 @@ void Event::fireCallbacks()
 {
 	for(const auto& callback : callbacks)
 	{
-		callback.first(toBase(), status, callback.second);
+		if(status <= std::get<0>(callback))
+			//"The registered callback function will be called when the execution status of command associated with event changes to an execution status equal to or past the status specified by command_exec_status"
+			std::get<1>(callback)(toBase(), status, std::get<2>(callback));
 	}
 }
 

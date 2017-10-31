@@ -102,6 +102,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 				tmp = 0xFFFF & static_cast<const cl_ushort*>(arg_value)[i];
 				args[arg_index].addScalar(tmp);
 			}
+			//TODO are signed short/char values handled correctly???
 			else if(elementSize > 4)
 			{
 				//not supported
@@ -145,7 +146,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 				if(toType<Buffer>(buffer)->context() != program->context())
 					return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, buildString("Contexts of buffer and program do not match: %p != %p", toType<Buffer>(buffer)->context(), program->context()));
 				if(info.params[arg_index].output && !toType<Buffer>(buffer)->writeable)
-					//TODO some OpenCL-CTS test-cases fail here! (e.g. buffer_map_read_short)
+					//TODO some OpenCL-CTS test-cases fail here! (e.g. buffer_map_read_short), also TestExecutions
 					return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-writeable buffer as output parameter!");
 				if(info.params[arg_index].input && !toType<Buffer>(buffer)->readable)
 					return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-readable buffer as input parameter!");

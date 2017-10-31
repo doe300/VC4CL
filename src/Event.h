@@ -152,7 +152,7 @@ namespace vc4cl
 		EventProfile profile;
 		void setTime(cl_ulong& field);
 
-		std::vector<std::pair<EventCallback, void*>> callbacks;
+		std::vector<std::tuple<cl_int, EventCallback, void*>> callbacks;
 		std::vector<Event*> waitList;
 
 		friend class CommandQueue;

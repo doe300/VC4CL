@@ -80,8 +80,9 @@ uint32_t V3D::getSystemInfo(const SystemInfo key) const
 			//"Contains the amount of VPM memory reserved for all user programs, in multiples of 256 bytes (4x 16-way 32-bit vectors)."
 			return (v3dBasePointer[V3D_VPMBASE] & 0x1F) * 256;
 		case SystemInfo::SEMAPHORES_COUNT:
-			//TODO returns zero for v3d_info, should be 16
-			return (v3dBasePointer[V3D_IDENT1] >> 16) & 0xFF;
+			//FIXME (similar to error with QPU count), this returns 0 but should return 16
+			//return (v3dBasePointer[V3D_IDENT1] >> 16) & 0xFF;
+			return 16;
 		case SystemInfo::SLICE_TMU_COUNT:
 			return (v3dBasePointer[V3D_IDENT1] >> 12) & 0xF;
 		case SystemInfo::SLICE_QPU_COUNT:

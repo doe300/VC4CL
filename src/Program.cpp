@@ -691,7 +691,8 @@ cl_int VC4CL_FUNC(clCompileProgram)(cl_program program, cl_uint num_devices, con
 	if(pfn_notify == NULL && user_data != NULL)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "User data was set, but callback wasn't!");
 
-	return toType<Program>(program)->compile( options == NULL ? "" : options, pfn_notify, user_data);
+	const std::string opts(options == NULL ? "" : options);
+	return toType<Program>(program)->compile( opts, pfn_notify, user_data);
 }
 
 /*!

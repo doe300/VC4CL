@@ -32,7 +32,7 @@ static const unsigned NUM_HIDDEN_PARAMETERS = 14;
 //#define AS_GPU_ADDRESS(x) (uintptr_t) buffer.qpuPointer + ((reinterpret_cast<const void*>(x)) - buffer.hostPointer)
 static uintptr_t AS_GPU_ADDRESS(const unsigned* ptr, DeviceBuffer* buffer)
 {
-	char* tmp = *(char**)&ptr;
+	const char* tmp = *reinterpret_cast<const char**>(&ptr);
 	return (uintptr_t) buffer->qpuPointer + ((tmp) - (char*)buffer->hostPointer);
 }
 
@@ -167,7 +167,7 @@ cl_int executeKernel(Event* event)
 	 * |  QPU0 Start   -------+
 	 * +---------------+
 	 */
-	unsigned* p = (unsigned *)buffer->hostPointer;
+	unsigned* p = reinterpret_cast<unsigned *>(buffer->hostPointer);
 	
 	//Copy global data into GPU memory
 	const void* global_data = reinterpret_cast<void*>(AS_GPU_ADDRESS(p, buffer.get()));

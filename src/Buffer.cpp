@@ -12,7 +12,7 @@ Buffer::Buffer(Context* context, cl_mem_flags flags) : HasContext(context), read
 	if(flags & CL_MEM_WRITE_ONLY)
 		readable = CL_FALSE;
 	if(flags & CL_MEM_READ_ONLY)
-		readable = CL_FALSE;
+		writeable = CL_FALSE;
 	if((flags & CL_MEM_HOST_READ_ONLY) || (flags & CL_MEM_HOST_NO_ACCESS))
 		hostWriteable = CL_FALSE;
 	if((flags & CL_MEM_HOST_WRITE_ONLY) || (flags & CL_MEM_HOST_NO_ACCESS))

@@ -393,7 +393,7 @@ PASSES all for 8 work-items
 | event_wait_for_array                                               | PASSED ||
 | event_flush                                                        | PASSED ||
 | event_finish_execute                                               | PASSED ||
-| event_finish_array                                                 | PASSED ||
+| event_finish_array                                                 | FAILED | "Incorrect status returned from clGetErrorStatus after array write complete (1:CL_RUNNING)" |
 | event_release_before_done                                          | PASSED ||
 | event_enqueue_marker                                               | PASSED ||
 | event_enqueue_marker_with_event_list                               | PASSED ||
