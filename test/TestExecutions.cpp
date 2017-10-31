@@ -55,6 +55,7 @@ void TestExecutions::testFibonacci()
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 	errcode = VC4CL_FUNC(clSetKernelArg)(kernel, 1, sizeof(int), &startVal);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	//FIXME fails for different Context, somehow Program completely fucks-up the Context passed to the creation-functions (The parameter context of VC4CL_FUNC(clCreateBuffer) becomes 0x0 somewhere in the method-body?!)
 	errcode = VC4CL_FUNC(clSetKernelArg)(kernel, 2, sizeof(outBuffer), outBuffer);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 
@@ -108,6 +109,7 @@ void TestExecutions::testFFT2()
 	//execution
 	//test
 	//tear-down
+	TEST_ASSERT_EQUALS(CL_SUCCESS, VC4CL_FUNC(clReleaseProgram)(program));
 }
 
 void TestExecutions::tear_down()

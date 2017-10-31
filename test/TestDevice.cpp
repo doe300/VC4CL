@@ -148,7 +148,8 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_MAX_CLOCK_FREQUENCY, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
-    TEST_ASSERT_EQUALS(250u, *reinterpret_cast<cl_uint*>(buffer));
+    //Raspberry Pi 3 runs on 300MHz
+	TEST_ASSERT_DELTA(250u, *reinterpret_cast<cl_uint*>(buffer), 50u);
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_MAX_COMPUTE_UNITS, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);

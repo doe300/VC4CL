@@ -13,6 +13,8 @@ using namespace vc4cl;
 
 TestSystem::TestSystem()
 {
+	//"warm-up" V3D hardware
+	V3D::instance();
     TEST_ADD(TestSystem::testGetSystemInfo);
 }
 

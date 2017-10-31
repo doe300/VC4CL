@@ -21,6 +21,7 @@ TestExtension::TestExtension(Test::Output* output) : context(nullptr), write_sta
 
 bool TestExtension::setup()
 {
+	//TODO is not run?! Setup fails?!
 	cl_int state = CL_SUCCESS;
 	cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
 	context = VC4CL_FUNC(clCreateContext)(nullptr, 1, &device_id, nullptr, nullptr, &state);

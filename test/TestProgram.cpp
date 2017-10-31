@@ -82,30 +82,39 @@ void TestProgram::testCreateProgramWithBuiltinKernels()
     TEST_ASSERT_EQUALS(nullptr, program);
 }
 
+struct CallbackData
+{
+	TestProgram* prog;
+	unsigned val;
+};
+
 static void build_callback(cl_program prog, void* test)
 {
-    reinterpret_cast<TestProgram*>(test)->num_callback += 1;
+	reinterpret_cast<CallbackData*>(test)->prog->num_callback += reinterpret_cast<CallbackData*>(test)->val;
 }
 
 void TestProgram::testBuildProgram()
 {
+	CallbackData data{this, 1};
 	cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    cl_int state = VC4CL_FUNC(clBuildProgram)(binary_program, 1, &device_id, NULL, &build_callback, this);
+    cl_int state = VC4CL_FUNC(clBuildProgram)(binary_program, 1, &device_id, NULL, &build_callback, &data);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }
 
 void TestProgram::testCompileProgram()
 {
+	CallbackData data{this, 4};
 	cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    cl_int state = VC4CL_FUNC(clCompileProgram)(source_program, 1, &device_id, "-Wall", 0, NULL, NULL, &build_callback, this);
+    cl_int state = VC4CL_FUNC(clCompileProgram)(source_program, 1, &device_id, "-Wall", 0, NULL, NULL, &build_callback, &data);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }
 
 void TestProgram::testLinkProgram()
 {
+	CallbackData data{this, 8};
     cl_int errcode = CL_SUCCESS;
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    cl_program program = VC4CL_FUNC(clLinkProgram)(context, 1, &device_id, NULL, 1, &source_program, &build_callback, this, &errcode);
+    cl_program program = VC4CL_FUNC(clLinkProgram)(context, 1, &device_id, NULL, 1, &source_program, &build_callback, &data, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
     TEST_ASSERT_EQUALS(source_program, program);
 }
@@ -115,7 +124,9 @@ void TestProgram::testUnloadPlatformCompiler()
     cl_int state = VC4CL_FUNC(clUnloadPlatformCompiler)(NULL);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    TEST_ASSERT_EQUALS(4u, num_callback);
+    //1 + 4 + 8 = 13
+    //The callback is only fired once in #testBuildProgram(), since the program is already compiled (and only need to be linked)
+    TEST_ASSERT_EQUALS(13u, num_callback);
 }
 
 void TestProgram::testGetProgramBuildInfo()
