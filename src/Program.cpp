@@ -23,6 +23,7 @@ using namespace vc4cl;
  * TODO rewrite, so compile is OpenCL C -> SPIR-V/LLVM-IR and link is SPIR-V/LLVM-IR -> asm
  * + can use linker in SPIR-V Tools to support multiple input programs
  * + more accurate wrt meanings of compilation and linking
+ * + can support extension cl_khr_spir
  * - need extra buffer for intermediate code
  */
 

@@ -41,6 +41,11 @@ Entries marked (\*) are required to be supported (OpenCL 1.2 specification, tabl
 | CL_LUMINANCE | 1          | L          | (L, L, L, 1.0)       |
 
 
+#### Intel extension for packed YUV images
+[This extension](https://www.khronos.org/registry/OpenCL/extensions/intel/cl_intel_packed_yuv.txt) enables support for packed YUV image channel orders.
+At least the channel-order YUYV could be supported by a built-in VideoCore IV texture-type. The only channel-type supported for YUYV images is CL_UNORM_INT8.
+The border-color for YUV-images is (0.0f, 0.0f, 0.0f, 1.0f), same as e.g. CL_RGB. The pixel-data read is mapped to the components ( V, Y, U, 1.0 ).
+
 ### VideoCore IV texture types
 
 List of all texture types supported by the VideoCore IV hardware (Broadcom specification, table 18)
@@ -64,31 +69,33 @@ List of all texture types supported by the VideoCore IV hardware (Broadcom speci
 | A1            | 1          | a          | 1 Bit           | ?               |
 | RGBA64        | 4          | r, g, b, a | 2 Bytes         | (r, g, b, a)    |
 | RGBA32R (\*)  | 4          | r, g, b, a | 1 Byte          | (r, g, b, a)    |
-| YUYV422R (\*) | 4          | y, u, y, v | 1 Byte          | ?               |
+| YUYV422R (\*) | 4          | y, u, y, v | 1 Byte          | (r, g, b, a) or (y, u, y', v) ? |
 
 Entries marked (\*) are in "raster format" (rectangular grid of pixels), e.g. from videos/images (formats like bmp, gif), other formats are in T-format (see below)
+
+**YUYV422** is used in video compressions (e.g. in PAL for TV, hence the raster format). For the memory layout of  [see here](https://wiki.multimedia.cx/index.php?title=PIX_FMT_YUYV422) and [here](https://en.wikipedia.org/wiki/YUV).
 
 ### Type mapping
 
 Draft of mapping OpenCL image and component-type to VideoCore IV texture types.
 
-|                     | CL_R    | CL_Rx   | CL_A    | CL_INTENSITY | CL_LUMINANCE | CL_RG   | CL_RGx  | CL_RA   | CL_RGB    | CL_RGBx   | CL_RGBA           | CL_ARGB      | CL_BGRA      |
-|---------------------|---------|---------|---------|--------------|--------------|---------|---------|---------|-----------|-----------|-------------------|--------------|--------------|
-| CL_SNORM_INT8       | S8      | S8      | ALPHA?  | LUMINANCE?   | LUMINANCE?   |         |         |         | &cross;   | &cross;   | RGBA8888(R)?      | RGBA8888(R)? | RGBA8888(R)? |
-| CL_SNORM_INT16      | S16     | S16     | S16     | S16          | S16          |         |         |         | &cross;   | &cross;   |                   | &cross;      | &cross;      |
-| CL_UNORM_INT8       | S8      | S8      | ALPHA?  | LUMINANCE?   | LUMINANCE    |         |         |         | &cross;   | &cross;   | RGBA8888(R) (\*)  | RGBA8888(R)  | RGBA8888(R)  |
-| CL_UNORM_INT16      | S16     | S16     | S16     | S16          | S16          |         |         |         | &cross;   | &cross;   |             (\*)  | &cross;      | &cross;      |
-| CL_UNORM_SHORT_565  | &cross; | &cross; | &cross; | &cross;      | &cross;      | &cross; | &cross; | &cross; | RGB565    | RGB565    | &cross;           | &cross;      | &cross;      |
-| CL_UNORM_SHORT_555  | &cross; | &cross; | &cross; | &cross;      | &cross;      | &cross; | &cross; | &cross; | RGBA5551? | RGBA5551? | &cross;           | &cross;      | &cross;      |
-| CL_UNORM_INT_101010 |         |         |         | &cross;      | &cross;      |         |         |         |           |           |                   | &cross;      | &cross;      |
-| CL_SIGNED_INT8      | S8      | S8      | S8      | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   | RGBA8888(R)? (\*) | RGBA8888(R)? | RGBA8888(R)? |
-| CL_SIGNED_INT16     | S16     | S16     | S16     | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   |              (\*) | &cross;      | &cross;      |
-| CL_SIGNED_INT32     |         |         |         | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   |              (\*) | &cross;      | &cross;      |
-| CL_UNSIGNED_INT8    | S8      | S8      | S8      | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   | RGBA8888(R)  (\*) | RGBA8888(R)  | RGBA8888(R)  |
-| CL_UNSIGNED_INT16   | S16     | S16     | S16     | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   |              (\*) | &cross;      | &cross;      |
-| CL_UNSIGNED_INT32   |         |         |         | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   |              (\*) | &cross;      | &cross;      |
-| CL_HALF_FLOAT       | S16F    | S16F    | S16F    | S16F         | S16F         |         |         |         | &cross;   | &cross;   | RGBA64       (\*) | &cross;      | &cross;      |
-| CL_FLOAT            |         |         |         |              |              |         |         |         | &cross;   | &cross;   |              (\*) | &cross;      | &cross;      |
+|                     | CL_R    | CL_Rx   | CL_A    | CL_INTENSITY | CL_LUMINANCE | CL_RG   | CL_RGx  | CL_RA   | CL_RGB    | CL_RGBx   | CL_RGBA           | CL_ARGB      | CL_BGRA      | CL_YUYV_INTEL |
+|---------------------|---------|---------|---------|--------------|--------------|---------|---------|---------|-----------|-----------|-------------------|--------------|--------------|---------------|
+| CL_SNORM_INT8       | S8      | S8      | ALPHA?  | LUMINANCE?   | LUMINANCE?   |         |         |         | &cross;   | &cross;   | RGBA8888(R)?      | RGBA8888(R)? | RGBA8888(R)? | &cross;       |
+| CL_SNORM_INT16      | S16     | S16     | S16     | S16          | S16          |         |         |         | &cross;   | &cross;   |                   | &cross;      | &cross;      | &cross;       |
+| CL_UNORM_INT8       | S8      | S8      | ALPHA?  | LUMINANCE?   | LUMINANCE    |         |         |         | &cross;   | &cross;   | RGBA8888(R) (\*)  | RGBA8888(R)? | RGBA8888(R)? | YUYV422R ?    |
+| CL_UNORM_INT16      | S16     | S16     | S16     | S16          | S16          |         |         |         | &cross;   | &cross;   |             (\*)  | &cross;      | &cross;      | &cross;       |
+| CL_UNORM_SHORT_565  | &cross; | &cross; | &cross; | &cross;      | &cross;      | &cross; | &cross; | &cross; | RGB565    | RGB565    | &cross;           | &cross;      | &cross;      | &cross;       |
+| CL_UNORM_SHORT_555  | &cross; | &cross; | &cross; | &cross;      | &cross;      | &cross; | &cross; | &cross; | RGBA5551? | RGBA5551? | &cross;           | &cross;      | &cross;      | &cross;       |
+| CL_UNORM_INT_101010 |         |         |         | &cross;      | &cross;      |         |         |         |           |           |                   | &cross;      | &cross;      | &cross;       |
+| CL_SIGNED_INT8      | S8      | S8      | S8      | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   | RGBA8888(R)? (\*) | RGBA8888(R)? | RGBA8888(R)? | &cross;       |
+| CL_SIGNED_INT16     | S16     | S16     | S16     | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   |              (\*) | &cross;      | &cross;      | &cross;       |
+| CL_SIGNED_INT32     |         |         |         | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   |              (\*) | &cross;      | &cross;      | &cross;       |
+| CL_UNSIGNED_INT8    | S8      | S8      | S8      | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   | RGBA8888(R)  (\*) | RGBA8888(R)  | RGBA8888(R)  | &cross;       |
+| CL_UNSIGNED_INT16   | S16     | S16     | S16     | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   |              (\*) | &cross;      | &cross;      | &cross;       |
+| CL_UNSIGNED_INT32   |         |         |         | &cross;      | &cross;      |         |         |         | &cross;   | &cross;   |              (\*) | &cross;      | &cross;      | &cross;       |
+| CL_HALF_FLOAT       | S16F    | S16F    | S16F    | S16F         | S16F         |         |         |         | &cross;   | &cross;   | RGBA64       (\*) | &cross;      | &cross;      | &cross;       |
+| CL_FLOAT            |         |         |         |              |              |         |         |         | &cross;   | &cross;   |              (\*) | &cross;      | &cross;      | &cross;       |
 
 Entries marked (\*) are required to be supported (OpenCL 1.2 specification, table 5.8).
 
@@ -110,6 +117,7 @@ A **micro-tile** is a "rectangular image block with a fixed size of [...] 64 byt
 | 1 Bit      | 32 x 16         |
 
 Addressing offset within micro-tile for 4-Byte pixels:
+
 |   |   |   |   |
 |---|---|---|---|
 | C | D | E | F |
@@ -124,19 +132,19 @@ The data needs to be padded to multiples of 4KB in width and height.
 (Broadcom specification, pages 105+)
 
 Micro-tiles are stored in "normal" raster order within the sub-tiles (4 x 4 micro-tiles per sub-tile), resulting in the same addressing offsets as the example for within a micro-tile with 32-bits pixels. 
-Sub-tiles are stored in circular order within a 4k tiles. The addressing offset depends on the row of the 4k tile. For odd rows they are ordered bottom-left, up-left, up-right to bottom-right. For even rows up-right, bottom-right, bottom-left, up-left:
-
-| odd | row |
-|-----|-----|
-| 1   | 2   |
-| 0   | 3   |
+Sub-tiles are stored in circular order within a 4k tiles. The addressing offset depends on the row of the 4k tile. For even rows they are ordered bottom-left, up-left, up-right to bottom-right. For odd rows up-right, bottom-right, bottom-left, up-left:
 
 | even | row |
 |------|-----|
-| 2    | 0   |
-| 3    | 1   |
+| 1    | 2   |
+| 0    | 3   |
 
-The order of the 4- tiles themselves is left-to-right for odd rows and right-to-left for even rows:
+| odd | row |
+|-----|-----|
+| 2   | 0   |
+| 3   | 1   |
+
+The order of the 4-k tiles themselves is left-to-right for odd rows and right-to-left for even rows:
 
 |   |   |   |   |   |
 |---|---|---|---|---|
@@ -154,4 +162,8 @@ The LT-format is automatically selected for smaller size. (Broadcom specificatio
 "The hardware assumes a level is in T-format unless either the width or height for the level is less than one T-format tile. In this case use the hardware assumes the level is stored in LT-format." (Broadcom specification, page 40)
 
 ## Raster format
+The texture-types RGBA32R and YUYV422R are in raster format, meaning all pixels in a row are in consecutive memory, followed by the next row and the next and so on. This allows for easier access host-side, e.g. pixels are a simple 1D/2D/3D array in memory, no custom order required, allows for memcpy instruction.
+
 Though not officially supported as texture-format by the VideoCore IV architecture, the general 32-bit TMU read could be used to read raster-images of arbitrary size. For this to work, the address would need to be calculated from the image width and height. Instead of the general 32-bit TMU read, VPM could be used too (is more complicated to set up and requires the hardware-mutex to be locked, but way faster).
+
+Another trick to read 4 components with 32-bit each (e.g. for CL_RGBA with CL_FLOAT) would be, to set the image-width to 4x the original width, read 4 pixels and combine into one vector. This only works for original image-widths up to 512 pixels (since 4 * 512 = 2048). Similar for 2 components with 32-bit each or 4 components with 16-bit each, could imitate an image twice the size, read 2 pixels and rearrange to correct components. Interpolations are not supported by this kind of image-access.

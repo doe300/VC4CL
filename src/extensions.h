@@ -134,6 +134,25 @@ extern "C"
 	cl_int VC4CL_FUNC(clSetKernelExecInfoARM)(cl_kernel kernel, cl_kernel_exec_info_arm param_name, size_t param_value_size, const void* param_value);
 
 	/*
+	 * Support for packed yuv images (cl_intel_packed_yuv)
+	 * https://www.khronos.org/registry/OpenCL/extensions/intel/cl_intel_packed_yuv.txt
+	 *
+	 * Supports packed YUV images as image-formats
+	 */
+#ifndef CL_YUYV_INTEL
+#define CL_YUYV_INTEL	0x4076
+#endif
+#ifndef CL_UYVY_INTEL
+#define CL_UYVY_INTEL	0x4077
+#endif
+#ifndef CL_YVYU_INTEL
+#define CL_YVYU_INTEL	0x4078
+#endif
+#ifndef CL_VYUY_INTEL
+#define CL_VYUY_INTEL	0x4079
+#endif
+
+	/*
 	 * VC4CL performance counters (cl_vc4cl_performance_counters)
 	 */
 

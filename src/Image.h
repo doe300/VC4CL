@@ -13,6 +13,7 @@
 #include "Context.h"
 #include "Buffer.h"
 #include "TextureFormat.h"
+#include "TextureConfiguration.h"
 
 namespace vc4cl
 {
@@ -39,6 +40,7 @@ namespace vc4cl
 	static constexpr ChannelOrder CHANNEL_RED_GREEN_BLUE_ALPHA(CL_RGBA, 4);
 	static constexpr ChannelOrder CHANNEL_ALPHA_RED_GREEN_BLUE(CL_ARGB, 4);
 	static constexpr ChannelOrder CHANNEL_BLUE_GREEN_RED_ALPHA(CL_BGRA, 4);
+	static constexpr ChannelOrder CHANNEL_Y_U_Y_V(CL_YUYV_INTEL, 4);
 
 	struct ChannelType
 	{
@@ -97,17 +99,25 @@ namespace vc4cl
 	class Image : public Buffer
 	{
 	public:
-		CHECK_RETURN cl_int getImageInfo(cl_image_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
+		Image(Context* context, cl_mem_flags flags, const cl_image_format& imageFormat, const cl_image_desc& imageDescription);
 
+		CHECK_RETURN cl_int getImageInfo(cl_image_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 		CHECK_RETURN cl_int getInfo(cl_mem_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) override;
 
-		uint32_t toBasicSetupValue() const;
-		uint32_t toAccessSetupValue() const;
-		uint32_t toExtendedSetupValue() const;
+		CHECK_RETURN cl_int enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, const size_t* origin, const size_t* region, size_t row_pitch, size_t slice_pitch, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
+		CHECK_RETURN cl_int enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, const size_t* origin, const size_t* region, size_t row_pitch, size_t slice_pitch, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
+		CHECK_RETURN cl_int enqueueCopyInto(CommandQueue* commandQueue, Image* destination, const size_t* srcOrigin, const size_t* dstOrigin, const size_t* region, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
+		CHECK_RETURN cl_int enqueueFill(CommandQueue* commandQueue, const void* color, const size_t* origin, const size_t* region, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
+		CHECK_RETURN cl_int enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer, const size_t* origin, const size_t* region, const size_t bufferOffset, bool copyIntoImage, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
+		CHECK_RETURN void* enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_flags mapFlags, const size_t* origin, const size_t* region, size_t* rowPitchOutput, size_t* slicePitchOutput, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event, cl_int* errcode_ret);
+
+		TextureConfiguration toTextureConfiguration() const;
+
 		size_t calculateElementSize() const;
 
 		ChannelOrder channelOrder;
 		ChannelType channelType;
+		TextureType textureType;
 		ImageType imageType;
 		size_t imageWidth;
 		size_t imageHeight;
@@ -117,9 +127,11 @@ namespace vc4cl
 		size_t imageSlicePitch;
 		cl_uint numMipLevels;
 		cl_uint numSamples;
+		std::unique_ptr<TextureAccessor> accessor;
 
 	private:
-		std::unique_ptr<TextureAccessor> accessor;
+		CHECK_RETURN cl_int checkImageAccess(const size_t* origin, const size_t* region) const;
+		CHECK_RETURN cl_int checkImageSlices(const size_t* region, const size_t row_pitch, const size_t slice_pitch) const;
 	};
 
 	class Sampler : public Object<_cl_sampler, CL_INVALID_SAMPLER>, public HasContext
@@ -135,6 +147,78 @@ namespace vc4cl
 		cl_bool normalized_coords;
 		cl_addressing_mode addressing_mode;
 		cl_filter_mode filter_mode;
+	};
+
+	struct ImageAccess : public EventAction
+	{
+		object_wrapper<Image> image;
+		void* hostPointer;
+		bool writeToImage;
+		std::array<size_t, 3> origin;
+		std::array<size_t, 3> region;
+		size_t hostRowPitch;
+		size_t hostSlicePitch;
+
+		ImageAccess(Image* image, void* hostPtr, bool writeImage, const std::size_t origin[3], const std::size_t region[3]);
+
+		cl_int operator()(Event* event) override;
+	};
+
+	struct ImageCopy : public EventAction
+	{
+		object_wrapper<Image> source;
+		object_wrapper<Image> destination;
+		std::array<size_t, 3> sourceOrigin;
+		std::array<size_t, 3> destOrigin;
+		std::array<size_t, 3> region;
+
+		ImageCopy(Image* src, Image* dst, const std::size_t srcOrigin[3], const std::size_t dstOrigin[3], const std::size_t region[3]);
+
+		cl_int operator()(Event* event) override;
+	};
+
+	struct ImageFill : public EventAction
+	{
+		object_wrapper<Image> image;
+		std::array<size_t, 3> origin;
+		std::array<size_t, 3> region;
+		std::vector<char> fillColor;
+
+		ImageFill(Image* img, const void* color, const std::size_t origin[3], const std::size_t region[3]);
+
+		cl_int operator()(Event* event) override;
+	};
+
+	struct ImageCopyBuffer : public EventAction
+	{
+		object_wrapper<Image> image;
+		object_wrapper<Buffer> buffer;
+		bool copyIntoImage;
+		std::array<size_t, 3> imageOrigin;
+		std::array<size_t, 3> imageRegion;
+		std::size_t bufferOffset;
+
+		ImageCopyBuffer(Image* image, Buffer* buffer, bool copyIntoImage, const std::size_t imgOrigin[3], const std::size_t region[3], const size_t bufferOffset);
+
+		cl_int operator()(Event* event) override;
+	};
+
+	struct ImageMapping : public BufferMapping
+	{
+		std::array<size_t, 3> origin;
+		std::array<size_t, 3> region;
+
+		ImageMapping(Image* image, void* hostPtr, bool unmap, const std::size_t origin[3], const std::size_t region[3]);
+	};
+
+	struct hash_cl_image_format : public std::hash<std::string>
+	{
+		size_t operator()(const cl_image_format& ) const noexcept;
+	};
+
+	struct equal_cl_image_format : public std::equal_to<cl_image_format>
+	{
+		bool operator()(const cl_image_format&, const cl_image_format&) const noexcept;
 	};
 
 } /* namespace vc4cl */

@@ -20,6 +20,8 @@ namespace vc4cl
 {
 	typedef void(CL_CALLBACK* BufferCallback)(cl_mem event, void* user_data);
 
+	class Image;
+
 	class Buffer: public Object<_cl_mem, CL_INVALID_MEM_OBJECT>, public HasContext
 	{
 	public:
@@ -43,6 +45,7 @@ namespace vc4cl
 		void setUseHostPointer(void* hostPtr, size_t hostSize);
 		void setAllocateHostPointer(size_t hostSize);
 		void setCopyHostPointer(void* hostPtr, size_t hostSize);
+		cl_mem_flags getMemFlags() const;
 
 		std::list<void*> mappings;
 
@@ -53,7 +56,7 @@ namespace vc4cl
 
 		std::shared_ptr<DeviceBuffer> deviceBuffer;
 
-	private:
+	protected:
 		cl_bool useHostPtr;
 		cl_bool allocHostPtr;
 		cl_bool copyHostPtr;
@@ -67,6 +70,8 @@ namespace vc4cl
 		size_t offset = 0;
 
 		CHECK_RETURN Event* createBufferActionEvent(CommandQueue* queue, CommandType command_type, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_int* errcode_ret) const;
+
+		friend class Image;
 	};
 
 	struct BufferMapping : public EventAction
@@ -75,7 +80,7 @@ namespace vc4cl
 		void* hostPtr;
 		bool unmap;
 
-		BufferMapping(Buffer*buffer, void* hostPtr, bool unmap);
+		BufferMapping(Buffer* buffer, void* hostPtr, bool unmap);
 
 		cl_int operator()(Event* event) override;
 	};

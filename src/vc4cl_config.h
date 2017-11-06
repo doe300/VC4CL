@@ -85,6 +85,8 @@ namespace vc4cl
 #ifdef IMAGE_SUPPORT
 				//Supports writing of 3D images
 				"cl_khr_3d_image_writes",
+				//Support for packed YUV image-types
+				"cl_intel_packed_yuv",
 #endif
 				//officially supports the "#pragma unroll <factor>
 				"cl_nv_pragma_unroll",

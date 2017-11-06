@@ -519,22 +519,12 @@ cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uin
 
 cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
-	cl_mem_flags flags = (readable && writeable ? CL_MEM_READ_WRITE : 0) |
-			(readable && !writeable ? CL_MEM_READ_ONLY : 0) |
-			(writeable && !readable ? CL_MEM_WRITE_ONLY : 0) |
-			(hostReadable && !hostWriteable ? CL_MEM_HOST_READ_ONLY : 0) |
-			(hostWriteable && !hostReadable ? CL_MEM_HOST_WRITE_ONLY : 0) |
-			(!hostReadable && !hostWriteable ? CL_MEM_HOST_NO_ACCESS : 0) |
-			(useHostPtr ? CL_MEM_USE_HOST_PTR : 0) |
-			(allocHostPtr ? CL_MEM_ALLOC_HOST_PTR : 0) |
-			(copyHostPtr ? CL_MEM_COPY_HOST_PTR : 0);
-
 	switch(param_name)
 	{
 		case CL_MEM_TYPE:
 			return returnValue<cl_mem_object_type>(CL_MEM_OBJECT_BUFFER, param_value_size, param_value, param_value_size_ret);
 		case CL_MEM_FLAGS:
-			return returnValue<cl_mem_flags>(flags, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_mem_flags>(getMemFlags(), param_value_size, param_value, param_value_size_ret);
 		case CL_MEM_SIZE:
 			//"Return actual size of the data store associated with memobj in bytes. "
 			return returnValue<size_t>(deviceBuffer->size, param_value_size, param_value, param_value_size_ret);
@@ -578,6 +568,19 @@ void Buffer::setCopyHostPointer(void* hostPtr, size_t hostSize)
 	copyHostPtr = CL_TRUE;
 	this->hostSize = hostSize;
 	memcpy(deviceBuffer->hostPointer, hostPtr, hostSize);
+}
+
+cl_mem_flags Buffer::getMemFlags() const
+{
+	return (readable && writeable ? CL_MEM_READ_WRITE : 0) |
+		(readable && !writeable ? CL_MEM_READ_ONLY : 0) |
+		(writeable && !readable ? CL_MEM_WRITE_ONLY : 0) |
+		(hostReadable && !hostWriteable ? CL_MEM_HOST_READ_ONLY : 0) |
+		(hostWriteable && !hostReadable ? CL_MEM_HOST_WRITE_ONLY : 0) |
+		(!hostReadable && !hostWriteable ? CL_MEM_HOST_NO_ACCESS : 0) |
+		(useHostPtr ? CL_MEM_USE_HOST_PTR : 0) |
+		(allocHostPtr ? CL_MEM_ALLOC_HOST_PTR : 0) |
+		(copyHostPtr ? CL_MEM_COPY_HOST_PTR : 0);
 }
 
 Event* Buffer::createBufferActionEvent(CommandQueue* commandQueue, CommandType command_type, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_int* errcode_ret) const

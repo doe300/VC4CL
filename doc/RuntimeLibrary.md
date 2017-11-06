@@ -57,7 +57,7 @@ Since access to the memory (shared with the CPU), is always synchronized among a
 * **clEnqueueCopyBufferToImage** - images are not supported
 * **clEnqueueMapImage** - images are not supported
 * **clEnqueueUnmapMemObject** - supported, device-memory is always mapped to host-memory
-* **clEnqueueMigrateMemObjects** - **TBD**
+* **clEnqueueMigrateMemObjects** - supported, no-op, memory objects are always located on the device
 * **clGetMemObjectInfo** - supports all parameters specified in OpenCL 1.2
 * **clGetImageInfo** - images are not supported
 * **clRetainMemObject** - supported
