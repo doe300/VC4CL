@@ -39,7 +39,7 @@ cl_int SharedVirtualMemory::getHostOffset(const void* hostPointer) const
 
 void* SharedVirtualMemory::getDevicePointer(const size_t offset)
 {
-	return reinterpret_cast<void*>(reinterpret_cast<const uintptr_t>(buffer->qpuPointer) + offset);
+	return reinterpret_cast<void*>(buffer->qpuPointer + offset);
 }
 
 void* SharedVirtualMemory::getHostPointer(const size_t offset)

@@ -55,13 +55,13 @@ namespace vc4cl
 	{
 	public:
 		//Identifier of the buffer allocated, think of it as a file-handle
-		const unsigned memHandle;
+		const uint32_t memHandle;
 		//Buffer address from VideoCore QPU (GPU) view (the pointer which is passed to the kernel)
-		void* const qpuPointer;
+		const uint32_t qpuPointer;
 		//Buffer address for ARM (host) view (the pointer to use on the host-side to fill/read the buffer)
 		void* const hostPointer;
 		//size of the buffer, in bytes
-		const unsigned size;
+		const uint32_t size;
 
 		DeviceBuffer(const DeviceBuffer&) = delete;
 		DeviceBuffer(DeviceBuffer&&) = delete;
@@ -70,7 +70,7 @@ namespace vc4cl
 		DeviceBuffer& operator=(const DeviceBuffer&) = delete;
 		DeviceBuffer& operator=(DeviceBuffer&&) = delete;
 	private:
-		DeviceBuffer(unsigned handle, void* devPtr, void* hostPtr, unsigned size);
+		DeviceBuffer(uint32_t handle, uint32_t devPtr, void* hostPtr, uint32_t size);
 
 		friend class Mailbox;
 	};
@@ -160,7 +160,7 @@ namespace vc4cl
 		CHECK_RETURN bool enableQPU(bool enable) const;
 
 		unsigned memAlloc(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags) const;
-		void* memLock(unsigned handle) const;
+		unsigned memLock(unsigned handle) const;
 
 		CHECK_RETURN bool memUnlock(unsigned handle) const;
 		CHECK_RETURN bool memFree(unsigned handle) const;

@@ -18,8 +18,6 @@
 
 using namespace vc4cl;
 
-extern cl_int executeKernel(Event* event);
-
 static std::deque<Event*> eventBuffer;
 
 //this is triggered after every finished cl_event

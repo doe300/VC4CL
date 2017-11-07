@@ -37,7 +37,8 @@ namespace vc4cl
 				// supports querying the device temperature with clGetDeviceInfo
 				"cl_altera_device_temperature",
 				//supports OpenCL 2.x SVM for OpenCL < 2.0
-				"cl_arm_shared_virtual_memory",
+				//TODO is this actually true? If so, only for 32-bit architectures
+				//"cl_arm_shared_virtual_memory",
 #if use_cl_khr_icd
 				//supports being used by the Khronos ICD loader
 				"cl_khr_icd",

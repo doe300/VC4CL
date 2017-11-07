@@ -49,7 +49,7 @@ using namespace vc4cl;
 #define DEVICE_FILE_NAME "/dev/vcio"
 #define GPU_MEM_MAP 0x0 // cached=0x0; direct=0x20000000
 
-DeviceBuffer::DeviceBuffer(unsigned handle, void* devPtr, void* hostPtr, unsigned size) : memHandle(handle), qpuPointer(devPtr), hostPointer(hostPtr), size(size)
+DeviceBuffer::DeviceBuffer(uint32_t handle, uint32_t devPtr, void* hostPtr, uint32_t size) : memHandle(handle), qpuPointer(devPtr), hostPointer(hostPtr), size(size)
 {
 }
 
@@ -98,8 +98,8 @@ DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentIn
 	unsigned handle = memAlloc(sizeInBytes, std::max(static_cast<unsigned>(PAGE_ALIGNMENT), alignmentInBytes), flags);
 	if(handle != 0)
 	{
-		void* qpuPointer = memLock(handle);
-		void* hostPointer = mapmem(V3D::busAddressToPhysicalAddress(reinterpret_cast<std::uintptr_t>(qpuPointer)+GPU_MEM_MAP), sizeInBytes);
+		unsigned qpuPointer = memLock(handle);
+		void* hostPointer = mapmem(V3D::busAddressToPhysicalAddress(qpuPointer + GPU_MEM_MAP), sizeInBytes);
 #ifdef DEBUG_MODE
 		std::cout << "[VC4CL] Allocated " << sizeInBytes << " bytes of buffer: handle " << handle << ", device address " << qpuPointer << ", host address " << hostPointer << std::endl;
 #endif
@@ -311,7 +311,7 @@ unsigned Mailbox::memAlloc(unsigned sizeInBytes, unsigned alignmentInBytes, Memo
 	return p[5];
 }
 
-void* Mailbox::memLock(unsigned handle) const
+unsigned Mailbox::memLock(unsigned handle) const
 {
 	int i=0;
    unsigned p[32];
@@ -327,8 +327,8 @@ void* Mailbox::memLock(unsigned handle) const
    p[0] = i*sizeof *p; // actual size
 
    if(mailboxCall(p) < 0)
-	   return nullptr;
-   return reinterpret_cast<void*>(p[5]);
+	   return reinterpret_cast<uintptr_t>(nullptr);
+   return p[5];
 }
 
 bool Mailbox::memUnlock(unsigned handle) const

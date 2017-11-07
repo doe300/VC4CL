@@ -460,7 +460,7 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
 TextureConfiguration Image::toTextureConfiguration() const
 {
 	//base pointer is in multiple of 4 KB
-	BasicTextureSetup basicSetup(reinterpret_cast<uintptr_t>(deviceBuffer->qpuPointer) / 4096, textureType);
+	BasicTextureSetup basicSetup(deviceBuffer->qpuPointer / 4096, textureType);
 
 	TextureAccessSetup accessSetup(textureType, imageWidth, imageHeight);
 	/*
