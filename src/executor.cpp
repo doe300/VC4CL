@@ -143,7 +143,7 @@ cl_int executeKernel(Event* event)
 	//
 	// ALLOCATE BUFFER
 	//
-	size_t buffer_size = get_size(kernel->info.length * 8, num_qpus * numIterations * (NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()), kernel->program->globalData.size());
+	size_t buffer_size = get_size(kernel->info.getLength() * 8, num_qpus * numIterations * (NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()), kernel->program->globalData.size());
 
 	std::unique_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(buffer_size));
 	if(buffer.get() == nullptr)
@@ -181,9 +181,9 @@ cl_int executeKernel(Event* event)
 
 	// Copy QPU program into GPU memory
 	const unsigned* qpu_code = p;
-	void* code_start = kernel->program->binaryCode.data() + (kernel->info.offset * 8);
-	memcpy(p, code_start, kernel->info.length * 8);
-	p += kernel->info.length * 8 / sizeof(unsigned);
+	void* code_start = kernel->program->binaryCode.data() + (kernel->info.getOffset() * 8);
+	memcpy(p, code_start, kernel->info.getLength() * 8);
+	p += kernel->info.getLength() * 8 / sizeof(unsigned);
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Copied " << kernel->info.length * sizeof(int64_t) << " bytes of kernel code to device buffer" << std::endl;
 #endif
@@ -201,8 +201,8 @@ cl_int executeKernel(Event* event)
 #ifdef DEBUG_MODE
 				std::cout << "[VC4CL] Setting parameter " << (NUM_HIDDEN_PARAMETERS - 1) + u << " to " << kernel->args[u].to_string() << std::endl;
 #endif
-				for(cl_uchar i = 0; i < kernel->info.params[u].elements; ++i)
-					*p++ = kernel->args[u].scalarValues.at(i).u;
+				for(cl_uchar i = 0; i < kernel->info.params[u].getElements(); ++i)
+					*p++ = kernel->args[u].scalarValues.at(i).getUnsigned();
 			}
 			//"Kernel Loop Optimization" to repeat kernel for several work-groups
 			//needs to be non-zero for all but the last iteration and zero for the last iteration

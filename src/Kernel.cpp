@@ -19,28 +19,21 @@ extern cl_int executeKernel(Event* event);
 void KernelArgument::addScalar(const float f)
 {
 	ScalarValue v;
-	v.f = f;
+	v.setFloat(f);
 	scalarValues.push_back(v);
 }
 
 void KernelArgument::addScalar(const uint32_t u)
 {
 	ScalarValue v;
-	v.u = u;
+	v.setUnsigned(u);
 	scalarValues.push_back(v);
 }
 
 void KernelArgument::addScalar(const int32_t s)
 {
 	ScalarValue v;
-	v.s = s;
-	scalarValues.push_back(v);
-}
-
-void KernelArgument::addScalar(void* ptr)
-{
-	ScalarValue v;
-	v.ptr = ptr;
+	v.setSigned(s);
 	scalarValues.push_back(v);
 }
 
@@ -49,7 +42,7 @@ std::string KernelArgument::to_string() const
 	std::string res;
 	for(const ScalarValue& v : scalarValues)
 	{
-		res += std::to_string(v.u) + ", ";
+		res += std::to_string(v.getUnsigned()) + ", ";
 	}
 	return res.substr(0, res.length() - 2);
 }
@@ -78,15 +71,15 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 	//clear previous set parameter value
 	args[arg_index] = KernelArgument();
 
-	if(info.params[arg_index].pointer == CL_FALSE)
+	if(info.params[arg_index].getPointer() == CL_FALSE)
 	{
 		//literal (scalar or vector) argument
-		if(arg_size != info.params[arg_index].size)
+		if(arg_size != info.params[arg_index].getSize())
 		{
-			return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__, buildString("Invalid arg size: %u, must be %d", arg_size, info.params[arg_index].size));
+			return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__, buildString("Invalid arg size: %u, must be %d", arg_size, info.params[arg_index].getSize()));
 		}
-		const cl_char elementSize = arg_size / info.params[arg_index].elements;
-		for(cl_uchar i = 0; i < info.params[arg_index].elements; ++i)
+		const cl_char elementSize = arg_size / info.params[arg_index].getElements();
+		for(cl_uchar i = 0; i < info.params[arg_index].getElements(); ++i)
 		{
 			//arguments are all 32-bit, since UNIFORMS are always 32-bit
 			cl_uint tmp = 0;
@@ -125,13 +118,13 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 		// in which case a NULL value will be used as the value for the argument declared as a pointer"
 		//"If the argument is declared to be a pointer of a built-in scalar or vector type [...] the memory object specified as argument value must be a buffer object (or NULL)"
 		// -> no pointers to non-buffer objects are allowed! -> good, no extra checking required
-		void* pointer_arg = NULL;
+		uint32_t pointer_arg = reinterpret_cast<uintptr_t>(nullptr);
 		if(arg_value != NULL && *static_cast<const void* const *>(arg_value) != NULL)
 		{
 			if(isSVMPointer)
 			{
 				//SVM pointers are passed as direct GPU pointers (and are checked before), so the usual check for valid Buffer does not apply here
-				pointer_arg = const_cast<void*>(arg_value);
+				pointer_arg = reinterpret_cast<uintptr_t>(arg_value);
 			}
 			else
 			{
@@ -145,10 +138,10 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 				CHECK_BUFFER(toType<Buffer>(buffer))
 				if(toType<Buffer>(buffer)->context() != program->context())
 					return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, buildString("Contexts of buffer and program do not match: %p != %p", toType<Buffer>(buffer)->context(), program->context()));
-				if(info.params[arg_index].output && !toType<Buffer>(buffer)->writeable)
+				if(info.params[arg_index].getOutput() && !toType<Buffer>(buffer)->writeable)
 					//TODO some OpenCL-CTS test-cases fail here! (e.g. buffer_map_read_short), also TestExecutions
 					return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-writeable buffer as output parameter!");
-				if(info.params[arg_index].input && !toType<Buffer>(buffer)->readable)
+				if(info.params[arg_index].getInput() && !toType<Buffer>(buffer)->readable)
 					return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-readable buffer as input parameter!");
 				pointer_arg = toType<Buffer>(buffer)->deviceBuffer->qpuPointer;
 			}
@@ -221,15 +214,15 @@ cl_int Kernel::getArgInfo(cl_uint arg_index, cl_kernel_arg_info param_name, size
 	switch(param_name)
 	{
 		case CL_KERNEL_ARG_ADDRESS_QUALIFIER:
-			return (paramInfo.addressSpace == AddressSpace::CONSTANT ? CL_KERNEL_ARG_ADDRESS_CONSTANT : (paramInfo.addressSpace == AddressSpace::GLOBAL ? CL_KERNEL_ARG_ADDRESS_GLOBAL : (paramInfo.addressSpace == AddressSpace::LOCAL ? CL_KERNEL_ARG_ADDRESS_LOCAL : CL_KERNEL_ARG_ADDRESS_PRIVATE)));
+			return (paramInfo.getAddressSpace() == AddressSpace::CONSTANT ? CL_KERNEL_ARG_ADDRESS_CONSTANT : (paramInfo.getAddressSpace() == AddressSpace::GLOBAL ? CL_KERNEL_ARG_ADDRESS_GLOBAL : (paramInfo.getAddressSpace() == AddressSpace::LOCAL ? CL_KERNEL_ARG_ADDRESS_LOCAL : CL_KERNEL_ARG_ADDRESS_PRIVATE)));
 		case CL_KERNEL_ARG_ACCESS_QUALIFIER:
 			//"If argument is not an image type, CL_KERNEL_ARG_ACCESS_NONE is returned"
 			return returnValue<cl_kernel_arg_access_qualifier>(CL_KERNEL_ARG_ACCESS_NONE, param_value_size, param_value, param_value_size_ret);
 		case CL_KERNEL_ARG_TYPE_NAME:
 			return returnString(paramInfo.type, param_value_size, param_value, param_value_size_ret);
 		case CL_KERNEL_ARG_TYPE_QUALIFIER:
-			return (paramInfo.constant ? CL_KERNEL_ARG_TYPE_CONST : 0) | (paramInfo.restricted ? CL_KERNEL_ARG_TYPE_RESTRICT : 0) |
-					(paramInfo.isVolatile ? CL_KERNEL_ARG_TYPE_VOLATILE : 0);
+			return (paramInfo.getConstant() ? CL_KERNEL_ARG_TYPE_CONST : 0) | (paramInfo.getRestricted() ? CL_KERNEL_ARG_TYPE_RESTRICT : 0) |
+					(paramInfo.getVolatile() ? CL_KERNEL_ARG_TYPE_VOLATILE : 0);
 		case CL_KERNEL_ARG_NAME:
 			return returnString(paramInfo.name, param_value_size, param_value, param_value_size_ret);
 	}

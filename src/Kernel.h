@@ -13,25 +13,24 @@
 #include "Object.h"
 #include "Program.h"
 #include "Event.h"
+#include "Bitfield.h"
 
 
 namespace vc4cl
 {
 	struct KernelArgument
 	{
-		union ScalarValue
+		struct ScalarValue : private Bitfield<uint32_t>
 		{
-			float f;
-			uint32_t u;
-			int32_t s;
-			void* ptr;
+			BITFIELD_ENTRY(Float, float, 0, Int)
+			BITFIELD_ENTRY(Unsigned, uint32_t, 0, Int)
+			BITFIELD_ENTRY(Signed, int32_t, 0, Int)
 		};
 		std::vector<ScalarValue> scalarValues;
 
 		void addScalar(const float f);
 		void addScalar(const uint32_t u);
 		void addScalar(const int32_t s);
-		void addScalar(void* ptr);
 
 		std::string to_string() const;
 	};

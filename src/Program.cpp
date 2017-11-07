@@ -31,7 +31,7 @@ size_t KernelInfo::getExplicitUniformCount() const
 {
 	size_t count = 0;
 	for(const ParamInfo& info : params)
-		count += info.elements;
+		count += info.getElements();
 	return count;
 }
 
@@ -259,13 +259,8 @@ static std::string readString(cl_ulong** ptr, cl_uint stringLength)
 
 cl_int Program::extractKernelInfo(cl_ulong** ptr, cl_uint* min_kernel_offset)
 {
-	KernelInfo info;
+	KernelInfo info(*reinterpret_cast<uint64_t*>(*ptr));
 
-	//offset|length|name-length|num-params
-	info.offset = reinterpret_cast<cl_ushort*>(*ptr)[0];
-	info.length = reinterpret_cast<cl_ushort*>(*ptr)[1];
-	cl_uint nameLength = reinterpret_cast<cl_ushort*>(*ptr)[2];
-	cl_uint num_params = reinterpret_cast<cl_ushort*>(*ptr)[3];
 	*ptr += 1;
 	info.compileGroupSizes[0] = **ptr & 0xFFFF;
 	info.compileGroupSizes[1] = (**ptr >> 16) & 0xFFFF;
@@ -273,32 +268,20 @@ cl_int Program::extractKernelInfo(cl_ulong** ptr, cl_uint* min_kernel_offset)
 	*ptr += 1;
 
 	//name[...]|padding
-	info.name = readString(ptr, nameLength);
+	info.name = readString(ptr, info.getNameLength());
 
-	for(cl_ushort i = 0; i < num_params; ++i)
+	for(cl_ushort i = 0; i < info.getParamCount(); ++i)
 	{
-		ParamInfo param;
-		param.size = reinterpret_cast<cl_ushort*>(*ptr)[0] & 0xFF;
-		param.elements = (reinterpret_cast<cl_ushort*>(*ptr)[0] >> 8) & 0xFF;
-		nameLength = reinterpret_cast<cl_ushort*>(*ptr)[1];
-		const cl_uint typeLength = reinterpret_cast<cl_ushort*>(*ptr)[2];
-		cl_ushort tmp = reinterpret_cast<cl_ushort*>(*ptr)[3];
-		param.pointer = (tmp >> 12) & 0x1;
-		param.output = (tmp >> 9) & 0x1;
-		param.input = (tmp >> 8) & 0x1;
-		param.addressSpace = static_cast<AddressSpace>((tmp >> 4) & 0xF);
-		param.constant = tmp & 0x1;
-		param.restricted = (tmp >> 1) & 0x1;
-		param.isVolatile = (tmp >> 2) & 0x1;
+		ParamInfo param(*reinterpret_cast<uint64_t*>(*ptr));
 		*ptr += 1;
 
-		param.name = readString(ptr, nameLength);
-		param.type = readString(ptr, typeLength);
+		param.name = readString(ptr, param.getNameLength());
+		param.type = readString(ptr, param.getTypeNameLength());
 
 		info.params.push_back(param);
 	}
 
-	*min_kernel_offset = std::min(*min_kernel_offset, static_cast<cl_uint>(info.offset));
+	*min_kernel_offset = std::min(*min_kernel_offset, static_cast<cl_uint>(info.getOffset()));
 
 	kernelInfo.push_back(info);
 

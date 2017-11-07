@@ -11,6 +11,7 @@
 
 #include "Object.h"
 #include "Context.h"
+#include "Bitfield.h"
 
 namespace vc4cl
 {
@@ -41,39 +42,55 @@ namespace vc4cl
 		LOCAL = 4
 	};
 
-	struct ParamInfo
+	/*
+	 * NOTE: ParamInfo and KernelInfo need to map exactly to the corresponding types in the VC4C project!
+	 */
+	struct ParamInfo : private Bitfield<uint64_t>
 	{
+		ParamInfo(uint64_t val = 0) : Bitfield(val) { }
+
 		//the size of this parameter in bytes (e.g. 4 for pointers)
-		cl_uchar size;
-		//whether this parameter is a pointer to data
-		cl_bool pointer;
-		//whether this parameter is being written, only valid for pointers
-		cl_bool output;
-		//whether this parameter is being read, only valid for pointers
-		cl_bool input;
+		BITFIELD_ENTRY(Size, uint8_t, 0, Byte)
+		//the number of components for vector-parameters
+		BITFIELD_ENTRY(Elements, uint8_t, 8, Byte)
+		BITFIELD_ENTRY(NameLength, uint16_t, 16, Short)
+		BITFIELD_ENTRY(TypeNameLength, uint16_t, 32, Short)
 		//whether this parameter is constant, only valid for pointers
-		cl_bool constant;
+		BITFIELD_ENTRY(Constant, bool, 48, Bit)
 		//whether the memory behind this parameter is guaranteed to not be aligned (overlap with other memory areas), only valid for pointers
-		cl_bool restricted;
+		BITFIELD_ENTRY(Restricted, bool, 49, Bit)
 		//whether the memory behind this parameter is volatile, only valid for pointers
-		cl_bool isVolatile;
+		BITFIELD_ENTRY(Volatile, bool, 50, Bit)
+		//the parameter's address space, only valid for pointers
+		//OpenCL default address space is "private"
+		BITFIELD_ENTRY(AddressSpace, AddressSpace, 52, Quadruple)
+		//whether this parameter is being read, only valid for pointers
+		BITFIELD_ENTRY(Input, bool, 56, Bit)
+		//whether this parameter is being written, only valid for pointers
+		BITFIELD_ENTRY(Output, bool, 57, Bit)
+		//whether this parameter is a pointer to data
+		BITFIELD_ENTRY(Pointer, bool, 60, Bit)
+
 		//the parameter name
 		std::string name;
 		//the parameter type-name, e.g. "<16 x i32>*"
 		std::string type;
-		//the number of components for vector-parameters
-		cl_uchar elements;
-		//the parameter's address space, only valid for pointers
-		//OpenCL default address space is "private"
-		AddressSpace addressSpace = AddressSpace::PRIVATE;
 	};
 
-	struct KernelInfo
+	/*
+	 * NOTE: ParamInfo and KernelInfo need to map exactly to the corresponding types in the VC4C project!
+	 */
+	struct KernelInfo : private Bitfield<uint64_t>
 	{
+		KernelInfo(uint64_t val = 0) : Bitfield(val) { }
+
 		//the offset of the instruction belonging to the kernel, in instructions (8 byte)
-		cl_ushort offset;
-		//the number of instructions in the kernel
-		cl_ushort length;
+		BITFIELD_ENTRY(Offset, uint16_t, 0, Short)
+		//the number of 64-bit instructions in the kernel
+		BITFIELD_ENTRY(Length, uint16_t, 16, Short)
+		BITFIELD_ENTRY(NameLength, uint16_t, 32, Short)
+		BITFIELD_ENTRY(ParamCount, uint16_t, 48, Short)
+
 		//the kernel-name
 		std::string name;
 		//the work-group size specified at compile-time
