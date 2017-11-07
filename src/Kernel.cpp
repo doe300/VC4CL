@@ -377,19 +377,19 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 	}
 	else
 		memcpy(local_sizes.data(), local_work_size, work_dim * sizeof(size_t));
-	if(work_sizes[0] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[0] ||
-			work_sizes[1] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[1] ||
-			work_sizes[2] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[2])
+	if(exceedsLimits<size_t>(work_sizes[0], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[0]) ||
+			exceedsLimits<size_t>(work_sizes[1], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[1]) ||
+			exceedsLimits<size_t>(work_sizes[2], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]))
 	{
 		return returnError(CL_INVALID_GLOBAL_WORK_SIZE, __FILE__, __LINE__, buildString("Global-work-size exceeds maxima: %u (%u), %u (%u), %u (%u)", work_sizes[0], kernel_config::MAX_WORK_ITEM_DIMENSIONS[0], work_sizes[1], kernel_config::MAX_WORK_ITEM_DIMENSIONS[1], work_sizes[2], kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]));
 	}
-	if(work_sizes[0] + work_offsets[0] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[0] ||
-			work_sizes[1] + work_offsets[1] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[1] ||
-			work_sizes[2] + work_offsets[2] > kernel_config::MAX_WORK_ITEM_DIMENSIONS[2])
+	if(exceedsLimits<size_t>(work_sizes[0] + work_offsets[0], 1,kernel_config::MAX_WORK_ITEM_DIMENSIONS[0]) ||
+			exceedsLimits<size_t>(work_sizes[1] + work_offsets[1], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[1]) ||
+			exceedsLimits<size_t>(work_sizes[2] + work_offsets[2], 1,kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]))
 	{
 		return returnError(CL_INVALID_GLOBAL_OFFSET, __FILE__, __LINE__, buildString("Global-work-size and offset exceeds maxima: %u (%u), %u (%u), %u (%u)", work_sizes[0] + work_offsets[0], kernel_config::MAX_WORK_ITEM_DIMENSIONS[0], work_sizes[1] + work_offsets[1], kernel_config::MAX_WORK_ITEM_DIMENSIONS[1], work_sizes[2] + work_offsets[2], kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]));
 	}
-	if(local_sizes[0] * local_sizes[1] * local_sizes[2] > V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT))
+	if(exceedsLimits<size_t>(local_sizes[0] * local_sizes[1] * local_sizes[2], 1, V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT)))
 		return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__, buildString("Local work-sizes exceed maximum: %u * %u * %u > %u", local_sizes[0], local_sizes[1], local_sizes[2], V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT)));
 
 	//check divisibility of local_sizes[i] by work_sizes[i]
@@ -524,7 +524,7 @@ cl_int VC4CL_FUNC(clCreateKernelsInProgram)(cl_program program, cl_uint num_kern
 		return returnError(CL_INVALID_PROGRAM_EXECUTABLE, __FILE__, __LINE__, "No kernel-info found, maybe program was not yet compiled!");
 
 	if(kernels != NULL && num_kernels < toType<Program>(program)->kernelInfo.size())
-		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Ouput parameter cannot hold all %d kernels", toType<Program>(program)->kernelInfo.size()));
+		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Output parameter cannot hold all %d kernels", toType<Program>(program)->kernelInfo.size()));
 
 	size_t i = 0;
 	for(const KernelInfo& info : toType<Program>(program)->kernelInfo)

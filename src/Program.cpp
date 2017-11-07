@@ -504,7 +504,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBuiltInKernels)(cl_context context, cl_
 {
 	CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
 
-	if(num_devices == 0 || num_devices > 1 || device_list == NULL)
+	if(exceedsLimits<cl_uint>(num_devices, 1, 1) || device_list == NULL)
 		//only 1 device supported
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Invalid number of devices given, a single is supported!");
 

@@ -45,14 +45,14 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 	if(!readable && ((flags & CL_MEM_READ_WRITE) || (flags & CL_MEM_READ_ONLY)))
 		return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Readable flag contradicts parent!");
 	if(!writeable && ((flags & CL_MEM_READ_WRITE) || (flags & CL_MEM_WRITE_ONLY)))
-		return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Writeable flag contradicts parent!");
+		return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Writable flag contradicts parent!");
 	if((flags & CL_MEM_ALLOC_HOST_PTR) || (flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR))
 		return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Invalid host flags for sub-buffer!");
 
 	if(!hostReadable && (flags & CL_MEM_HOST_READ_ONLY))
 		return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Host readability flag contradicts parent!");
 	if(!hostWriteable && (flags & CL_MEM_HOST_WRITE_ONLY))
-		return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Host writeability flag contradicts parent!");
+		return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Host writability flag contradicts parent!");
 
 	const cl_buffer_region* region;
 	switch(buffer_create_type)
@@ -776,7 +776,12 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(cl_context context, cl_mem_flags flags, size_t
 	if((flags & CL_MEM_READ_WRITE) == 0 && (flags & CL_MEM_READ_ONLY) == 0 && (flags & CL_MEM_WRITE_ONLY) == 0)
 		flags |= CL_MEM_READ_WRITE;
 
-	if(size == 0 || size > mailbox().getTotalGPUMemory())
+	if(moreThanOneMemoryAccessFlagSet(flags))
+		return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "More than one memory-access flag set!");
+	if(moreThanOneHostAccessFlagSet(flags))
+		return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "More than one host-access flag set!");
+
+	if(exceedsLimits<size_t>(size, 1, size > mailbox().getTotalGPUMemory()))
 		return returnError<cl_mem>(CL_INVALID_BUFFER_SIZE, errcode_ret, __FILE__, __LINE__, buildString("Buffer size (%u) exceeds system maximum (%u)!", size, mailbox().getTotalGPUMemory()));
 
 	if(host_ptr == NULL && ((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))

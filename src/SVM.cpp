@@ -138,7 +138,9 @@ void* VC4CL_FUNC(clSVMAllocARM)(cl_context context, cl_svm_mem_flags_arm flags, 
 	if((flags & CL_MEM_SVM_FINE_GRAIN_BUFFER_ARM) == 0 && (flags & CL_MEM_SVM_ATOMICS_ARM) != 0)
 		return nullptr;
 	//check for more than one of the following flags defined: CL_MEM_READ_WRITE, CL_MEM_WRITE_ONLY, CL_MEM_READ_ONLY
-	if(((flags & CL_MEM_WRITE_ONLY) != 0) + ((flags & CL_MEM_READ_ONLY) != 0) + ((flags & CL_MEM_READ_WRITE) != 0) > 1)
+	if(moreThanOneMemoryAccessFlagSet(flags))
+		return nullptr;
+	if(moreThanOneHostAccessFlagSet(flags))
 		return nullptr;
 	if((flags & CL_MEM_SVM_ATOMICS_ARM) != 0)
 		//SVM atomic operations are not supported

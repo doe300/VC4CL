@@ -370,7 +370,7 @@ cl_int Image::enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer
 	if(errcode != CL_SUCCESS)
 		return errcode;
 
-	if(region[0] * region[1] * region[2] * calculateElementSize() + bufferOffset > buffer->hostSize)
+	if(exceedsLimits<size_t>(region[0] * region[1] * region[2] * calculateElementSize() + bufferOffset, 1, buffer->hostSize))
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "The region copied exceeds the buffer size!");
 
 	Event* e = createBufferActionEvent(commandQueue, CommandType::IMAGE_COPY_TO_BUFFER, numEventsInWaitList, waitList, &errcode);
@@ -510,22 +510,22 @@ cl_int Image::checkImageAccess(const size_t* origin, const size_t* region) const
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Image region for undefined dimension must be one!");
 
 	//1D, 2D, 3D, 1D array, 2D array
-	if(origin[0] + region[0] > imageWidth)
+	if(exceedsLimits<size_t>(origin[0] + region[0], 1, imageWidth))
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Pixel range accessed exceeds the image-width!");
 	if(imageType.numDimensions > 1)
 	{
 		//2D, 2D array, 3D
-		if(origin[1] + region[1] > imageHeight)
+		if(exceedsLimits<size_t>(origin[1] + region[1], 1, imageHeight))
 			return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Pixel range accessed exceeds the image-height!");
 		//3D
-		if(imageType.numDimensions > 2 && origin[2] + region[2] > imageDepth)
+		if(imageType.numDimensions > 2 && exceedsLimits<size_t>(origin[2] + region[2], 1, imageDepth))
 			return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Pixel range accessed exceeds the image-depth!");
 		//2D array
-		if(imageType.numDimensions == 2 && imageType.isImageArray&& origin[2] + region[2] > imageArraySize)
+		if(imageType.numDimensions == 2 && imageType.isImageArray && exceedsLimits<size_t>(origin[2] + region[2], 1, imageArraySize))
 			return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Pixel range accessed exceeds the image-array size!");
 	}
 	//1D array
-	else if(origin[1] + region[1] > imageArraySize)
+	else if(exceedsLimits<size_t>(origin[1] + region[1], 1, imageArraySize))
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Pixel range accessed exceeds the image-depth!");
 
 
@@ -541,12 +541,12 @@ cl_int Image::checkImageAccess(const size_t* origin, const size_t* region) const
 
 CHECK_RETURN cl_int Image::checkImageSlices(const size_t* region, const size_t row_pitch, const size_t slice_pitch) const
 {
-	if(row_pitch < region[0] * calculateElementSize())
+	if(exceedsLimits<size_t>(region[0] * calculateElementSize(), 0, row_pitch))
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Row pitch of the region is smaller than the width accessed!");
 	if(imageType.numDimensions < 3 && !imageType.isImageArray && slice_pitch != 0)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Slice pitch must be zero for 1D images!");
 	//TODO what to check for 1D arrays?
-	else if(imageType.numDimensions >= 2 && slice_pitch < region[1] * row_pitch)
+	else if(imageType.numDimensions >= 2 && exceedsLimits<size_t>(region[1] * row_pitch, 0, slice_pitch))
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Slice pitch of the region is smaller than the height accessed!");
 
 	return CL_SUCCESS;
@@ -760,6 +760,11 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
 #ifndef IMAGE_SUPPORT
 	return returnError<cl_mem>(CL_INVALID_OPERATION, errcode_ret, __FILE__, __LINE__, "Image support is not enabled!");
 #endif
+
+	if(moreThanOneMemoryAccessFlagSet(flags))
+		return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "More than one memory-access flag set!");
+	if(moreThanOneHostAccessFlagSet(flags))
+		return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "More than one host-access flag set!");
 
 	if(image_format == NULL)
 		return returnError<cl_mem>(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR, errcode_ret, __FILE__, __LINE__, "Image format is not set!");

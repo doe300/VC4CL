@@ -95,7 +95,7 @@ namespace vc4cl
     }
 
     //
-    // HELPER MACROS
+    // TYPE HELPER MACROS
     //
     #define CHECK_OBJECT(obj, error) \
     if(obj == nullptr || !obj->checkReferences()) \
@@ -165,6 +165,31 @@ namespace vc4cl
 
 	#define CHECK_COUNTER(counter) CHECK_OBJECT(counter, CL_INVALID_PERFORMANCE_COUNTER)
 	#define CHECK_COUNTER_ERROR_CODE(counter, errcode_ret, type) CHECK_OBJECT_ERROR_CODE(context, CL_INVALID_PERFORMANCE_COUNTER, errcode_ret, type)
+
+    //
+    // OTHER HELPERS
+    //
+    template<typename T>
+    constexpr bool exceedsLimits(const T val, const T min, const T max)
+    {
+    	return val < min || val > max;
+    }
+
+    template<typename T>
+    constexpr bool hasFlag(const T val, const T flag)
+    {
+    	return val & flag;
+    }
+
+    constexpr bool moreThanOneMemoryAccessFlagSet(cl_mem_flags flags)
+    {
+    	return (hasFlag<cl_mem_flags>(flags, CL_MEM_WRITE_ONLY) + hasFlag<cl_mem_flags>(flags, CL_MEM_READ_ONLY) + hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE)) > 1;
+    }
+
+    constexpr bool moreThanOneHostAccessFlagSet(cl_mem_flags flags)
+    {
+    	return (hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_WRITE_ONLY) + hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_READ_ONLY) + hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_NO_ACCESS)) > 1;
+    }
 }
 #endif /* CONFIG_H */
 
