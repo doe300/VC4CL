@@ -35,101 +35,53 @@ static const std::unordered_map<cl_image_format, TextureType, vc4cl::hash_cl_ima
 	{cl_image_format{CL_YUYV_INTEL, CL_UNORM_INT8}, YUYV422R}
 };
 
-ChannelOrder ChannelOrder::fromID(cl_channel_order id)
-{
-	switch(id)
-	{
-		case CL_R:
-			return CHANNEL_RED;
-		case CL_Rx:
-			return CHANNEL_REDx;
-		case CL_A:
-			return CHANNEL_ALPHA;
-		case CL_INTENSITY:
-			return CHANNEL_INTENSITY;
-		case CL_LUMINANCE:
-			return CHANNEL_LUMINANCE;
-		case CL_RG:
-			return CHANNEL_RED_GREEN;
-		case CL_RGx:
-			return CHANNEL_RED_GREENx;
-		case CL_RA:
-			return CHANNEL_RED_ALPHA;
-		case CL_RGB:
-			return CHANNEL_RED_GREEN_BLUE;
-		case CL_RGBx:
-			return CHANNEL_RED_GREEN_BLUEx;
-		case CL_RGBA:
-			return CHANNEL_RED_GREEN_BLUE_ALPHA;
-		case CL_BGRA:
-			return CHANNEL_BLUE_GREEN_RED_ALPHA;
-		case CL_ARGB:
-			return CHANNEL_ALPHA_RED_GREEN_BLUE;
-	}
-	throw std::invalid_argument(std::string("Invalid channel-order: ") + std::to_string(id));
-}
+static const std::unordered_map<cl_channel_order, ChannelOrder> channelOrders = {
+		{CL_R, CHANNEL_RED},
+		{CL_Rx, CHANNEL_REDx},
+		{CL_A, CHANNEL_ALPHA},
+		{CL_INTENSITY, CHANNEL_INTENSITY},
+		{CL_LUMINANCE, CHANNEL_LUMINANCE},
+		{CL_RG, CHANNEL_RED_GREEN},
+		{CL_RGx, CHANNEL_RED_GREENx},
+		{CL_RA, CHANNEL_RED_ALPHA},
+		{CL_RGB, CHANNEL_RED_GREEN_BLUE},
+		{CL_RGBx, CHANNEL_RED_GREEN_BLUEx},
+		{CL_RGBA, CHANNEL_RED_GREEN_BLUE_ALPHA},
+		{CL_BGRA, CHANNEL_BLUE_GREEN_RED_ALPHA},
+		{CL_ARGB, CHANNEL_ALPHA_RED_GREEN_BLUE},
+		{CL_YUYV_INTEL, CHANNEL_Y_U_Y_V}
+};
 
-ChannelType ChannelType::fromID(cl_channel_type id)
-{
-	switch(id)
-	{
-		case CL_SNORM_INT8:
-			return CHANNEL_SNORM_INT8;
-		case CL_SNORM_INT16:
-			return CHANNEL_SNORM_INT16;
-		case CL_UNORM_INT8:
-			return CHANNEL_UNORM_INT8;
-		case CL_UNORM_INT16:
-			return CHANNEL_UNORM_INT16;
-		case CL_UNORM_SHORT_565:
-			return CHANNEL_UNORM_SHORT_565;
-		case CL_UNORM_SHORT_555:
-			return CHANNEL_UNORM_SHORT_555;
-		case CL_UNORM_INT_101010:
-			return CHANNEL_UNORM_INT_101010;
-		case CL_SIGNED_INT8:
-			return CHANNEL_SIGNED_INT8;
-		case CL_SIGNED_INT16:
-			return CHANNEL_SIGNED_INT16;
-		case CL_SIGNED_INT32:
-			return CHANNEL_SIGNED_INT32;
-		case CL_UNSIGNED_INT8:
-			return CHANNEL_UNSIGNED_INT8;
-		case CL_UNSIGNED_INT16:
-			return CHANNEL_UNSIGNED_INT16;
-		case CL_UNSIGNED_INT32:
-			return CHANNEL_UNSIGNED_INT32;
-		case CL_HALF_FLOAT:
-			return CHANNEL_HALF_FLOAT;
-		case CL_FLOAT:
-			return CHANNEL_FLOAT;
-	}
-	throw std::invalid_argument(std::string("Invalid channel-type: ") + std::to_string(id));
-}
+static const std::unordered_map<cl_channel_type, ChannelType> channelTypes = {
+		{CL_SNORM_INT8, CHANNEL_SNORM_INT8},
+		{CL_SNORM_INT16, CHANNEL_SNORM_INT16},
+		{CL_UNORM_INT8, CHANNEL_UNORM_INT8},
+		{CL_UNORM_INT16, CHANNEL_UNORM_INT16},
+		{CL_UNORM_SHORT_555, CHANNEL_UNORM_SHORT_555},
+		{CL_UNORM_SHORT_565, CHANNEL_UNORM_SHORT_565},
+		{CL_UNORM_INT_101010, CHANNEL_UNORM_INT_101010},
+		{CL_SIGNED_INT8, CHANNEL_SIGNED_INT8},
+		{CL_SIGNED_INT16, CHANNEL_SIGNED_INT16},
+		{CL_SIGNED_INT32, CHANNEL_SIGNED_INT32},
+		{CL_UNSIGNED_INT8, CHANNEL_UNSIGNED_INT8},
+		{CL_UNSIGNED_INT16, CHANNEL_UNSIGNED_INT16},
+		{CL_UNSIGNED_INT32, CHANNEL_UNSIGNED_INT32},
+		{CL_HALF_FLOAT, CHANNEL_HALF_FLOAT},
+		{CL_FLOAT, CHANNEL_FLOAT}
+};
 
-ImageType ImageType::fromID(cl_mem_object_type id)
-{
-	switch(id)
-	{
-		case CL_MEM_OBJECT_IMAGE1D:
-			return IMAGE_1D;
-		case CL_MEM_OBJECT_IMAGE1D_BUFFER:
-			return IMAGE_1D_BUFFER;
-		case CL_MEM_OBJECT_IMAGE1D_ARRAY:
-			return IMAGE_1D_ARRAY;
-		case CL_MEM_OBJECT_IMAGE2D:
-			return IMAGE_2D;
-		case CL_MEM_OBJECT_IMAGE2D_ARRAY:
-			return IMAGE_2D_ARRAY;
-		case CL_MEM_OBJECT_IMAGE3D:
-			return IMAGE_3D;
-	}
-	throw std::invalid_argument(std::string("Invalid image-type: ") + std::to_string(id));
-}
+static const std::unordered_map<cl_mem_object_type, ImageType> imageTypes = {
+		{CL_MEM_OBJECT_IMAGE1D, IMAGE_1D},
+		{CL_MEM_OBJECT_IMAGE1D_ARRAY, IMAGE_1D_ARRAY},
+		{CL_MEM_OBJECT_IMAGE1D_BUFFER, IMAGE_1D_BUFFER},
+		{CL_MEM_OBJECT_IMAGE2D, IMAGE_2D},
+		{CL_MEM_OBJECT_IMAGE2D_ARRAY, IMAGE_2D_ARRAY},
+		{CL_MEM_OBJECT_IMAGE3D, IMAGE_3D}
+};
 
 Image::Image(Context* context, cl_mem_flags flags, const cl_image_format& imageFormat, const cl_image_desc& imageDescription) : Buffer(context, flags),
-		channelOrder(ChannelOrder::fromID(imageFormat.image_channel_order)), channelType(ChannelType::fromID(imageFormat.image_channel_data_type)), textureType(supportedFormats.at(imageFormat)),
-		imageType(ImageType::fromID(imageDescription.image_type)), imageWidth(imageDescription.image_width), imageHeight(imageDescription.image_height), imageDepth(imageDescription.image_depth),
+		channelOrder(channelOrders.at(imageFormat.image_channel_order)), channelType(channelTypes.at(imageFormat.image_channel_data_type)), textureType(supportedFormats.at(imageFormat)),
+		imageType(imageTypes.at(imageDescription.image_type)), imageWidth(imageDescription.image_width), imageHeight(imageDescription.image_height), imageDepth(imageDescription.image_depth),
 		imageArraySize(imageDescription.image_array_size), imageRowPitch(0), imageSlicePitch(0), numMipLevels(imageDescription.num_mip_levels), numSamples(imageDescription.num_samples)
 {
 
@@ -424,7 +376,7 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
 
 	uintptr_t out_ptr = reinterpret_cast<uintptr_t>(nullptr);
 	//"If the image object is created with CL_MEM_USE_HOST_PTR [...]"
-	if(useHostPtr == CL_TRUE && hostPtr != nullptr)
+	if(useHostPtr && hostPtr != nullptr)
 	{
 		//"The host_ptr specified in clCreateImage is guaranteed to contain the latest bits [...]"
 		memcpy(hostPtr, deviceBuffer->hostPointer, std::min(hostSize, static_cast<size_t>(deviceBuffer->size)));
@@ -462,7 +414,7 @@ TextureConfiguration Image::toTextureConfiguration() const
 	//base pointer is in multiple of 4 KB
 	BasicTextureSetup basicSetup(deviceBuffer->qpuPointer / 4096, textureType);
 
-	TextureAccessSetup accessSetup(textureType, imageWidth, imageHeight);
+	TextureAccessSetup accessSetup(textureType, static_cast<uint16_t>(imageWidth), static_cast<uint16_t>(imageHeight));
 	/*
 	 * OpenCL 1.2 specification, page 305:
 	 * "The sampler-less read image functions behave exactly as the corresponding read image functions described in section 6.12.14.2 that take integer coordinates and a sampler with filter mode set to
@@ -481,8 +433,8 @@ TextureConfiguration Image::toTextureConfiguration() const
 		//TODO is child-images correct for image-arrays?
 		//or do we need "normal" images with offset in base-address?
 		childDimensionSetup.setParameterType(ParameterType::CHILD_DIMENSIONS);
-		childDimensionSetup.setChildWidth(imageWidth);
-		childDimensionSetup.setChildHeight(imageHeight);
+		childDimensionSetup.setChildWidth(static_cast<uint16_t>(imageWidth));
+		childDimensionSetup.setChildHeight(static_cast<uint16_t>(imageHeight));
 
 		childOffsetSetup.setParameterType(ParameterType::CHILD_OFFSETS);
 		//TODO child image offset (= image-slice?)
@@ -552,7 +504,7 @@ CHECK_RETURN cl_int Image::checkImageSlices(const size_t* region, const size_t r
 	return CL_SUCCESS;
 }
 
-Sampler::Sampler(Context* context, cl_bool normalizeCoords, cl_addressing_mode addressingMode, cl_filter_mode filterMode) : HasContext(context), normalized_coords(normalizeCoords),
+Sampler::Sampler(Context* context, bool normalizeCoords, cl_addressing_mode addressingMode, cl_filter_mode filterMode) : HasContext(context), normalized_coords(normalizeCoords),
 		addressing_mode(addressingMode), filter_mode(filterMode)
 {
 }
@@ -580,18 +532,18 @@ cl_int Sampler::getInfo(cl_sampler_info param_name, size_t param_value_size, voi
 	return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_sampler_info value %d", param_name));
 }
 
-static cl_bool check_image_format(const cl_image_format* format)
+static bool check_image_format(const cl_image_format* format)
 {
 	if(format == NULL)
-		return CL_FALSE;
+		return false;
 
 	for(const auto& pair : supportedFormats)
 	{
 		if(pair.first.image_channel_data_type == format->image_channel_data_type && pair.first.image_channel_order == format->image_channel_order)
-			return CL_TRUE;
+			return true;
 	}
 
-	return CL_FALSE;
+	return false;
 }
 
 static size_t calculate_image_size(const Image& img)
@@ -768,7 +720,7 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
 
 	if(image_format == NULL)
 		return returnError<cl_mem>(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR, errcode_ret, __FILE__, __LINE__, "Image format is not set!");
-	if(check_image_format(image_format) == CL_FALSE)
+	if(!check_image_format(image_format))
 		return returnError<cl_mem>(CL_IMAGE_FORMAT_NOT_SUPPORTED, errcode_ret, __FILE__, __LINE__, buildString("Unsupported image format (type: %u, order: %u)!", image_format->image_channel_data_type, image_format->image_channel_order));
 
 	if(image_desc == NULL)
@@ -858,7 +810,7 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
 	if(buffer != nullptr)
 		image->deviceBuffer = buffer->deviceBuffer;
 	else
-		image->deviceBuffer.reset(mailbox().allocateBuffer(size));
+		image->deviceBuffer.reset(mailbox().allocateBuffer(static_cast<unsigned>(size)));
 	if(image->deviceBuffer.get() == nullptr)
 	{
 		delete image;
@@ -974,7 +926,7 @@ cl_int VC4CL_FUNC(clGetSupportedImageFormats)(cl_context context, cl_mem_flags f
 		}
 	}
 	if(num_image_formats != NULL)
-		*num_image_formats = supportedFormats.size();
+		*num_image_formats = static_cast<cl_uint>(supportedFormats.size());
 
 	return CL_SUCCESS;
 }
@@ -1499,7 +1451,7 @@ cl_sampler VC4CL_FUNC(clCreateSampler)(cl_context context, cl_bool normalized_co
 	if(normalized_coords != CL_TRUE && addressing_mode == CL_ADDRESS_REPEAT)
 		return returnError<cl_sampler>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Repeat addressing mode can only be used with normalized coordinates!");
 
-	Sampler* sampler = newObject<Sampler>(toType<Context>(context), normalized_coords, addressing_mode, filter_mode);
+	Sampler* sampler = newObject<Sampler>(toType<Context>(context), normalized_coords == CL_TRUE, addressing_mode, filter_mode);
 	CHECK_ALLOCATION_ERROR_CODE(sampler, errcode_ret, cl_sampler)
 	RETURN_OBJECT(sampler->toBase(), errcode_ret)
 }

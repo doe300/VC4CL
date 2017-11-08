@@ -47,6 +47,7 @@ endif()
 # Raspberry Pi throws ASAN error on linking shared libraries (in ld)
 if(BUILD_DEBUG AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "6.0.0")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=leak -fsanitize=undefined ")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdelete-null-pointer-checks -Wnull-dereference -Wuninitialized -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=format -Wsuggest-override -Wconversion -Wzero-as-null-pointer-constant")
 endif()
 
 ####

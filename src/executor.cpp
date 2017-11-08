@@ -30,10 +30,10 @@ static const size_t MAX_ITERATIONS = 8;
 static const unsigned NUM_HIDDEN_PARAMETERS = 14;
 
 //#define AS_GPU_ADDRESS(x) (uintptr_t) buffer.qpuPointer + ((reinterpret_cast<const void*>(x)) - buffer.hostPointer)
-static uintptr_t AS_GPU_ADDRESS(const unsigned* ptr, DeviceBuffer* buffer)
+static unsigned AS_GPU_ADDRESS(const unsigned* ptr, DeviceBuffer* buffer)
 {
 	const char* tmp = *reinterpret_cast<const char**>(&ptr);
-	return (uintptr_t) buffer->qpuPointer + ((tmp) - (char*)buffer->hostPointer);
+	return static_cast<unsigned>(buffer->qpuPointer + ((tmp) - (char*)buffer->hostPointer));
 }
 
 static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data_size)
@@ -43,7 +43,7 @@ static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data
 	return (raw_size / PAGE_ALIGNMENT + 1) * PAGE_ALIGNMENT;
 }
 
-static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_offsets, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& group_indices, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_indices, const void* global_data, const unsigned iterationIndex)
+static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_offsets, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& group_indices, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_indices, const unsigned global_data, const unsigned iterationIndex)
 {
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Setting work-item infos:" << std::endl;
@@ -59,22 +59,22 @@ static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions,
 	*ptr++ = num_dimensions;	/* get_work_dim() */
 	//since locals values top at 255, all 3 dimensions can be unified into one 32-bit UNIFORM
 	//when read, the values are shifted by 8 * ndim bits and ANDed with 0xFF
-	*ptr++ = local_sizes[2] << 16 | local_sizes[1] << 8 | local_sizes[0];	/* get_local_size(dim) */
-	*ptr++ = local_indices[2] << 16 | local_indices[1] << 8 | local_indices[0];	/* get_local_id(dim) */
-	*ptr++ = global_sizes[0] / local_sizes[0];	/* get_num_groups(0) */
-	*ptr++ = global_sizes[1] / local_sizes[1];	/* get_num_groups(1) */
-	*ptr++ = global_sizes[2] / local_sizes[2];	/* get_num_groups(2) */
-	*ptr++ = group_indices[0] + iterationIndex; /* get_group_id(0) */
-	*ptr++ = group_indices[1]; /* get_group_id(1) */
-	*ptr++ = group_indices[2]; /* get_group_id(2) */
-	*ptr++ = global_offsets[0];	/* get_global_offset(0) */
-	*ptr++ = global_offsets[1];	/* get_global_offset(1) */
-	*ptr++ = global_offsets[2];	/* get_global_offset(2) */
-	*ptr++ = reinterpret_cast<std::uintptr_t>(global_data);	//base address for the global-data block
+	*ptr++ = static_cast<unsigned>(local_sizes[2] << 16 | local_sizes[1] << 8 | local_sizes[0]);	/* get_local_size(dim) */
+	*ptr++ = static_cast<unsigned>(local_indices[2] << 16 | local_indices[1] << 8 | local_indices[0]);	/* get_local_id(dim) */
+	*ptr++ = static_cast<unsigned>(global_sizes[0] / local_sizes[0]);	/* get_num_groups(0) */
+	*ptr++ = static_cast<unsigned>(global_sizes[1] / local_sizes[1]);	/* get_num_groups(1) */
+	*ptr++ = static_cast<unsigned>(global_sizes[2] / local_sizes[2]);	/* get_num_groups(2) */
+	*ptr++ = static_cast<unsigned>(group_indices[0] + iterationIndex); /* get_group_id(0) */
+	*ptr++ = static_cast<unsigned>(group_indices[1]); /* get_group_id(1) */
+	*ptr++ = static_cast<unsigned>(group_indices[2]); /* get_group_id(2) */
+	*ptr++ = static_cast<unsigned>(global_offsets[0]);	/* get_global_offset(0) */
+	*ptr++ = static_cast<unsigned>(global_offsets[1]);	/* get_global_offset(1) */
+	*ptr++ = static_cast<unsigned>(global_offsets[2]);	/* get_global_offset(2) */
+	*ptr++ = global_data;	//base address for the global-data block
 	return ptr;
 }
 
-static cl_bool increment_index(std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& indices, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& limits, const size_t offset)
+static bool increment_index(std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& indices, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& limits, const size_t offset)
 {
 	indices[0] += offset;
 	if(indices[0] >= limits[0])
@@ -90,7 +90,7 @@ static cl_bool increment_index(std::array<std::size_t,kernel_config::NUM_DIMENSI
 	return indices[2] < limits[2];
 }
 
-static bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, uintptr_t> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout)
+static bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout)
 {
 #ifdef REGISTER_POKE_KERNELS
 	return V3D::instance().executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
@@ -135,7 +135,7 @@ cl_int executeKernel(Event* event)
 	}
 
 #ifdef DEBUG_MODE
-	std::cout << "[VC4CL] Running kernel '" << kernel->info.name << "' with " << kernel->info.length << " instructions..." << std::endl;
+	std::cout << "[VC4CL] Running kernel '" << kernel->info.name << "' with " << kernel->info.getLength() << " instructions..." << std::endl;
 	std::cout << "[VC4CL] Local sizes: " << args.localSizes[0] << " " << args.localSizes[1] << " " << args.localSizes[2] << " -> " << num_qpus << " QPUs\n" << std::endl;
 	std::cout << "[VC4CL] Global sizes: " << args.globalSizes[0] << " " << args.globalSizes[1] << " " << args.globalSizes[2] << " -> " << (args.globalSizes[0] * args.globalSizes[1] * args.globalSizes[2]) / num_qpus << " work-groups (" << numIterations << " run at once)" << std::endl;
 #endif
@@ -145,7 +145,7 @@ cl_int executeKernel(Event* event)
 	//
 	size_t buffer_size = get_size(kernel->info.getLength() * 8, num_qpus * numIterations * (NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()), kernel->program->globalData.size());
 
-	std::unique_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(buffer_size));
+	std::unique_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(static_cast<unsigned>(buffer_size)));
 	if(buffer.get() == nullptr)
 		return CL_OUT_OF_RESOURCES;
 	
@@ -170,9 +170,9 @@ cl_int executeKernel(Event* event)
 	unsigned* p = reinterpret_cast<unsigned *>(buffer->hostPointer);
 	
 	//Copy global data into GPU memory
-	const void* global_data = reinterpret_cast<void*>(AS_GPU_ADDRESS(p, buffer.get()));
+	const unsigned global_data = AS_GPU_ADDRESS(p, buffer.get());
 	void* data_start = kernel->program->globalData.data();
-	const unsigned data_length = kernel->program->globalData.size();
+	const unsigned data_length = static_cast<unsigned>(kernel->program->globalData.size());
 	memcpy(p, data_start, data_length);
 	p += data_length / sizeof(unsigned);
 #ifdef DEBUG_MODE
@@ -185,17 +185,17 @@ cl_int executeKernel(Event* event)
 	memcpy(p, code_start, kernel->info.getLength() * 8);
 	p += kernel->info.getLength() * 8 / sizeof(unsigned);
 #ifdef DEBUG_MODE
-	std::cout << "[VC4CL] Copied " << kernel->info.length * sizeof(int64_t) << " bytes of kernel code to device buffer" << std::endl;
+	std::cout << "[VC4CL] Copied " << kernel->info.getLength() * sizeof(int64_t) << " bytes of kernel code to device buffer" << std::endl;
 #endif
 
 	unsigned* uniform_pointers[16][MAX_ITERATIONS];
 	// Build Uniforms
 	const unsigned* qpu_uniform = p;
 	for (unsigned i = 0; i < num_qpus; ++i) {
-		for(int iteration = numIterations - 1; iteration >= 0; --iteration)
+		for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
 		{
 			uniform_pointers[i][iteration] = p;
-			p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, (numIterations - 1) - iteration);
+			p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration);
 			for(unsigned u = 0; u < kernel->info.params.size(); ++u)
 			{
 #ifdef DEBUG_MODE
@@ -228,7 +228,7 @@ cl_int executeKernel(Event* event)
 	std::cout << "[VC4CL] Running work-group "<< group_indices[0] << ", " << group_indices[1] << ", " << group_indices[2] << std::endl;
 #endif
 	//on first execution, flush code cache
-	bool result = executeQPU(num_qpus, std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), true, KERNEL_TIMEOUT);
+	bool result = executeQPU(static_cast<unsigned>(num_qpus), std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), true, KERNEL_TIMEOUT);
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Execution: " << (result == true ? "successful" : "failed") << std::endl;
 #endif
@@ -240,9 +240,9 @@ cl_int executeKernel(Event* event)
 		//re-set indices and offsets for all QPUs
 		for(cl_uint i = 0; i < num_qpus; ++i)
 		{
-			for(int iteration = numIterations - 1; iteration >= 0; --iteration)
+			for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
 			{
-				set_work_item_info(uniform_pointers[i][iteration], args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, (numIterations - 1) - iteration);
+				set_work_item_info(uniform_pointers[i][iteration], args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration);
 			}
 			increment_index(local_indices, args.localSizes, 1);
 		}
@@ -251,7 +251,7 @@ cl_int executeKernel(Event* event)
 #endif
 		//all following executions, don't flush cache
 		//TODO test effect of turning on/off cache flush
-		result = executeQPU(num_qpus, std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), false, KERNEL_TIMEOUT);
+		result = executeQPU(static_cast<unsigned>(num_qpus), std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), false, KERNEL_TIMEOUT);
 #ifdef DEBUG_MODE
 		std::cout << "[VC4CL] Execution: " << (result == true ? "successful" : "failed") << std::endl;
 #endif

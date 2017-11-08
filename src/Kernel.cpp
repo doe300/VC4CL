@@ -59,8 +59,8 @@ Kernel::~Kernel()
 cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value, const bool isSVMPointer)
 {
 #ifdef DEBUG_MODE
-	std::cout << "[VC4CL] Set kernel arg " << arg_index << " for kernel '" << info.name << "' to " << arg_value << " (" << (arg_value == nullptr ? 0x0 : *(int*)arg_value) << ") with size " << arg_size << std::endl;
-	std::cout << "[VC4CL] Kernel arg " << arg_index << " for kernel '" << info.name << "' is " << info.params[arg_index].type << " '" << info.params[arg_index].name << "' with size " << static_cast<size_t>(info.params[arg_index].size) << std::endl;
+	std::cout << "[VC4CL] Set kernel arg " << arg_index << " for kernel '" << info.name << "' to " << arg_value << " (" << (arg_value == nullptr ? 0x0 : *reinterpret_cast<const int*>(arg_value)) << ") with size " << arg_size << std::endl;
+	std::cout << "[VC4CL] Kernel arg " << arg_index << " for kernel '" << info.name << "' is " << info.params[arg_index].type << " '" << info.params[arg_index].name << "' with size " << static_cast<size_t>(info.params[arg_index].getSize()) << std::endl;
 #endif
 
 	if(arg_index >= info.params.size())
@@ -78,7 +78,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 		{
 			return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__, buildString("Invalid arg size: %u, must be %d", arg_size, info.params[arg_index].getSize()));
 		}
-		const cl_char elementSize = arg_size / info.params[arg_index].getElements();
+		const size_t elementSize = arg_size / info.params[arg_index].getElements();
 		for(cl_uchar i = 0; i < info.params[arg_index].getElements(); ++i)
 		{
 			//arguments are all 32-bit, since UNIFORMS are always 32-bit
@@ -124,7 +124,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 			if(isSVMPointer)
 			{
 				//SVM pointers are passed as direct GPU pointers (and are checked before), so the usual check for valid Buffer does not apply here
-				pointer_arg = reinterpret_cast<uintptr_t>(arg_value);
+				pointer_arg = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(arg_value));
 			}
 			else
 			{
@@ -167,7 +167,7 @@ cl_int Kernel::getInfo(cl_kernel_info param_name, size_t param_value_size, void*
 		case CL_KERNEL_FUNCTION_NAME:
 			return returnString(info.name, param_value_size, param_value, param_value_size_ret);
 		case CL_KERNEL_NUM_ARGS:
-			return returnValue<cl_uint>(info.params.size(), param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(static_cast<cl_uint>(info.params.size()), param_value_size, param_value, param_value_size_ret);
 		case CL_KERNEL_REFERENCE_COUNT:
 			return returnValue<cl_uint>(referenceCount, param_value_size, param_value, param_value_size_ret);
 		case CL_KERNEL_CONTEXT:
@@ -233,7 +233,7 @@ cl_int Kernel::getArgInfo(cl_uint arg_index, cl_kernel_arg_info param_name, size
 /*
  * Tries to split the global sizes into the sizes specified at compile-time
  */
-static cl_bool split_compile_work_size(const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& compile_group_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_sizes, std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_sizes)
+static bool split_compile_work_size(const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& compile_group_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_sizes, std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_sizes)
 {
 	if(compile_group_sizes[0] == 0 && compile_group_sizes[1] == 0 && compile_group_sizes[2] == 0)
 		//no compile-time sizes set
@@ -365,7 +365,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 		//"local_work_size can also be a NULL value in which case the OpenCL implementation
 		// will determine how to be break the global work-items into appropriate work-group instances."
 		cl_int state = CL_SUCCESS;
-		if(split_compile_work_size(info.compileGroupSizes, work_sizes, local_sizes) == CL_FALSE)
+		if(!split_compile_work_size(info.compileGroupSizes, work_sizes, local_sizes))
 		{
 			state = split_global_work_size(work_sizes, local_sizes, work_dim);
 		}
@@ -406,7 +406,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 
 	KernelExecution* source = newObject<KernelExecution>(this);
 	CHECK_ALLOCATION(source)
-	source->numDimensions = work_dim;
+	source->numDimensions = static_cast<cl_uchar>(work_dim);
 	source->globalOffsets = work_offsets;
 	source->globalSizes = work_sizes;
 	source->localSizes = local_sizes;
@@ -540,7 +540,7 @@ cl_int VC4CL_FUNC(clCreateKernelsInProgram)(cl_program program, cl_uint num_kern
 	}
 
 	if(num_kernels_ret != NULL)
-		*num_kernels_ret = toType<Program>(program)->kernelInfo.size();
+		*num_kernels_ret = static_cast<cl_uint>(toType<Program>(program)->kernelInfo.size());
 
 	return CL_SUCCESS;
 }
@@ -847,7 +847,7 @@ cl_int VC4CL_FUNC(clEnqueueTask)(cl_command_queue command_queue, cl_kernel kerne
 	//"clEnqueueTask is equivalent to calling clEnqueueNDRangeKernel with work_dim = 1, global_work_offset = NULL,
 	// global_work_size[0] set to 1 and local_work_size[0] set to 1."
 	const size_t work_size = 1;
-	return VC4CL_FUNC(clEnqueueNDRangeKernel)(command_queue, kernel, 1, NULL, &work_size, &work_size, num_events_in_wait_list, event_wait_list, event);
+	return VC4CL_FUNC(clEnqueueNDRangeKernel)(command_queue, kernel, 1, nullptr, &work_size, &work_size, num_events_in_wait_list, event_wait_list, event);
 }
 
 /*!

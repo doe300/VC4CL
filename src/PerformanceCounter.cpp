@@ -13,7 +13,7 @@
 
 using namespace vc4cl;
 
-PerformanceCounter::PerformanceCounter(cl_counter_type_vc4cl type, cl_uint index) : type(type), index(index)
+PerformanceCounter::PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index) : type(type), index(index)
 {
 }
 
@@ -45,8 +45,8 @@ cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(cl_device_id device
 	if(counter_type > 29)
 		return returnError<cl_counter_vc4cl>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Invalid counter-type %u!", counter_type));
 
-	cl_int counter_index = -1;
-	for(cl_uint i = 0; i < counters.size(); ++i)
+	cl_char counter_index = -1;
+	for(cl_char i = 0; i < counters.size(); ++i)
 	{
 		if(counters[i].get() == nullptr)
 		{

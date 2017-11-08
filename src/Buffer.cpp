@@ -7,16 +7,16 @@
 
 using namespace vc4cl;
 
-Buffer::Buffer(Context* context, cl_mem_flags flags) : HasContext(context), readable(CL_TRUE), writeable(CL_TRUE), hostReadable(CL_TRUE), hostWriteable(CL_TRUE), parent(nullptr)
+Buffer::Buffer(Context* context, cl_mem_flags flags) : HasContext(context), readable(true), writeable(true), hostReadable(true), hostWriteable(true), parent(nullptr)
 {
 	if(flags & CL_MEM_WRITE_ONLY)
-		readable = CL_FALSE;
+		readable = false;
 	if(flags & CL_MEM_READ_ONLY)
-		writeable = CL_FALSE;
+		writeable = false;
 	if((flags & CL_MEM_HOST_READ_ONLY) || (flags & CL_MEM_HOST_NO_ACCESS))
-		hostWriteable = CL_FALSE;
+		hostWriteable = false;
 	if((flags & CL_MEM_HOST_WRITE_ONLY) || (flags & CL_MEM_HOST_NO_ACCESS))
-		hostReadable = CL_FALSE;
+		hostReadable = false;
 
 	useHostPtr = flags & CL_MEM_USE_HOST_PTR;
 	allocHostPtr = flags & CL_MEM_ALLOC_HOST_PTR;
@@ -114,7 +114,7 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 	return subBuffer;
 }
 
-cl_int Buffer::enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, size_t offset, size_t size, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
+cl_int Buffer::enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t offset, size_t size, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
 {
 	if(size == 0 || offset + size > deviceBuffer->size || ptr == NULL)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid read size (%u)!", size));
@@ -148,7 +148,7 @@ cl_int Buffer::enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, siz
 	return CL_SUCCESS;
 }
 
-cl_int Buffer::enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, size_t offset, size_t size, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
+cl_int Buffer::enqueueWrite(CommandQueue* commandQueue, bool blockingWrite, size_t offset, size_t size, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
 {
 	if(size == 0 || offset + size > deviceBuffer->size || ptr == NULL)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid write size (%u)!", size));
@@ -195,7 +195,7 @@ static size_t calculate_size(const size_t* region)
 	//see: https://github.com/pocl/pocl/blob/master/lib/CL/devices/basic/basic.c in "pocl_basic_read_rect"
 }
 
-cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, cl_bool blocking_read, const size_t* buffer_origin, const size_t* host_origin, const size_t* region, size_t buffer_row_pitch, size_t buffer_slice_pitch, size_t host_row_pitch, size_t host_slice_pitch, void* ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
+cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, const size_t* buffer_origin, const size_t* host_origin, const size_t* region, size_t buffer_row_pitch, size_t buffer_slice_pitch, size_t host_row_pitch, size_t host_slice_pitch, void* ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
 	//only used for range-checks
 	const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
@@ -208,7 +208,7 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, cl_bool blocking_read
 
 	CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
 
-	if(hostReadable == CL_FALSE)
+	if(!hostReadable)
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot read from non-readable buffer!");
 
 	cl_int errcode = CL_SUCCESS;
@@ -243,7 +243,7 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, cl_bool blocking_read
 	return CL_SUCCESS;
 }
 
-cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, cl_bool blocking_write, const size_t* buffer_origin, const size_t* host_origin, const size_t* region, size_t buffer_row_pitch, size_t buffer_slice_pitch, size_t host_row_pitch, size_t host_slice_pitch, const void* ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
+cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write, const size_t* buffer_origin, const size_t* host_origin, const size_t* region, size_t buffer_row_pitch, size_t buffer_slice_pitch, size_t host_row_pitch, size_t host_slice_pitch, const void* ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
 	//only used for range-checks
 	const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
@@ -414,7 +414,7 @@ cl_int Buffer::enqueueFill(CommandQueue* commandQueue, const void* pattern, size
 	return CL_SUCCESS;
 }
 
-void* Buffer::enqueueMap(CommandQueue* commandQueue, cl_bool blocking_map, cl_map_flags map_flags, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event, cl_int* errcode_ret)
+void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_flags map_flags, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event, cl_int* errcode_ret)
 {
 	if(commandQueue->context() != context())
 		return returnError<void*>(CL_INVALID_CONTEXT, errcode_ret, __FILE__, __LINE__, "Contexts of command queue and buffer do not match!");
@@ -438,10 +438,8 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, cl_bool blocking_map, cl_ma
 
 	uintptr_t out_ptr = reinterpret_cast<uintptr_t>(nullptr);
 	//"If the buffer object is created with CL_MEM_USE_HOST_PTR [...]"
-	if(useHostPtr == CL_TRUE && hostPtr != nullptr)
+	if(useHostPtr && hostPtr != nullptr)
 	{
-		//"The host_ptr specified in clCreateBuffer is guaranteed to contain the latest bits [...]"
-		memcpy(hostPtr, deviceBuffer->hostPointer, std::min(hostSize, static_cast<size_t>(deviceBuffer->size)));
 		//"The pointer value returned by clEnqueueMapBuffer will be derived from the host_ptr specified when the buffer object is created."
 		out_ptr = reinterpret_cast<uintptr_t>(hostPtr) + offset;
 	}
@@ -484,12 +482,12 @@ cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uin
 {
 	if(mapped_ptr == NULL || mappings.size() == 0)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("No such memory area to unmap %p!", mapped_ptr));
-	cl_bool mappingFound = CL_FALSE;
+	bool mappingFound = false;
 	for(const void* mapped : mappings)
 	{
 		if(mapped == mapped_ptr)
 		{
-			mappingFound = CL_TRUE;
+			mappingFound = true;
 			break;
 		}
 	}
@@ -531,9 +529,9 @@ cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* pa
 		case CL_MEM_HOST_PTR:
 			if(useHostPtr)
 				return returnValue<void*>(hostPtr, param_value_size, param_value, param_value_size_ret);
-			return returnValue<void*>(NULL, param_value_size, param_value, param_value_size_ret);
+			return returnValue<void*>(nullptr, param_value_size, param_value, param_value_size_ret);
 		case CL_MEM_MAP_COUNT:
-			return returnValue<cl_uint>(mappings.size(), param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(static_cast<cl_uint>(mappings.size()), param_value_size, param_value, param_value_size_ret);
 		case CL_MEM_REFERENCE_COUNT:
 			return returnValue<cl_uint>(referenceCount, param_value_size, param_value, param_value_size_ret);
 		case CL_MEM_CONTEXT:
@@ -551,21 +549,21 @@ cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* pa
 
 void Buffer::setUseHostPointer(void* hostPtr, size_t hostSize)
 {
-	useHostPtr = CL_TRUE;
+	useHostPtr = true;
 	this->hostPtr = hostPtr;
 	this->hostSize = hostSize;
 }
 
 void Buffer::setAllocateHostPointer(size_t hostSize)
 {
-	allocHostPtr = CL_TRUE;
+	allocHostPtr = true;
 	this->hostPtr = deviceBuffer->hostPointer;
 	this->hostSize = hostSize;
 }
 
 void Buffer::setCopyHostPointer(void* hostPtr, size_t hostSize)
 {
-	copyHostPtr = CL_TRUE;
+	copyHostPtr = true;
 	this->hostSize = hostSize;
 	memcpy(deviceBuffer->hostPointer, hostPtr, hostSize);
 }
@@ -606,7 +604,15 @@ cl_int BufferMapping::operator ()(Event* event)
 	if(unmap)
 		buffer->mappings.remove(hostPtr);
 	else
+	{
+		//"If the buffer object is created with CL_MEM_USE_HOST_PTR [...]"
+		if(buffer->useHostPtr && buffer->hostPtr != nullptr)
+		{
+			//"The host_ptr specified in clCreateBuffer is guaranteed to contain the latest bits [...]"
+			memcpy(buffer->hostPtr, buffer->deviceBuffer->hostPointer, std::min(buffer->hostSize, static_cast<size_t>(buffer->deviceBuffer->size)));
+		}
 		buffer->mappings.push_back(hostPtr);
+	}
 	return CL_SUCCESS;
 }
 
@@ -781,7 +787,7 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(cl_context context, cl_mem_flags flags, size_t
 	if(moreThanOneHostAccessFlagSet(flags))
 		return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "More than one host-access flag set!");
 
-	if(exceedsLimits<size_t>(size, 1, size > mailbox().getTotalGPUMemory()))
+	if(exceedsLimits<size_t>(size, 1, mailbox().getTotalGPUMemory()))
 		return returnError<cl_mem>(CL_INVALID_BUFFER_SIZE, errcode_ret, __FILE__, __LINE__, buildString("Buffer size (%u) exceeds system maximum (%u)!", size, mailbox().getTotalGPUMemory()));
 
 	if(host_ptr == NULL && ((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
@@ -793,7 +799,7 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(cl_context context, cl_mem_flags flags, size_t
 	Buffer* buffer = newObject<Buffer>(toType<Context>(context), flags);
 	CHECK_ALLOCATION_ERROR_CODE(buffer, errcode_ret, cl_mem)
 
-	buffer->deviceBuffer.reset(mailbox().allocateBuffer(size));
+	buffer->deviceBuffer.reset(mailbox().allocateBuffer(static_cast<unsigned>(size)));
 	if(buffer->deviceBuffer.get() == nullptr)
 	{
 		delete buffer;

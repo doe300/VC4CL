@@ -66,7 +66,7 @@ cl_int VC4CL_FUNC(clEnqueueMarkerWithWaitList)(cl_command_queue command_queue, c
 //OpenCL 1.1 API function, deprecated in OpenCL 1.2
 cl_int VC4CL_FUNC(clEnqueueMarker)(cl_command_queue command_queue, cl_event *event)
 {
-	return VC4CL_FUNC(clEnqueueMarkerWithWaitList)(command_queue, 0, NULL, event);
+	return VC4CL_FUNC(clEnqueueMarkerWithWaitList)(command_queue, 0, nullptr, event);
 }
 
 /*!
@@ -121,5 +121,5 @@ cl_int VC4CL_FUNC(clEnqueueBarrierWithWaitList)(cl_command_queue command_queue, 
 //OpenCL 1.1 API function, deprecated in OpenCL 1.2
 cl_int VC4CL_FUNC(clEnqueueBarrier)(cl_command_queue command_queue)
 {
-	return VC4CL_FUNC(clEnqueueBarrierWithWaitList)(command_queue, 0, NULL, NULL);
+	return VC4CL_FUNC(clEnqueueBarrierWithWaitList)(command_queue, 0, nullptr, nullptr);
 }

@@ -21,6 +21,7 @@ namespace vc4cl
 	typedef void(CL_CALLBACK* BufferCallback)(cl_mem event, void* user_data);
 
 	class Image;
+	struct BufferMapping;
 
 	class Buffer: public Object<_cl_mem, CL_INVALID_MEM_OBJECT>, public HasContext
 	{
@@ -30,14 +31,14 @@ namespace vc4cl
 		~Buffer();
 
 		Buffer* createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer_create_type, const void* buffer_create_info, cl_int* errcode_ret);
-		CHECK_RETURN cl_int enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, size_t offset, size_t size, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
-		CHECK_RETURN cl_int enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, size_t offset, size_t size, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
-		CHECK_RETURN cl_int enqueueReadRect(CommandQueue* commandQueue, cl_bool blockingRead, const size_t* bufferOrigin, const size_t* hostOrigin, const size_t* region, size_t bufferRowPitch, size_t bufferSlicePitch, size_t hostRowPitch, size_t hostSlicePitch, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
-		CHECK_RETURN cl_int enqueueWriteRect(CommandQueue* commandQueue, cl_bool blockingWrite, const size_t* bufferOrigin, const size_t* hostOrigin, const size_t* region, size_t bufferRowPitch, size_t bufferSlicePitch, size_t hostRowPitch, size_t hostSlicePitch, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
+		CHECK_RETURN cl_int enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t offset, size_t size, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
+		CHECK_RETURN cl_int enqueueWrite(CommandQueue* commandQueue, bool blockingWrite, size_t offset, size_t size, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
+		CHECK_RETURN cl_int enqueueReadRect(CommandQueue* commandQueue, bool blockingRead, const size_t* bufferOrigin, const size_t* hostOrigin, const size_t* region, size_t bufferRowPitch, size_t bufferSlicePitch, size_t hostRowPitch, size_t hostSlicePitch, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
+		CHECK_RETURN cl_int enqueueWriteRect(CommandQueue* commandQueue,bool blockingWrite, const size_t* bufferOrigin, const size_t* hostOrigin, const size_t* region, size_t bufferRowPitch, size_t bufferSlicePitch, size_t hostRowPitch, size_t hostSlicePitch, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
 		CHECK_RETURN cl_int enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, size_t srcOffset, size_t dstOffset, size_t size, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
 		CHECK_RETURN cl_int enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destination, const size_t* srcOrigin, const size_t* dstOrigin, const size_t* region, size_t srcRowPitch, size_t srcSlicePitch, size_t dstRowPitch, size_t dstSlicePitch, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
 		CHECK_RETURN cl_int enqueueFill(CommandQueue* commandQueue, const void* pattern, size_t patternSize, size_t offset, size_t size, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
-		CHECK_RETURN void* enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_flags mapFlags, size_t offset, size_t size, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event, cl_int* errcode_ret);
+		CHECK_RETURN void* enqueueMap(CommandQueue* commandQueue, bool blockingMap, cl_map_flags mapFlags, size_t offset, size_t size, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event, cl_int* errcode_ret);
 		CHECK_RETURN cl_int setDestructorCallback(BufferCallback callback, void* userData);
 		CHECK_RETURN cl_int enqueueUnmap(CommandQueue* commandQueue, void* mappedPtr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
 		CHECK_RETURN virtual cl_int getInfo(cl_mem_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
@@ -49,17 +50,17 @@ namespace vc4cl
 
 		std::list<void*> mappings;
 
-		cl_bool readable;
-		cl_bool writeable;
-		cl_bool hostReadable;
-		cl_bool hostWriteable;
+		bool readable;
+		bool writeable;
+		bool hostReadable;
+		bool hostWriteable;
 
 		std::shared_ptr<DeviceBuffer> deviceBuffer;
 
 	protected:
-		cl_bool useHostPtr;
-		cl_bool allocHostPtr;
-		cl_bool copyHostPtr;
+		bool useHostPtr;
+		bool allocHostPtr;
+		bool copyHostPtr;
 
 		void* hostPtr = nullptr;
 		size_t hostSize = 0;
@@ -72,6 +73,7 @@ namespace vc4cl
 		CHECK_RETURN Event* createBufferActionEvent(CommandQueue* queue, CommandType command_type, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_int* errcode_ret) const;
 
 		friend class Image;
+		friend class BufferMapping;
 	};
 
 	struct BufferMapping : public EventAction

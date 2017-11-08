@@ -25,7 +25,7 @@ namespace vc4cl
 	class Context : public Object<_cl_context, CL_INVALID_CONTEXT>
 	{
 	public:
-		Context(const Device* device, const cl_bool userSync, const Platform* platform, const ContextProperty explicitProperties, const ContextCallback callback = nullptr, void* userData = nullptr);
+		Context(const Device* device, const bool userSync, const Platform* platform, const ContextProperty explicitProperties, const ContextCallback callback = nullptr, void* userData = nullptr);
 		~Context();
 		CHECK_RETURN cl_int getInfo(cl_context_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 
@@ -35,7 +35,7 @@ namespace vc4cl
 
 	private:
 		//properties
-		const cl_bool userSync;
+		const bool userSync;
 		const Platform* platform;
 		const ContextProperty explicitProperties;
 

@@ -9,7 +9,7 @@
 
 using namespace vc4cl;
 
-Context::Context(const Device* device, const cl_bool userSync, const Platform* platform, const ContextProperty explicitProperties, const ContextCallback callback, void* userData) :
+Context::Context(const Device* device, const bool userSync, const Platform* platform, const ContextProperty explicitProperties, const ContextCallback callback, void* userData) :
 		device(device), userSync(userSync), platform(platform), explicitProperties(explicitProperties), callback(callback), userData(userData)
 {
 }
@@ -32,7 +32,7 @@ cl_int Context::getInfo(cl_context_info param_name, size_t param_value_size, voi
 	if((explicitProperties & ContextProperty::USER_SYNCHRONISATION) == ContextProperty::USER_SYNCHRONISATION)
 	{
 		props[propertiesSize] = CL_CONTEXT_INTEROP_USER_SYNC;
-		props[propertiesSize + 1] = userSync;
+		props[propertiesSize + 1] = userSync ? CL_TRUE : CL_FALSE;
 		propertiesSize += 2;
 	}
 
@@ -131,7 +131,7 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 {
 	ContextProperty explicitProperties = ContextProperty::NONE;
 	cl_platform_id platform = Platform::getVC4CLPlatform().toBase();
-	cl_bool user_sync = CL_FALSE;
+	bool user_sync = false;
 
 	if(properties != NULL)
 	{
@@ -149,7 +149,7 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 			{
 				explicitProperties = static_cast<ContextProperty>(explicitProperties | ContextProperty::USER_SYNCHRONISATION);
 				++ptr;
-				user_sync = *ptr;
+				user_sync = *ptr == CL_TRUE;
 				++ptr;
 			}
 			else

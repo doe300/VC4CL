@@ -106,7 +106,7 @@ namespace vc4cl
 	class Program: public Object<_cl_program, CL_INVALID_PROGRAM>, public HasContext
 	{
 	public:
-		Program(Context* context, const std::vector<char>& code, const cl_bool isBinary);
+		Program(Context* context, const std::vector<char>& code, const bool isBinary);
 		~Program();
 
 

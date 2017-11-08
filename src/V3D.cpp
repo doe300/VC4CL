@@ -185,7 +185,7 @@ bool V3D::hasError(const ErrorType type) const
 	return val == 1;
 }
 
-bool V3D::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uintptr_t> addressPairs, bool flushBuffer, std::chrono::milliseconds timeout)
+bool V3D::executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> addressPairs, bool flushBuffer, std::chrono::milliseconds timeout)
 {
 	//see https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/hello_pi/hello_fft/gpu_fft_base.c, function gpu_fft_base_exec_direct
 	//TODO interrupts?? not in Broadcom spec
@@ -247,7 +247,7 @@ void* vc4cl::mapmem(unsigned base, unsigned size)
       throw std::system_error(errno, std::system_category(), "Failed to open /dev/mem");
    }
    void *mem = mmap(
-      0,
+      nullptr,
       size,
       PROT_READ|PROT_WRITE,
       MAP_SHARED/*|MAP_FIXED*/,

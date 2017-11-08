@@ -133,10 +133,10 @@ namespace vc4cl
 		CHECK_RETURN cl_int getProfilingInfo(cl_profiling_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const;
 
 		CHECK_RETURN cl_int waitFor() const;
-		cl_bool isFinished() const;
+		bool isFinished() const;
 		cl_int getStatus() const;
 		void fireCallbacks();
-		void updateStatus(cl_int status, cl_bool fireCallbacks = CL_TRUE);
+		void updateStatus(cl_int status, bool fireCallbacks = true);
 		CommandQueue* getCommandQueue();
 		CHECK_RETURN cl_int prepareToQueue(CommandQueue* queue);
 		void setEventWaitList(cl_uint numEvents, const cl_event* events);
@@ -147,7 +147,7 @@ namespace vc4cl
 		object_wrapper<CommandQueue> queue;
 
 		cl_int status;
-		cl_bool userStatusSet;
+		bool userStatusSet;
 
 		EventProfile profile;
 		void setTime(cl_ulong& field);

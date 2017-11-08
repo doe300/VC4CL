@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 	checkResult(V3D::instance().setCounter(COUNTER_L2_HITS, CounterType::L2_CACHE_HITS));
 	checkResult(V3D::instance().setCounter(COUNTER_L2_MISSES, CounterType::L2_CACHE_MISSES));
 
-	std::size_t width = 12;
+	int width = 12;
 
 	std::cout << std::setw(width) << "QPUs idle" << "|" << std::setw(width) << "QPU exec" << "|" << std::setw(width) << "QPU (%)" << "|" << std::setw(width) << "TMU stalls" << "|"
 			<< std::setw(width) << "ICache hits" << "|" << std::setw(width) << "ICache miss" << "|" << std::setw(width) << "UCache hits" << "|" << std::setw(width) << "UCache miss" << "|"
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	{
 		int qpuIdle = getCounter(COUNTER_IDLE);
 		int qpuExec = getCounter(COUNTER_EXECUTIONS);
-		float qpuUsed = (qpuIdle < 0 || qpuExec < 0) ? -1.0f : (qpuIdle + qpuExec == 0) ? 0.0f : (qpuExec * 100.0f / static_cast<float>(qpuIdle + qpuExec));
+		float qpuUsed = (qpuIdle < 0 || qpuExec < 0) ? -1.0f : (qpuIdle + qpuExec == 0) ? 0.0f : (static_cast<float>(qpuExec * 100) / static_cast<float>(qpuIdle + qpuExec));
 		std::cout << std::setw(width) << qpuIdle << "|" << std::setw(width) << qpuExec << "|" << std::setw(width) << qpuUsed << "|"
 				<< std::setw(width) << getCounter(COUNTER_TMU_STALLS) << "|" << std::setw(width) << getCounter(COUNTER_INSTRUCTION_CACHE_HITS) << "|"
 				<< std::setw(width) << getCounter(COUNTER_INSTRUCTION_CACHE_MISSES) << "|" << std::setw(width) << getCounter(COUNTER_UNIFORM_CACHE_HITS) << "|"

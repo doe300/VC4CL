@@ -11,7 +11,7 @@
 
 using namespace vc4cl;
 
-CommandQueue::CommandQueue(Context* context, const cl_bool outOfOrderExecution, const cl_bool profiling) :
+CommandQueue::CommandQueue(Context* context, const bool outOfOrderExecution, const bool profiling) :
 		HasContext(context), outOfOrderExecution(outOfOrderExecution), profiling(profiling)
 {
 	initEventQueue();
@@ -50,12 +50,12 @@ cl_int CommandQueue::waitForWaitListFinish(const cl_event* waitList, cl_uint num
 {
 	CHECK_EVENT_WAIT_LIST(waitList, numEvents)
 
-	cl_bool with_errors = CL_FALSE;
+	bool with_errors = false;
 	//wait for completion
 	for(cl_uint i = 0; i < numEvents; ++i)
 	{
 		if(toType<Event>(waitList[i])->waitFor() != CL_COMPLETE)
-			with_errors = CL_TRUE;
+			with_errors = true;
 	}
 	return with_errors ? returnError(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST, __FILE__, __LINE__, "Error in event in wait-list!") : CL_SUCCESS;
 }
@@ -81,7 +81,7 @@ cl_int CommandQueue::enqueueEvent(Event* event)
 	return status;
 }
 
-cl_int CommandQueue::setProperties(cl_command_queue_properties properties, cl_bool enable)
+cl_int CommandQueue::setProperties(cl_command_queue_properties properties, bool enable)
 {
 	if((properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) == CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE)
 		outOfOrderExecution = enable;
@@ -145,9 +145,9 @@ cl_command_queue VC4CL_FUNC(clCreateCommandQueue)(cl_context context, cl_device_
 	//"Determines whether the commands queued in the command-queue are executed in-order or out-of-order.
 	// If set, the commands in the command-queue are executed out-of-order.
 	// Otherwise, commands are executed in-order."
-	cl_bool out_of_order_execution = (properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) == CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
+	bool out_of_order_execution = (properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) == CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
 	//"Enable or disable profiling of commands in the command-queue"
-	cl_bool profiling = (properties & CL_QUEUE_PROFILING_ENABLE) == CL_QUEUE_PROFILING_ENABLE;
+	bool profiling = (properties & CL_QUEUE_PROFILING_ENABLE) == CL_QUEUE_PROFILING_ENABLE;
 
 	CommandQueue* queue = newObject<CommandQueue>(toType<Context>(context), out_of_order_execution, profiling);
 	CHECK_ALLOCATION_ERROR_CODE(queue, errcode_ret, cl_command_queue)
@@ -254,7 +254,7 @@ cl_int VC4CL_FUNC(clSetCommandQueueProperty)(cl_command_queue command_queue, cl_
 		if(status != CL_SUCCESS)
 			return status;
 	}
-	return toType<CommandQueue>(command_queue)->setProperties(properties, enable);
+	return toType<CommandQueue>(command_queue)->setProperties(properties, enable == CL_TRUE);
 }
 
 /*!

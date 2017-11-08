@@ -217,20 +217,6 @@ namespace vc4cl
 			setDisableAutomaticLOD(disableAutomaticLOD);
 		}
 
-		ExtendedTextureSetup(uint16_t childWidth, uint16_t childHeight) : Bitfield(0)
-		{
-			setParameterType(ParameterType::CHILD_DIMENSIONS);
-			setChildHeight(childHeight);
-			setChildWidth(childWidth);
-		}
-
-		ExtendedTextureSetup(uint32_t childOffsetX, uint32_t childOffsetY) : Bitfield(0)
-		{
-			setParameterType(ParameterType::CHILD_OFFSETS);
-			setChildOffsetY(childOffsetY);
-			setChildOffsetX(childOffsetX);
-		}
-
 		explicit ExtendedTextureSetup() : Bitfield(0)
 		{
 

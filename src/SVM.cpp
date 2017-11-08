@@ -34,7 +34,7 @@ cl_int SharedVirtualMemory::getHostOffset(const void* hostPointer) const
 		return CL_INVALID_VALUE;
 	if(reinterpret_cast<uintptr_t>(hostPointer) >= reinterpret_cast<uintptr_t>(buffer->hostPointer) + buffer->size)
 		return CL_INVALID_VALUE;
-	return reinterpret_cast<intptr_t>(hostPointer) - reinterpret_cast<intptr_t>(buffer->hostPointer);
+	return static_cast<cl_int>(reinterpret_cast<intptr_t>(hostPointer) - reinterpret_cast<intptr_t>(buffer->hostPointer));
 }
 
 void* SharedVirtualMemory::getDevicePointer(const size_t offset)
@@ -150,7 +150,7 @@ void* VC4CL_FUNC(clSVMAllocARM)(cl_context context, cl_svm_mem_flags_arm flags, 
 	if(alignment % 2 != 0 || alignment < sizeof(cl_int16))
 		return nullptr;
 
-	std::shared_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(size, alignment));
+	std::shared_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(static_cast<unsigned>(size), alignment));
 	if(buffer.get() == nullptr)
 		return nullptr;
 
@@ -238,7 +238,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMFreeARM)(cl_command_queue command_queue, cl_uint n
 	const auto func = [svmPointers, pfn_free_func, user_data](Event* ev) -> cl_int
 	{
 		if(pfn_free_func != nullptr)
-			pfn_free_func(ev->getCommandQueue()->toBase(), svmPointers.size(), const_cast<void**>(svmPointers.data()), user_data);
+			pfn_free_func(ev->getCommandQueue()->toBase(), static_cast<unsigned>(svmPointers.size()), const_cast<void**>(svmPointers.data()), user_data);
 		//the deallocation of the SVM object frees the GPU memory (if it is not used by e.g. a buffer-object)
 		for(void* ptr : svmPointers)
 			allocatedSVMs.erase(ptr);

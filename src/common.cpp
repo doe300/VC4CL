@@ -41,6 +41,6 @@ cl_int vc4cl::returnValue(const void* value, const size_t value_size, const size
 
 cl_int vc4cl::returnString(const std::string& string, size_t output_size, void* output, size_t* output_size_ret)
 {
-	const int string_length = string.length() + 1 /* 0-byte */;
+	const size_t string_length = string.length() + 1 /* 0-byte */;
 	return returnValue(string.data(), sizeof(char), string_length, output_size, output, output_size_ret);
 }

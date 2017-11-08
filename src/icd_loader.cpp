@@ -115,23 +115,23 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 	reinterpret_cast<void*>(&clGetExtensionFunctionAddress), /* clGetExtensionFunctionAddress */
 	
 	/* cl_khr_gl_sharing */
-	NULL, /* clCreateFromGLBuffer */
-	NULL, /* clCreateFromGLTexture2D */
-	NULL, /* clCreateFromGLTexture3D */
-	NULL, /* clCreateFromGLRenderbuffer */
-	NULL, /* clGetGLObjectInfo */
-	NULL, /* clGetGLTextureInfo */
-	NULL, /* clEnqueueAcquireGLObjects */
-	NULL, /* clEnqueueReleaseGLObjects */
-	NULL, /* clGetGLContextInfoKHR */
+	nullptr, /* clCreateFromGLBuffer */
+	nullptr, /* clCreateFromGLTexture2D */
+	nullptr, /* clCreateFromGLTexture3D */
+	nullptr, /* clCreateFromGLRenderbuffer */
+	nullptr, /* clGetGLObjectInfo */
+	nullptr, /* clGetGLTextureInfo */
+	nullptr, /* clEnqueueAcquireGLObjects */
+	nullptr, /* clEnqueueReleaseGLObjects */
+	nullptr, /* clGetGLContextInfoKHR */
 
 	/* cl_khr_d3d10_sharing */
-	NULL, /* clGetDeviceIDsFromD3D10KHR */
-	NULL, /* clCreateFromD3D10BufferKHR */
-	NULL, /* clCreateFromD3D10Texture2DKHR */
-	NULL, /* clCreateFromD3D10Texture3DKHR */
-	NULL, /* clEnqueueAcquireD3D10ObjectsKHR */
-	NULL, /* clEnqueueReleaseD3D10ObjectsKHR */
+	nullptr, /* clGetDeviceIDsFromD3D10KHR */
+	nullptr, /* clCreateFromD3D10BufferKHR */
+	nullptr, /* clCreateFromD3D10Texture2DKHR */
+	nullptr, /* clCreateFromD3D10Texture3DKHR */
+	nullptr, /* clEnqueueAcquireD3D10ObjectsKHR */
+	nullptr, /* clEnqueueReleaseD3D10ObjectsKHR */
 
 	/* OpenCL 1.1 */
 	reinterpret_cast<void*>(&VC4CL_clSetEventCallback), /* clSetEventCallback */
@@ -144,12 +144,12 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 	reinterpret_cast<void*>(&VC4CL_clEnqueueCopyBufferRect), /* clEnqueueCopyBufferRect */
 
 	/* cl_ext_device_fission */
-	NULL, /* clCreateSubDevicesEXT */
-	NULL, /* clRetainDeviceEXT */
-	NULL, /* clReleaseDeviceEXT */
+	nullptr, /* clCreateSubDevicesEXT */
+	nullptr, /* clRetainDeviceEXT */
+	nullptr, /* clReleaseDeviceEXT */
 
 	/* cl_khr_gl_event */
-	NULL, /* clCreateEventFromGLsyncKHR */
+	nullptr, /* clCreateEventFromGLsyncKHR */
 
 	/* OpenCL 1.2 */
 	reinterpret_cast<void*>(&VC4CL_clCreateSubDevices), /* clCreateSubDevices */
@@ -169,34 +169,34 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 	reinterpret_cast<void*>(&VC4CL_clGetExtensionFunctionAddressForPlatform), /* clGetExtensionFunctionAddressForPlatform */
 	
 	/* cl_khr_gl_sharing */
-	NULL, /* clCreateFromGLTexture */
+	nullptr, /* clCreateFromGLTexture */
 
 	/* cl_khr_d3d11_sharing */
-	NULL, /* clGetDeviceIDsFromD3D11KHR */
-	NULL, /* clCreateFromD3D11BufferKHR */
-	NULL, /* clCreateFromD3D11Texture2DKHR */
-	NULL, /* clCreateFromD3D11Texture3DKHR */
-	NULL, /* clCreateFromDX9MediaSurfaceKHR */
-	NULL, /* clEnqueueAcquireD3D11ObjectsKHR */
-	NULL, /* clEnqueueReleaseD3D11ObjectsKHR */
+	nullptr, /* clGetDeviceIDsFromD3D11KHR */
+	nullptr, /* clCreateFromD3D11BufferKHR */
+	nullptr, /* clCreateFromD3D11Texture2DKHR */
+	nullptr, /* clCreateFromD3D11Texture3DKHR */
+	nullptr, /* clCreateFromDX9MediaSurfaceKHR */
+	nullptr, /* clEnqueueAcquireD3D11ObjectsKHR */
+	nullptr, /* clEnqueueReleaseD3D11ObjectsKHR */
 
 	/* cl_khr_dx9_media_sharing */
-	NULL, /* clGetDeviceIDsFromDX9MediaAdapterKHR */
-	NULL, /* clEnqueueAcquireDX9MediaSurfacesKHR */
-	NULL, /* clEnqueueReleaseDX9MediaSurfacesKHR */
+	nullptr, /* clGetDeviceIDsFromDX9MediaAdapterKHR */
+	nullptr, /* clEnqueueAcquireDX9MediaSurfacesKHR */
+	nullptr, /* clEnqueueReleaseDX9MediaSurfacesKHR */
 
 	/* cl_khr_egl_image */
-	NULL, /* clCreateFromEGLImageKHR */
-	NULL, /* clEnqueueAcquireEGLObjectsKHR */
-	NULL, /* clEnqueueReleaseEGLObjectsKHR */
+	nullptr, /* clCreateFromEGLImageKHR */
+	nullptr, /* clEnqueueAcquireEGLObjectsKHR */
+	nullptr, /* clEnqueueReleaseEGLObjectsKHR */
 
 	/* cl_khr_egl_event */
-	NULL, /* clCreateEventFromEGLSyncKHR */
+	nullptr, /* clCreateEventFromEGLSyncKHR */
 
 	/* OpenCL 2.0 */
-	NULL, /* clCreateCommandQueueWithProperties */
-	NULL, /* clCreatePipe */
-	NULL, /* clGetPipeInfo */
+	nullptr, /* clCreateCommandQueueWithProperties */
+	nullptr, /* clCreatePipe */
+	nullptr, /* clGetPipeInfo */
 	reinterpret_cast<void*>(&VC4CL_clSVMAllocARM), /* clSVMAlloc */
 	reinterpret_cast<void*>(&VC4CL_clSVMFreeARM), /* clSVMFree */
 	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMFreeARM), /* clEnqueueSVMFree */
@@ -204,25 +204,25 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMMemFillARM), /* clEnqueueSVMMemFill */
 	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMMapARM), /* clEnqueueSVMMap */
 	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMUnmapARM), /* clEnqueueSVMUnmap */
-	NULL, /* clCreateSamplerWithProperties */
+	nullptr, /* clCreateSamplerWithProperties */
 	reinterpret_cast<void*>(&VC4CL_clSetKernelArgSVMPointerARM), /* clSetKernelArgSVMPointer */
 	reinterpret_cast<void*>(&VC4CL_clSetKernelExecInfoARM), /* clSetKernelExecInfo */
 
 	/* cl_khr_sub_groups */
-	NULL, /* clGetKernelSubGroupInfoKHR */
+	nullptr, /* clGetKernelSubGroupInfoKHR */
 
 	/* OpenCL 2.1 */
-	NULL, /* clCloneKernel */
-	NULL, /* clCreateProgramWithIL */
-	NULL, /* clEnqueueSVMMigrateMem */
-	NULL, /* clGetDeviceAndHostTimer */
-	NULL, /* clGetHostTimer */
-	NULL, /* clGetKernelSubGroupInfo */
-	NULL, /* clSetDefaultDeviceCommandQueue */
+	nullptr, /* clCloneKernel */
+	nullptr, /* clCreateProgramWithIL */
+	nullptr, /* clEnqueueSVMMigrateMem */
+	nullptr, /* clGetDeviceAndHostTimer */
+	nullptr, /* clGetHostTimer */
+	nullptr, /* clGetKernelSubGroupInfo */
+	nullptr, /* clSetDefaultDeviceCommandQueue */
 
 	/* OpenCL 2.2 */
-	NULL, /* clSetProgramReleaseCallback */
-	NULL /* clSetProgramSpecializationConstant */
+	nullptr, /* clSetProgramReleaseCallback */
+	nullptr /* clSetProgramSpecializationConstant */
 };
 
 #endif

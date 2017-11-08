@@ -61,7 +61,7 @@ namespace  vc4cl
 
 		UnderlyingType value;
 
-		constexpr inline uint32_t getValue(uint8_t startPos) const
+		constexpr inline UnderlyingType getValue(uint8_t startPos) const
 		{
 			return value >> startPos;
 		}

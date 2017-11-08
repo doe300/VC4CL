@@ -125,7 +125,7 @@ bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer) const
 	return true;
 }
 
-bool Mailbox::executeCode(void* codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const
+bool Mailbox::executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const
 {
 	int i=0;
 	unsigned p[32];
@@ -135,7 +135,7 @@ bool Mailbox::executeCode(void* codeAddress, unsigned valueR0, unsigned valueR1,
 	p[i++] = 0x30010; // (the tag id)
 	p[i++] = 28; // (size of the buffer)
 	p[i++] = 28; // (size of the data)
-	p[i++] = reinterpret_cast<uintptr_t>(codeAddress);
+	p[i++] = codeAddress;
 	p[i++] = valueR0;
 	p[i++] = valueR1;
 	p[i++] = valueR2;
@@ -144,14 +144,14 @@ bool Mailbox::executeCode(void* codeAddress, unsigned valueR0, unsigned valueR1,
 	p[i++] = valueR5;
 
 	p[i++] = 0x00000000; // end tag
-	p[0] = i*sizeof *p; // actual size
+	p[0] = i*static_cast<unsigned>(sizeof(*p)); // actual size
 
 	if(mailboxCall(p) < 0)
 		return false;
 	return p[5] == 0;
 }
 
-bool Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uintptr_t> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout) const
+bool Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout) const
 {
 	if(timeout.count() > 0xFFFFFFFF)
 	{
@@ -171,10 +171,10 @@ bool Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uintptr_t> contr
 	p[i++] = numQPUs;
 	p[i++] = controlAddress.second;
 	p[i++] = !flushBuffer;
-	p[i++] = timeout.count(); // ms
+	p[i++] = static_cast<uint32_t>(timeout.count()); // ms
 
 	p[i++] = 0x00000000; // end tag
-	p[0] = i*sizeof *p; // actual size
+	p[0] = i * static_cast<uint32_t>(sizeof(*p)); // actual size
 
 	if(mailboxCall(p) < 0)
 		return false;
@@ -199,16 +199,16 @@ bool Mailbox::readMailbox(const MailboxTag tag, const unsigned bufferLength, con
 	p[i++] = 0x00000000; // process request
 
 	p[i++] = tag; // (the tag id)
-	p[i++] = bufferLength * sizeof(unsigned); // (size of the buffer in bytes)
-	p[i++] = requestData.size() * sizeof(unsigned); // (size of the data in bytes)
+	p[i++] = bufferLength * static_cast<unsigned>(sizeof(unsigned)); // (size of the buffer in bytes)
+	p[i++] = static_cast<unsigned>(requestData.size() * sizeof(unsigned)); // (size of the data in bytes)
 	for(unsigned u : requestData)
 		p[i++] = u;
 	//fill with empty space, if buffer-length > request_length
-	for(unsigned j = requestData.size(); j < bufferLength; ++j)
+	for(unsigned j = static_cast<unsigned>(requestData.size()); j < bufferLength; ++j)
 		p[i++] = 0x00000000;	//empty space for return values
 
 	p[i++] = 0x00000000; // end tag
-	p[0] = i * sizeof(unsigned); // actual size
+	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
 
 	if(mailboxCall(p) < 0)
 		return false;
@@ -244,8 +244,8 @@ bool Mailbox::readMailbox(const MailboxTag tag, const unsigned bufferLength, con
 int Mailbox::mailboxCall(void *buffer) const
 {
 #ifdef DEBUG_MODE
-	unsigned* p = (unsigned*)buffer;
-	unsigned size = *((unsigned *)buffer);
+	unsigned* p = reinterpret_cast<unsigned*>(buffer);
+	unsigned size = *p;
 	std::cout << "[VC4CL] Mailbox buffer before:" << std::endl;
 	for (unsigned i = 0; i < size / 4; ++i)
 		printf("[VC4CL] %04zx: 0x%08x\n", i*sizeof *p, p[i]);
@@ -282,7 +282,7 @@ bool Mailbox::enableQPU(bool enable) const
 	p[i++] = enable;
 
 	p[i++] = 0x00000000; // end tag
-	p[0] = i*sizeof *p; // actual size
+	p[0] = i * static_cast<unsigned>(sizeof(*p)); // actual size
 
 	if(mailboxCall(p) < 0)
 		return false;
@@ -304,7 +304,7 @@ unsigned Mailbox::memAlloc(unsigned sizeInBytes, unsigned alignmentInBytes, Memo
 	p[i++] = flags; // (MEM_FLAG_L1_NONALLOCATING)
 
 	p[i++] = 0x00000000; // end tag
-	p[0] = i*sizeof *p; // actual size
+	p[0] = i * static_cast<unsigned>(sizeof(*p)); // actual size
 
 	if(mailboxCall(p) < 0)
 		return 0;
@@ -324,7 +324,7 @@ unsigned Mailbox::memLock(unsigned handle) const
    p[i++] = handle;
 
    p[i++] = 0x00000000; // end tag
-   p[0] = i*sizeof *p; // actual size
+   p[0] = i * static_cast<unsigned>(sizeof(*p)); // actual size
 
    if(mailboxCall(p) < 0)
 	   return reinterpret_cast<uintptr_t>(nullptr);
@@ -344,7 +344,7 @@ bool Mailbox::memUnlock(unsigned handle) const
 	p[i++] = handle;
 
 	p[i++] = 0x00000000; // end tag
-	p[0] = i*sizeof *p; // actual size
+	p[0] = i * static_cast<unsigned>(sizeof(*p)); // actual size
 
 	if(mailboxCall(p) < 0)
 		return false;
@@ -364,7 +364,7 @@ bool Mailbox::memFree(unsigned handle) const
 	p[i++] = handle;
 
 	p[i++] = 0x00000000; // end tag
-	p[0] = i*sizeof *p; // actual size
+	p[0] = i * static_cast<unsigned>(sizeof(*p)); // actual size
 
 	if(mailboxCall(p) < 0)
 		return false;

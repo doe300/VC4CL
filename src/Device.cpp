@@ -274,7 +274,7 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 		case CL_DEVICE_PARENT_DEVICE:
 			//"Returns the cl_device_id of the parent device to which this sub-device belongs.
 			// If device is a root-level device, a NULL value is returned."
-			return returnValue<cl_device_id>(NULL, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_device_id>(nullptr, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_PARTITION_MAX_SUB_DEVICES:
 			//"Returns the maximum number of sub-devices that can be created when a device is partitioned."
 			//device-partitioning is not supported, for simplicity
@@ -372,9 +372,9 @@ cl_int VC4CL_FUNC(clGetDeviceIDs)(cl_platform_id platform, cl_device_type device
 		}
 	}
 
-	size_t num_found = 0;
+	cl_uint num_found = 0;
 
-	cl_bool device_found = CL_FALSE;
+	bool device_found = false;
 	if(device_type & CL_DEVICE_TYPE_ACCELERATOR)
 	{
 		//OpenCL accelerator device queried -> not supported
@@ -389,13 +389,13 @@ cl_int VC4CL_FUNC(clGetDeviceIDs)(cl_platform_id platform, cl_device_type device
 	}
 	if((device_type & CL_DEVICE_TYPE_DEFAULT) || (device_type & CL_DEVICE_TYPE_GPU))
 	{
-		device_found = CL_TRUE;
+		device_found = true;
 		//default device queried -> GPU
 		if(devices != NULL)
 			devices[num_found] = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
 		++num_found;
 	}
-	if(device_found == CL_FALSE)
+	if(!device_found)
 		return returnError(CL_DEVICE_NOT_FOUND, __FILE__, __LINE__, buildString("No device for the given criteria: platform %p, type: %d!", platform, device_type));
 	if(num_devices != NULL)
 	{

@@ -21,7 +21,7 @@ EventAction::~EventAction()
 
 }
 
-Event::Event(Context* context, cl_int status, CommandType type) : HasContext(context), type(type), queue(nullptr), status(status), userStatusSet(CL_FALSE)
+Event::Event(Context* context, cl_int status, CommandType type) : HasContext(context), type(type), queue(nullptr), status(status), userStatusSet(false)
 {
 }
 
@@ -38,7 +38,7 @@ cl_int Event::setUserEventStatus(cl_int execution_status)
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "User status has already been set!");
 
 	status = execution_status;
-	userStatusSet = CL_TRUE;
+	userStatusSet = true;
 
 	return CL_SUCCESS;
 }
@@ -75,7 +75,7 @@ cl_int Event::setCallback(cl_int command_exec_callback_type, EventCallback callb
 
 cl_int Event::getProfilingInfo(cl_profiling_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const
 {
-	if(!queue || !queue->isProfilingEnabled() || status != CL_COMPLETE || userStatusSet == CL_TRUE)
+	if(!queue || !queue->isProfilingEnabled() || status != CL_COMPLETE || userStatusSet)
 		return CL_PROFILING_INFO_NOT_AVAILABLE;
 
 	switch(param_name)
@@ -109,7 +109,7 @@ cl_int Event::waitFor() const
 	return status;
 }
 
-cl_bool Event::isFinished() const
+bool Event::isFinished() const
 {
 	// an event is finished, if it has a state of CL_COMPLETE or any negative value (error-states)
 	return status == CL_COMPLETE || status < 0;
@@ -130,7 +130,7 @@ void Event::fireCallbacks()
 	}
 }
 
-void Event::updateStatus(cl_int status, cl_bool fireCallbacks)
+void Event::updateStatus(cl_int status, bool fireCallbacks)
 {
 	this->status = status;
 	if(status == CL_SUBMITTED)
@@ -254,7 +254,7 @@ cl_int VC4CL_FUNC(clWaitForEvents)(cl_uint num_events, const cl_event* event_lis
 		CHECK_EVENT(toType<Event>(event_list[i]))
 
 	Context* context = toType<Event>(event_list[0])->context();
-	cl_bool all_completed = CL_TRUE;
+	bool all_completed = true;
 	for(cl_uint i = 0; i < num_events; ++i)
 	{
 		CHECK_EVENT(toType<Event>(event_list[i]))
@@ -263,17 +263,17 @@ cl_int VC4CL_FUNC(clWaitForEvents)(cl_uint num_events, const cl_event* event_lis
 		if(toType<Event>(event_list[i])->getStatus() < 0)
 			return returnError(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST, __FILE__, __LINE__, buildString("Event has already errored with status: %d", toType<Event>(event_list[i])->getStatus()));
 		if(!toType<Event>(event_list[i])->isFinished())
-			all_completed = CL_FALSE;
+			all_completed = false;
 	}
 
-	cl_bool with_errors = CL_FALSE;
+	bool with_errors = false;
 	if(!all_completed)
 	{
 		//wait for completion
 		for(cl_uint i = 0; i < num_events; ++i)
 		{
 			if(toType<Event>(event_list[i])->waitFor() != CL_COMPLETE)
-				with_errors = CL_TRUE;
+				with_errors = true;
 		}
 	}
 	return with_errors ? returnError(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST, __FILE__, __LINE__, "Error in event in wait-list!") : CL_SUCCESS;

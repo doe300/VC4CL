@@ -120,7 +120,7 @@ namespace vc4cl
 
 		bool hasError(const ErrorType type) const;
 
-		CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, uintptr_t> addressPairs, bool flushBuffer, std::chrono::milliseconds timeout);
+		CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> addressPairs, bool flushBuffer, std::chrono::milliseconds timeout);
 
 		static uint32_t busAddressToPhysicalAddress(uint32_t busAddress);
 		static constexpr uint32_t MEMORY_PAGE_SIZE = 4 * 1024;	//4 KB

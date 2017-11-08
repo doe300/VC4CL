@@ -17,14 +17,14 @@ namespace vc4cl
 	class CommandQueue : public Object<_cl_command_queue, CL_INVALID_COMMAND_QUEUE>, public HasContext
 	{
 	public:
-		CommandQueue(Context* context, const cl_bool outOfOrderExecution, const cl_bool profiling);
+		CommandQueue(Context* context, const bool outOfOrderExecution, const bool profiling);
 		~CommandQueue();
 
 		CHECK_RETURN cl_int getInfo(cl_command_queue_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const;
 
 		CHECK_RETURN cl_int waitForWaitListFinish(const cl_event* waitList, cl_uint numEvents) const;
 		CHECK_RETURN cl_int enqueueEvent(Event* event);
-		cl_int setProperties(cl_command_queue_properties properties, cl_bool enable);
+		cl_int setProperties(cl_command_queue_properties properties, bool enable);
 
 		cl_int flush();
 		cl_int finish();
@@ -33,8 +33,8 @@ namespace vc4cl
 	private:
 
 		//properties
-		cl_bool outOfOrderExecution;
-		cl_bool profiling;
+		bool outOfOrderExecution;
+		bool profiling;
 	};
 
 } /* namespace vc4cl */

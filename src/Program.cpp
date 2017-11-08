@@ -35,7 +35,7 @@ size_t KernelInfo::getExplicitUniformCount() const
 	return count;
 }
 
-Program::Program(Context* context, const std::vector<char>& code, const cl_bool isBinary) : HasContext(context)
+Program::Program(Context* context, const std::vector<char>& code, const bool isBinary) : HasContext(context)
 {
 	if(isBinary)
 		binaryCode = code;
@@ -198,7 +198,7 @@ cl_int Program::getInfo(cl_program_info param_name, size_t param_value_size, voi
 		case CL_PROGRAM_BINARIES:
 			//"param_value points to an array of n pointers allocated by the caller, where n is the number of devices associated with program. "
 			if(binaryCode.empty())
-				return returnValue(NULL, 0, 0, param_value_size, param_value, param_value_size_ret);
+				return returnValue(nullptr, 0, 0, param_value_size, param_value, param_value_size_ret);
 			return returnValue<unsigned char*>(reinterpret_cast<unsigned char*>(binaryCode.data()), param_value_size, param_value, param_value_size_ret);
 		case CL_PROGRAM_NUM_KERNELS:
 			if(kernelInfo.empty())
@@ -328,7 +328,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(cl_context context, cl_uint cou
 	size_t code_length = 0;
 	for(cl_uint i = 0; i < count; ++i)
 	{
-		cl_uint line_length = 0;
+		size_t line_length = 0;
 		if(lengths == NULL || lengths[i] == 0)
 			line_length = strlen(strings[i]);
 		else
@@ -339,7 +339,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(cl_context context, cl_uint cou
 
 	for(cl_uint i = 0; i < count; ++i)
 	{
-		cl_uint line_length = 0;
+		size_t line_length = 0;
 		if(lengths == NULL || lengths[i] == 0)
 			line_length = strlen(strings[i]);
 		else
@@ -598,7 +598,7 @@ cl_int VC4CL_FUNC(clBuildProgram)(cl_program program, cl_uint num_devices, const
 	cl_int state = CL_SUCCESS;
 	if(toType<Program>(program)->getBuildStatus() != BuildStatus::COMPILED)
 		//if the program was never build, compile. If it was already built once, re-compile
-		state = VC4CL_FUNC(clCompileProgram)(program, num_devices, device_list, options, 0, NULL, NULL, pfn_notify, user_data);
+		state = VC4CL_FUNC(clCompileProgram)(program, num_devices, device_list, options, 0, nullptr, nullptr, pfn_notify, user_data);
 	if(state != CL_SUCCESS)
 	{
 		return state;

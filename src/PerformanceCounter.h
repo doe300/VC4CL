@@ -17,7 +17,7 @@ namespace vc4cl
 	class PerformanceCounter: public Object<_cl_counter_vc4cl, CL_INVALID_PERFORMANCE_COUNTER>
 	{
 	public:
-		PerformanceCounter(cl_counter_type_vc4cl type, cl_uint index);
+		PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index);
 		~PerformanceCounter();
 
 		cl_int getValue(cl_uint* value) const;
@@ -25,7 +25,7 @@ namespace vc4cl
 
 	private:
 		cl_counter_type_vc4cl type;
-		cl_uint index;
+		cl_uchar index;
 	};
 
 } /* namespace vc4cl */

@@ -23,8 +23,6 @@ namespace vc4cl
 		unsigned char numChannels;
 
 		constexpr ChannelOrder(cl_channel_order id, unsigned char channels) : id(id), numChannels(channels) { }
-
-		static ChannelOrder fromID(cl_channel_order id);
 	};
 
 	static constexpr ChannelOrder CHANNEL_RED(CL_R, 1);
@@ -57,8 +55,6 @@ namespace vc4cl
 			//this wrapper is required, since C++ doesn't support specifying the type of template constructors
 			return ChannelType(id, sizeof(T), normalized, std::numeric_limits<T>::is_signed);
 		}
-
-		static ChannelType fromID(cl_channel_type id);
 	};
 
 	static constexpr ChannelType CHANNEL_SNORM_INT8(ChannelType::create<signed char>(CL_SNORM_INT8, true));
@@ -85,8 +81,6 @@ namespace vc4cl
 		bool isImageArray;
 
 		constexpr ImageType(cl_mem_object_type id, unsigned char dims, bool isBuffer = false, bool isArray = false) : id(id), numDimensions(dims), isImageBuffer(isBuffer), isImageArray(isArray) { }
-
-		static ImageType fromID(cl_mem_object_type id);
 	};
 
 	static constexpr ImageType IMAGE_1D(CL_MEM_OBJECT_IMAGE1D, 1);
@@ -137,14 +131,14 @@ namespace vc4cl
 	class Sampler : public Object<_cl_sampler, CL_INVALID_SAMPLER>, public HasContext
 	{
 	public:
-		Sampler(Context* context, cl_bool normalizeCoords, cl_addressing_mode addressingMode, cl_filter_mode filterMode);
+		Sampler(Context* context, bool normalizeCoords, cl_addressing_mode addressingMode, cl_filter_mode filterMode);
 		~Sampler();
 
 		CHECK_RETURN cl_int getInfo(cl_sampler_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 
 	private:
 
-		cl_bool normalized_coords;
+		bool normalized_coords;
 		cl_addressing_mode addressing_mode;
 		cl_filter_mode filter_mode;
 	};

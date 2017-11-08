@@ -146,8 +146,8 @@ namespace vc4cl
 		DeviceBuffer* allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes = PAGE_ALIGNMENT, MemoryFlag flags = MemoryFlag::L1_NONALLOCATING) const;
 		bool deallocateBuffer(const DeviceBuffer* buffer) const;
 
-		CHECK_RETURN bool executeCode(void* codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const;
-		CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, uintptr_t> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout) const;
+		CHECK_RETURN bool executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const;
+		CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout) const;
 		uint32_t getTotalGPUMemory() const;
 
 		CHECK_RETURN bool readMailbox(const MailboxTag tag, const unsigned bufferLength, const std::vector<unsigned>& requestData, std::vector<unsigned>& resultData) const;
