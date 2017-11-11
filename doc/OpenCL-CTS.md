@@ -70,36 +70,36 @@ Run with work-size of 8
 | image_multipass_integer_coord       | skipped ||
 | image_multipass_float_coord         | skipped ||
 | explicit_s2v_bool                   | skipped ||
-| explicit_s2v_char                   | PASSED ||
-| explicit_s2v_uchar                  | PASSED | fail for some values? |
-| explicit_s2v_short                  | PASSED | fail for some values? |
-| explicit_s2v_ushort                 | PASSED | fail for some values? |
-| explicit_s2v_int                    | PASSED ||
-| explicit_s2v_uint                   | PASSED ||
+| explicit_s2v_char                   | FAILED ||
+| explicit_s2v_uchar                  | FAILED ||
+| explicit_s2v_short                  | FAILED ||
+| explicit_s2v_ushort                 | FAILED ||
+| explicit_s2v_int                    | FAILED ||
+| explicit_s2v_uint                   | FAILED ||
 | explicit_s2v_long                   | skipped ||
 | explicit_s2v_ulong                  | skipped ||
-| explicit_s2v_float                  | PASSED ||
+| explicit_s2v_float                  | FAILED ||
 | explicit_s2v_double                 | skipped ||
 | enqueue_map_buffer                  | PASSED ||
 | enqueue_map_image                   | skipped ||
 | work_item_functions                 | FAILED | return value mismatch ("get_global_size(0) did not return proper value for 1 dimensions (expected 11, got 0)") |
-| astype                              | FAILED | result mismatch for signed <-> unsigned of same bit-width |
+| astype                              | PASSED ||
 | async_copy_global_to_local          | FAILED | compilation error |
 | async_copy_local_to_global          | FAILED | compilation error |
 | async_strided_copy_global_to_local  | FAILED | compilation error |
 | async_strided_copy_local_to_global  | FAILED | compilation error |
-| prefetch                            | FAILED | result value mismatch (all vector-types) |
+| prefetch                            | FAILED | result value mismatch (got unexpected 0, all vector-types) |
 | kernel_call_kernel_function         | FAILED | result value mismatch |
 | host_numeric_constants              | PASSED ||
 | kernel_numeric_constants            | FAILED | "GPUs are required to support images in OpenCL 1.1 and later." |
 | kernel_limit_constants              | PASSED | *Skipping INFINITY and NAN tests on embedded device (INF/NAN not supported on this device)* | 
 | kernel_preprocessor_macros          | PASSED ||
 | parameter_types                     | PASSED ||
-| vector_creation                     | FAILED | compilation error for 8-element vectors (registers?!) |
+| vector_creation                     | PASSED | *8-element vectors take a lot longer than 1,2 ,3 or 4 to compile (both optimizer and code-generation)* |
 | vec_type_hint                       | PASSED ||
-| kernel_memory_alignment_local       | FAILED | vector of sizes 2 and 4 are not aligned correctly |
+| kernel_memory_alignment_local       | PASSED ||
 | kernel_memory_alignment_global      | PASSED ||
-| kernel_memory_alignment_constant    | FAILED | vector of sizes 2 and 4 are not aligned correctly |
+| kernel_memory_alignment_constant    | PASSED ||
 | kernel_memory_alignment_private     | exception | bad_alloc |
 | global_work_offsets                 | FAILED | result value mismatch |
 | get_global_offset                   | PASSED ||
@@ -126,7 +126,7 @@ Run with work-size of 8
 | load_two_kernels_in_one             | PASSED ||
 | load_two_kernels_manually           | PASSED ||
 | get_program_info_kernel_names       | PASSED ||
-| get_kernel_arg_info                 | FAILED | compilation error, "Unable to get program info num kernels!" |
+| get_kernel_arg_info                 | FAILED | "Unable to get program info num kernels!", "Unable to get argument address qualifier!" |
 | create_kernels_in_program           | PASSED ||
 | get_kernel_info                     | PASSED ||
 | execute_kernel_local_sizes          | FAILED | value mismatch |
@@ -274,8 +274,8 @@ Run with work-size of 8
 
 | Test name             | Status | Reason |
 |-----------------------|--------|--------|
-| geom_cross            | FAILED | result value mismatch (vloadn?) |
-| geom_dot              | FAILED ||
+| geom_cross            | FAILED | result value mismatch, got 0 where not expected (vloadn?) |
+| geom_dot              | FAILED | result value mismatch, got 0 where not expected |
 | geom_distance         | FAILED | value mismatch, got -inf where not expected (sqrt?) |
 | geom_fast_distance    | FAILED | value mismatch, got 0 where not expected |
 | geom_length           | FAILED | value mismatch, got -inf where not expected |
@@ -292,8 +292,8 @@ Run with work-size of 8
 | relational_any                  | FAILED | result value mismatch (for all types) |
 | relational_all                  | FAILED | result value mismatch (for all types with less than 16 elements) |
 | relational_bitselect            | FAILED | value mismatch |
-| relational_select_signed
-| relational_select_unsigned
+| relational_select_signed        | FAILED | value mismatch (for all types) |
+| relational_select_unsigned      | FAILED | value mismatch (for all types) |
 | relational_isequal              | FAILED | fails for NaN (does not recognize as equal) |
 | relational_isnotequal           | FAILED | fails for NaN (does not recognize as equal) |
 | relational_isgreater            | FAILED | fails for comparisons with NaN |
@@ -301,18 +301,18 @@ Run with work-size of 8
 | relational_isless
 | relational_islessequal
 | relational_islessgreater
-| shuffle_copy                    | FAILED | value mismatch, contains some random wrong values for vector-size > 1 |
-| shuffle_function_call           | FAILED | value mismatch, contains some random wrong values for vector-size > 1 |
-| shuffle_array_cast
-| shuffle_built_in                | FAILED | hangs/freezes (no CPU usage) in ushort8 -> ushort8 |
-| shuffle_built_in_dual_input     | FAILED | value mismatch (only short8 -> short2, int8 -> int2, uint8 -> uint2), compilation error (uint2 -> uint4) |
+| shuffle_copy                    | PASSED ||
+| shuffle_function_call           | PASSED ||
+| shuffle_array_cast              | PASSED ||
+| shuffle_built_in                | PASSED ||
+| shuffle_built_in_dual_input     | FAILED | value mismatch (only short8 -> short2, int8 -> int2, int16 -> int2, uint8 -> uint2), compilation error (uint2 -> uint4) |
 
 ### Thread Dimensions (thread_dimensions/test_thread_dimensions)
 Run with work-size of 8
 
 | Test name                       | Status | Reason |
 |---------------------------------|--------|--------|
-| quick_1d_explicit_local         | FAILED | error in precompilation, appending source file |
+| quick_1d_explicit_local         | FAILED | error in CTS source, identifier final_x_size is split up (final_x_    size) |
 | quick_2d_explicit_local
 | quick_3d_explicit_local
 | quick_1d_implicit_local
@@ -607,34 +607,38 @@ Test does not exist
 not supported
 
 ### Select (select/test_select)
-FAILED (fails to set kernel arguments, error -50)
+FAILED (value mismatch for every scalar type)
 
 ### Contractions (contractions/contractions)
-FAILED (value mismatch, got unexpected zeros)
+FAILED (value mismatch: unexpected zero/nan, where nan/zero is expected)
 
 ### Math (math_brute_force/bruteforce)
 
+| Test name                       | Status | Reason |
+|---------------------------------|--------|--------|
+| -l (link check only)            | hangs  ||
+| -w (Wimpy mode, only check few) |||
 
 ### Integer Ops (integer_ops/test_integer_ops)
 *All tests fail at least for (u)char, very often resulting in wrong 0x00 *
 
 | Test name                       | Status | Reason |
 |---------------------------------|--------|--------|
-| integer_clz                     | FAILED | value mismatch |
-| integer_hadd                    | FAILED | value mismatch |
+| integer_clz                     | PASSED ||
+| integer_hadd                    | FAILED | value mismatch (only for char, short and ushort test-cases) |
 | integer_rhadd                   | FAILED | value mismatch |
-| integer_mul_hi                  | FAILED | value mismatch |
-| integer_rotate                  | FAILED | value mismatch |
-| integer_clamp                   | FAILED | value mismatch |
+| integer_mul_hi                  | FAILED | value mismatch (only for char, short, int when negative number involved and uint) |
+| integer_rotate                  | FAILED | value mismatch (only short/ushort types) |
+| integer_clamp                   | FAILED | value mismatch (only short and uint test-cases) |
 | integer_mad_sat                 | FAILED | value mismatch |
 | integer_mad_hi                  | FAILED | value mismatch |
 | integer_min                     | FAILED | value mismatch |
 | integer_max                     | FAILED | value mismatch |
-| integer_upsample                | FAILED | value mismatch |
-| integer_abs                     | FAILED | value mismatch |
-| integer_abs_diff                | FAILED | compilation error |
-| integer_add_sat                 | FAILED | value mismatch |
-| integer_sub_sat                 | FAILED | value mismatch |
+| integer_upsample                | FAILED | value mismatch (only for short test-cases) |
+| integer_abs                     | FAILED | value mismatch (only for char/uchar value 0x58 and shortn) |
+| integer_abs_diff                | FAILED | value mismatch |
+| integer_add_sat                 | FAILED | value mismatch (only for short, int, uint test-cases; for int/uint only for saturation exceeded) |
+| integer_sub_sat                 | FAILED | value mismatch (only for short, int, uint test-cases; for int/uint only for saturation exceeded) |
 | integer_addAssign               | FAILED | value mismatch |
 | integer_subtractAssign
 | integer_multiplyAssign

@@ -20,6 +20,7 @@ using namespace vc4cl;
 
 static std::deque<Event*> eventBuffer;
 
+static const std::chrono::steady_clock::duration WAIT_DURATION = std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::milliseconds(10));
 //this is triggered after every finished cl_event
 static std::condition_variable eventProcessed;
 //this is triggered if a new event is available
@@ -104,9 +105,10 @@ static void runEventQueue()
 		}
 		else
 		{
-			//TODO sometimes locks infinite (race condition on event set after the check above but before the wait()?)
 			std::unique_lock<std::mutex> lock(eventMutex);
-			eventAvailable.wait(lock);
+			//FIXME sometimes locks infinite (race condition on event set after the check above but before the wait()?)
+			//for now, simply wait for a maximum amount of time
+			eventAvailable.wait_for(lock, WAIT_DURATION);
 			eventProcessed.notify_all();
 		}
 	}

@@ -32,7 +32,7 @@ The GPU (which is located on the same chip as the CPU) has 12 cores, able of run
 
 The following configuration options are available in CMake:
 
-- `BUILD_TESTING` toggles building of test program
+- `BUILD_TESTING` toggles building of test program (when configured, can be built with `make TestVC4CL`)
 - `BUILD_DEBUG` toggles building debug or release program
 - `CROSS_COMPILE` toggles whether to cross-compile for the Raspberry Pi, requires the [Raspberry Pi cross-compiler](https://github.com/raspberrypi/tools) to be installed
 - `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler, defaults to `/opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64` (e.g. for the cross compiler cloned into the directory `/opt/raspberrypi/tools/`)

@@ -101,6 +101,8 @@ Entries marked (\*) are required to be supported (OpenCL 1.2 specification, tabl
 
 Texture formats directly matching the OpenCL image format (e.g. CL_RGBA, CL_UNORM_INT8 and RGBA8888(R)) need only to be unpacked into their components. For any other format (e.g. CL_HALF_FLOAT, CL_LUMINANCE and S16F) the constant components need to be set after unpacking.
 
+**NOTE:** Alternatively could store images always as RGBA32R (at least for 8 bits per channel), would make writing/reading host- and device-side so much easier!
+
 ## Texture formats
 
 VideoCore IV supports T and LT-format (as well as raster-format for RGBA32R and YUYV422R)
@@ -132,7 +134,7 @@ The data needs to be padded to multiples of 4KB in width and height.
 (Broadcom specification, pages 105+)
 
 Micro-tiles are stored in "normal" raster order within the sub-tiles (4 x 4 micro-tiles per sub-tile), resulting in the same addressing offsets as the example for within a micro-tile with 32-bits pixels. 
-Sub-tiles are stored in circular order within a 4k tiles. The addressing offset depends on the row of the 4k tile. For even rows they are ordered bottom-left, up-left, up-right to bottom-right. For odd rows up-right, bottom-right, bottom-left, up-left:
+Sub-tiles are stored in circular order within a 4k tiles. The addressing offset depends on the row of the 4k tile. For even rows they are ordered bottom-left, top-left, top-right to bottom-right. For odd rows top-right, bottom-right, bottom-left, top-left:
 
 | even | row |
 |------|-----|
@@ -153,6 +155,8 @@ The order of the 4-k tiles themselves is left-to-right for odd rows and right-to
 | a | b | c | d | e |
 | 9 | 8 | 7 | 6 | 5 |
 | 0 | 1 | 2 | 3 | 4 |
+
+See also Mesa VC4 driver [here](https://github.com/anholt/mesa/blob/master/src/gallium/drivers/vc4/vc4_tiling.c) and [here](https://github.com/anholt/mesa/blob/master/src/gallium/drivers/vc4/vc4_tiling_lt.c).
 
 ## LT-format
 "Linear-tile format is typically used for small textures that are smaller than a full T-format 4K tile, to avoid wasting memory in padding the image out to be a multiple of tiles in size. 

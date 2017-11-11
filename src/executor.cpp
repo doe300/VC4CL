@@ -53,7 +53,8 @@ static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions,
 			<< group_indices[2] * local_sizes[2] + local_indices[2] << "(" << global_sizes[2] << ")" << std::endl;
 	std::cout << "\tLocal IDs (sizes): " << local_indices[0] << "(" << local_sizes[0] << "), "
 			<< local_indices[1] << "(" << local_sizes[1] << "), " << local_indices[2] << "(" << local_sizes[2] << ")" << std::endl;
-	std::cout << "\tNumber of groups: " << (global_sizes[0] / local_sizes[0]) << ", " << (global_sizes[1] / local_sizes[1]) << ", " << (global_sizes[2] / local_sizes[2]) << std::endl;
+	std::cout << "\tGroup IDs (sizes): " << (group_indices[0] + iterationIndex) << "(" << (global_sizes[0] / local_sizes[0]) << "), " << group_indices[1] << "(" << (global_sizes[1] / local_sizes[1])
+			<< "), " << group_indices[2] << "(" << (global_sizes[2] / local_sizes[2]) << ")" << std::endl;
 #endif
 	//composes UNIFORMS for the values
 	*ptr++ = num_dimensions;	/* get_work_dim() */

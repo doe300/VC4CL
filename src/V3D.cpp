@@ -193,7 +193,9 @@ bool V3D::executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> addressPai
 	//see errata: https://elinux.org/VideoCore_IV_3D_Architecture_Reference_Guide_errata
 
 	//clear cache (if set)
-	if(flushBuffer)
+	//FIXME when the buffer-flush is disabled (for any consecutive execution), the updated UNIFORM-values are not used, but the old ones!
+	//-> which results in incorrect executions (except the first one)
+	//if(flushBuffer)
 	{
 		//clear L2 cache
 		v3dBasePointer[V3D_L2CACTL] = 1 << 2;
@@ -222,6 +224,7 @@ bool V3D::executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> addressPai
 		if(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start) > timeout)
 			break;
 		//TODO sleep some time?? so CPU is not fully used for waiting
+		//e.g. sleep for the theoretical execution time of the kernel (e.g. #instructions / QPU clock) and then begin active waiting
 	}
 	return false;
 }
