@@ -56,12 +56,12 @@ Run with work-size of 8
 | arrayimagecopy                      | skipped ||
 | arrayimagecopy3d                    | skipped ||
 | imagenpot                           | skipped ||
-| vload_global                        | FAILED | result value mismatch |
-| vload_local                         | FAILED | compilation error (CL_COMPILER_NOT_AVAILABLE) |
-| vload_constant                      | FAILED | result value mismatch |
+| vload_global                        | PASSED ||
+| vload_local                         | FAILED | result value mismatch |
+| vload_constant                      | PASSED ||
 | vload_private                       | FAILED | std::bad_alloc |
-| vstore_global                       | FAILED ||
-| vstore_local                        | FAILED | compilation error (CL_COMPILER_NOT_AVAILABLE) |
+| vstore_global                       | FAILED | result value mismatch (only gentype3 tests) |
+| vstore_local                        | FAILED | result value mismatch (only gentype2 tests, alignment?) |
 | vstore_private                      | FAILED | std::bad_alloc |
 | createkernelsinprogram              | PASSED ||
 | imagedim_pow2                       | skipped ||
@@ -70,19 +70,19 @@ Run with work-size of 8
 | image_multipass_integer_coord       | skipped ||
 | image_multipass_float_coord         | skipped ||
 | explicit_s2v_bool                   | skipped ||
-| explicit_s2v_char                   | FAILED ||
-| explicit_s2v_uchar                  | FAILED ||
-| explicit_s2v_short                  | FAILED ||
-| explicit_s2v_ushort                 | FAILED ||
-| explicit_s2v_int                    | FAILED ||
-| explicit_s2v_uint                   | FAILED ||
+| explicit_s2v_char                   | PASSED ||
+| explicit_s2v_uchar                  | PASSED ||
+| explicit_s2v_short                  | PASSED ||
+| explicit_s2v_ushort                 | PASSED ||
+| explicit_s2v_int                    | PASSED ||
+| explicit_s2v_uint                   | PASSED ||
 | explicit_s2v_long                   | skipped ||
 | explicit_s2v_ulong                  | skipped ||
-| explicit_s2v_float                  | FAILED ||
+| explicit_s2v_float                  | PASSED ||
 | explicit_s2v_double                 | skipped ||
 | enqueue_map_buffer                  | PASSED ||
 | enqueue_map_image                   | skipped ||
-| work_item_functions                 | FAILED | return value mismatch ("get_global_size(0) did not return proper value for 1 dimensions (expected 11, got 0)") |
+| work_item_functions                 | FAILED | return value mismatch ("get_global_size(0) did not return proper value for 1 dimensions (expected 11, got 0)"), compilation error |
 | astype                              | PASSED ||
 | async_copy_global_to_local          | FAILED | compilation error |
 | async_copy_local_to_global          | FAILED | compilation error |
@@ -101,7 +101,7 @@ Run with work-size of 8
 | kernel_memory_alignment_global      | PASSED ||
 | kernel_memory_alignment_constant    | PASSED ||
 | kernel_memory_alignment_private     | exception | bad_alloc |
-| global_work_offsets                 | FAILED | result value mismatch |
+| global_work_offsets                 | FAILED | result value mismatch, hangs |
 | get_global_offset                   | PASSED ||
 
 
@@ -275,11 +275,11 @@ Run with work-size of 8
 | Test name             | Status | Reason |
 |-----------------------|--------|--------|
 | geom_cross            | FAILED | result value mismatch, got 0 where not expected (vloadn?) |
-| geom_dot              | FAILED | result value mismatch, got 0 where not expected |
+| geom_dot              | FAILED | result value mismatch, single failing test-case in dot3 |
 | geom_distance         | FAILED | value mismatch, got -inf where not expected (sqrt?) |
-| geom_fast_distance    | FAILED | value mismatch, got 0 where not expected |
+| geom_fast_distance    | FAILED | value mismatch, single failing test-case in fast_distance3, failed to create vector B for 4-element test |
 | geom_length           | FAILED | value mismatch, got -inf where not expected |
-| geom_fast_length      | FAILED | value mismatch, got 0 where not expected |
+| geom_fast_length      | FAILED | value mismatch, single failing test-case in fast_length3 (ULP?? native_sqrt to inaccurate?), failed to create vector B for 4-element test |
 | geom_normalize        | FAILED | value mismatch for 1.9p-145 -> denormal value? |
 | geom_fast_normalize   | PASSED ||
 
@@ -616,51 +616,50 @@ FAILED (value mismatch: unexpected zero/nan, where nan/zero is expected)
 
 | Test name                       | Status | Reason |
 |---------------------------------|--------|--------|
-| -l (link check only)            | hangs  ||
+| -l (link check only)            | crashes  | corrupted doubly-linked list, preventSleep not supported |
 | -w (Wimpy mode, only check few) |||
 
 ### Integer Ops (integer_ops/test_integer_ops)
-*All tests fail at least for (u)char, very often resulting in wrong 0x00 *
 
 | Test name                       | Status | Reason |
 |---------------------------------|--------|--------|
 | integer_clz                     | PASSED ||
-| integer_hadd                    | FAILED | value mismatch (only for char, short and ushort test-cases) |
-| integer_rhadd                   | FAILED | value mismatch |
+| integer_hadd                    | FAILED | value mismatch (only for short test-cases and int3) |
+| integer_rhadd                   | FAILED | value mismatch (only for short test-cases and int3) |
 | integer_mul_hi                  | FAILED | value mismatch (only for char, short, int when negative number involved and uint) |
-| integer_rotate                  | FAILED | value mismatch (only short/ushort types) |
+| integer_rotate                  | PASSED ||
 | integer_clamp                   | FAILED | value mismatch (only short and uint test-cases) |
 | integer_mad_sat                 | FAILED | value mismatch |
 | integer_mad_hi                  | FAILED | value mismatch |
 | integer_min                     | FAILED | value mismatch |
 | integer_max                     | FAILED | value mismatch |
 | integer_upsample                | FAILED | value mismatch (only for short test-cases) |
-| integer_abs                     | FAILED | value mismatch (only for char/uchar value 0x58 and shortn) |
+| integer_abs                     | PASSED ||
 | integer_abs_diff                | FAILED | value mismatch |
 | integer_add_sat                 | FAILED | value mismatch (only for short, int, uint test-cases; for int/uint only for saturation exceeded) |
 | integer_sub_sat                 | FAILED | value mismatch (only for short, int, uint test-cases; for int/uint only for saturation exceeded) |
-| integer_addAssign               | FAILED | value mismatch |
+| integer_addAssign               | FAILED | value mismatch (for gentype3, test-sample 8) |
 | integer_subtractAssign
-| integer_multiplyAssign
-| integer_divideAssign
+| integer_multiplyAssign          | FAILED | value mismatch (for gentype3, test-sample 8) |
+| integer_divideAssign            | FAILED | value mismatch (often for small numbers (0-2), actual result is negative) |
 | integer_moduloAssign
-| integer_andAssign
-| integer_orAssign
-| integer_exclusiveOrAssign
-| unary_ops_increment            | FAILED | value mismatch |
+| integer_andAssign               | PASSED ||
+| integer_orAssign                | PASSED ||
+| integer_exclusiveOrAssign       | FAILED | value mismatch (for gentype3, test-sample 8) |
+| unary_ops_increment             | FAILED | value mismatch |
 | unary_ops_decrement
 | unary_ops_full
-| integer_mul24                  | PASSED ||
-| integer_mad24                  | PASSED ||
-| long_math                      | skipped ||
-| long_logic                     | skipped ||
-| long_shift                     | skipped ||
-| long_compare                   | skipped ||
-| ulong_math                     | skipped ||
-| ulong_logic                    | skipped ||
-| ulong_shift                    | skipped ||
-| ulong_compare                  | skipped ||
-| int_math                       | FAILED | compilation error, validation failed, CL_OUT_OF_RESOURCES |
+| integer_mul24                   | PASSED ||
+| integer_mad24                   | PASSED ||
+| long_math                       | skipped ||
+| long_logic                      | skipped ||
+| long_shift                      | skipped ||
+| long_compare                    | skipped ||
+| ulong_math                      | skipped ||
+| ulong_logic                     | skipped ||
+| ulong_shift                     | skipped ||
+| ulong_compare                   | skipped ||
+| int_math                        | FAILED | compilation error, validation failed, CL_OUT_OF_RESOURCES |
 | int_logic
 | int_shift
 | int_compare
@@ -684,7 +683,7 @@ FAILED (value mismatch: unexpected zero/nan, where nan/zero is expected)
 | uchar_logic
 | uchar_shift
 | uchar_compare
-| popcount                           | FAILED ||
+| popcount                           | PASSED ||
 | quick_long_math                    | skipped ||
 | quick_long_logic                   | skipped ||
 | quick_long_shift                   | skipped ||
@@ -716,7 +715,7 @@ FAILED (value mismatch: unexpected zero/nan, where nan/zero is expected)
 | quick_uchar_math
 | quick_uchar_logic
 | quick_uchar_shift
-| quick_uchar_compare
+| quick_uchar_compare               | FAILED | result mismatch (?:), CL_OUT_OF_RESOURCES (>) |
 | vector_scalar                     | FAILED | result value mismatch |
 
 

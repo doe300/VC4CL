@@ -92,7 +92,9 @@ namespace vc4cl
 				//officially supports the "#pragma unroll <factor>
 				"cl_nv_pragma_unroll",
 				//adds function to OpenCL C to query current compute unit
-				"cl_arm_get_core_id"
+				"cl_arm_core_id",
+				//adds a pair of atomic_inc/atomic_dec functions for a 32-bit counter-type, alias to standard atomic_inc/atomic_dec
+				"cl_ext_atomic_counters_32"
 		};
 
 		/*

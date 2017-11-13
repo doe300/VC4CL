@@ -195,6 +195,7 @@ bool V3D::executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> addressPai
 	//clear cache (if set)
 	//FIXME when the buffer-flush is disabled (for any consecutive execution), the updated UNIFORM-values are not used, but the old ones!
 	//-> which results in incorrect executions (except the first one)
+	//XXX can this be re-enabled, if we allocate the host-pointer (Mailbox.cpp) with direct access-mode?
 	//if(flushBuffer)
 	{
 		//clear L2 cache
