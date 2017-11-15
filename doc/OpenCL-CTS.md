@@ -59,10 +59,10 @@ Run with work-size of 8
 | vload_global                        | PASSED ||
 | vload_local                         | FAILED | result value mismatch |
 | vload_constant                      | PASSED ||
-| vload_private                       | FAILED | std::bad_alloc |
+| vload_private                       | FAILED | compilation error |
 | vstore_global                       | FAILED | result value mismatch (only gentype3 tests) |
 | vstore_local                        | FAILED | result value mismatch (only gentype2 tests, alignment?) |
-| vstore_private                      | FAILED | std::bad_alloc |
+| vstore_private                      | FAILED | compilation error (number of bytes written are not correct for (u)char), value mismatch for (u)short |
 | createkernelsinprogram              | PASSED ||
 | imagedim_pow2                       | skipped ||
 | imagedim_non_pow2                   | skipped ||
@@ -82,9 +82,9 @@ Run with work-size of 8
 | explicit_s2v_double                 | skipped ||
 | enqueue_map_buffer                  | PASSED ||
 | enqueue_map_image                   | skipped ||
-| work_item_functions                 | FAILED | return value mismatch ("get_global_size(0) did not return proper value for 1 dimensions (expected 11, got 0)"), compilation error |
+| work_item_functions                 | FAILED | return value mismatch ("get_global_size(0) did not return proper value for 1 dimensions (expected 11, got 0)") |
 | astype                              | PASSED ||
-| async_copy_global_to_local          | FAILED | compilation error |
+| async_copy_global_to_local          | FAILED | compilation error (" error: used type 'event_t' where arithmetic or pointer type is required" in call of async_copy) |
 | async_copy_local_to_global          | FAILED | compilation error |
 | async_strided_copy_global_to_local  | FAILED | compilation error |
 | async_strided_copy_local_to_global  | FAILED | compilation error |
@@ -100,7 +100,7 @@ Run with work-size of 8
 | kernel_memory_alignment_local       | PASSED ||
 | kernel_memory_alignment_global      | PASSED ||
 | kernel_memory_alignment_constant    | PASSED ||
-| kernel_memory_alignment_private     | exception | bad_alloc |
+| kernel_memory_alignment_private     | FAILED | compilation error |
 | global_work_offsets                 | FAILED | result value mismatch, hangs |
 | get_global_offset                   | PASSED ||
 
@@ -150,7 +150,7 @@ Run with work-size of 8
 | min_max_parameter_size              | PASSED ||
 | min_max_samplers                    | skipped ||
 | min_max_constant_buffer_size        | FAILED | CL_OUT_OF_RESOURCES |
-| min_max_constant_args               | FAILED | compilation error (probably register-allocation, since kernel has 64 args) |
+| min_max_constant_args               | FAILED | compilation error (register-allocation, since kernel has 64 args) |
 | min_max_compute_units               | PASSED ||
 | min_max_address_bits                | PASSED ||
 | min_max_single_fp_config            | PASSED ||
@@ -175,7 +175,7 @@ Run with work-size of 8
 | retain_mem_object_multiple          | PASSED ||
 | min_data_type_align_size_alignment  | PASSED ||
 | mem_object_destructor_callback      | FAILED | wrong order |
-| null_buffer_arg                     | FAILED | compilation error |
+| null_buffer_arg                     | FAILED | compilation error (long in kernel code) |
 | get_buffer_info                     | FAILED | invalid mem object size |
 | get_image2d_info                    | skipped ||
 | get_image3d_info                    | skipped ||
@@ -208,8 +208,8 @@ Run with work-size of 8
 | preprocessor_define_udef                               | PASSED ||
 | preprocessor_include                                   | FAILED | include path not found |
 | preprocessor_line_error                                | FAILED | wrong status returned? |
-| preprocessor_pragma                                    | FAILED ||
-| compiler_defines_for_extensions                        | FAILED | cl_khr_il_program not approved by Khronos?!? |
+| preprocessor_pragma                                    | PASSED ||
+| compiler_defines_for_extensions                        | FAILED ||
 | image_macro                                            | FAILED ||
 | simple_compile_only                                    | PASSED ||
 | simple_static_compile_only                             | PASSED ||
@@ -230,8 +230,8 @@ Run with work-size of 8
 | execute_after_two_file_link
 | execute_after_embedded_header_link                     | FAILED | Unable to compile a simple program with embedded header! (CL_COMPILER_NOT_AVAILABLE) |
 | execute_after_included_header_link                     | FAILED | "Unable to create directory foo!" |
-| execute_after_serialize_reload_object                  | FAILED | Unable to set the first kernel argument! (CL_INVALID_ARG_VALUE) |
-| execute_after_serialize_reload_library
+| execute_after_serialize_reload_object                  | PASSED ||
+| execute_after_serialize_reload_library                 | FAILED | compilation error, linking not supported |
 | simple_library_only
 | simple_library_with_callback
 | simple_library_with_link
@@ -241,7 +241,7 @@ Run with work-size of 8
 | multiple_libraries
 | multiple_files_multiple_libraries
 | multiple_embedded_headers                              | FAILED | Unable to compile a simple program! (CL_COMPILER_NOT_AVAILABLE) |
-| program_binary_type                                    | FAILED | compilation error |
+| program_binary_type                                    | FAILED | compilation error, linking not supported |
 | compile_and_link_status_options_log                    | FAILED | Unable to compile a simple program! (CL_COMPILER_NOT_AVAILABLE) |
 
 
@@ -339,10 +339,10 @@ Run with work-size of 8
 | atomic_dec                      | PASSED ||
 | atomic_cmpxchg                  | PASSED ||
 | atomic_and                      | FAILED | compilation error (long constant) |
-| atomic_or                       | FAILED | compilation error |
+| atomic_or                       | FAILED | compilation error (long constant) |
 | atomic_xor
-| atomic_add_index                | FAILED | "wrong number of instances" |
-| atomic_add_index_bin            | FAILED | "FAILED to set kernel arguments: CL_INVALID_ARG_VALUE" |
+| atomic_add_index                | PASSED ||
+| atomic_add_index_bin            | PASSED ||
 
 ### Profiling (profiling/test_profiling)
 PASSES all for 8 work-items
@@ -522,7 +522,7 @@ TODO: All buffer_map_* tests fail for CL_MEM_USE_HOST_PTR
 | buffer_fill_ulong                       | skipped ||
 | buffer_fill_float                       | PASSED || 
 | buffer_fill_struct                      | PASSED ||
-| buffer_migrate                          | FAILED | Failed set kernel argument 1.! (CL_INVALID_ARG_VALUE) in buffers/test_buffer_migrate.c:276 |
+| buffer_migrate                          | PASSED ||
 | image_migrate                           | skipped ||
 
 ### Images (API Info) (images/clGetInfo/test_cl_get_info)
@@ -659,7 +659,7 @@ FAILED (value mismatch: unexpected zero/nan, where nan/zero is expected)
 | ulong_logic                     | skipped ||
 | ulong_shift                     | skipped ||
 | ulong_compare                   | skipped ||
-| int_math                        | FAILED | compilation error, validation failed, CL_OUT_OF_RESOURCES |
+| int_math                        | FAILED | CL_OUT_OF_RESOURCES |
 | int_logic
 | int_shift
 | int_compare

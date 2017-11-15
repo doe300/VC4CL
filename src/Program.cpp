@@ -11,6 +11,7 @@
 #include "Device.h"
 #include "extensions.h"
 #include "V3D.h"
+#include <stdlib.h>
 
 #ifdef COMPILER_HEADER
 #define CPPLOG_NAMESPACE logging
@@ -83,15 +84,26 @@ static cl_int compile_program(Program* program, const std::string& options)
 	{
 #ifdef DEBUG_MODE
 		std::cout << "[VC4CL] Compilation error: " << e.what() << std::endl;
-		program->buildInfo.status = CL_BUILD_ERROR;
 #endif
+		program->buildInfo.status = CL_BUILD_ERROR;
 	}
 	//copy log whether build failed or not
-	//this method is not supported by the Raspbian GCC
-	//std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> logConverter;
-	//program->buildInfo.log = logConverter.to_bytes(logStream.str());
-	//XXX alternatively could use std::wcstombs
-	program->buildInfo.log = std::string(reinterpret_cast<const char*>(logStream.str().data()));
+	/*
+	 * this method is not supported by the Raspbian GCC:
+	 * std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> logConverter;
+	 * program->buildInfo.log = logConverter.to_bytes(logStream.str());
+	 */
+	//"POSIX specifies a common extension: if dst is a null pointer, this function returns the number of bytes that would be written to dst, if converted."
+	std::size_t numCharacters = std::wcstombs(nullptr, logStream.str().data(), SIZE_MAX);
+	//"On conversion error (if invalid wide character was encountered), returns static_cast<std::size_t>(-1)."
+	if(numCharacters == static_cast<std::size_t>(-1))
+		return returnError(CL_BUILD_ERROR, __FILE__, __LINE__, "Invalid character sequence in build-log");
+	else
+	{
+		std::vector<char> logTmp(numCharacters + 1 /* \0 byte */);
+		numCharacters = std::wcstombs(logTmp.data(), logStream.str().data(), numCharacters);
+		program->buildInfo.log = std::string(logTmp.data(), numCharacters);
+	}
 
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Compilation complete with status: " << program->buildInfo.status << std::endl;
@@ -143,6 +155,13 @@ cl_int Program::link(const std::string& options, BuildCallback callback, void* u
 			kernelInfo.clear();
 			return state;
 		}
+	}
+
+	if(min_kernel_offset == UINT32_MAX)
+	{
+		//no kernel meta-data was found!
+		buildInfo.status = CL_BUILD_ERROR;
+		return returnError(CL_INVALID_PROGRAM, __FILE__, __LINE__, "No kernel offset found!");
 	}
 
 	ptr += 1; //skips the 0-long as marker between header and data
