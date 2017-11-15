@@ -16,7 +16,7 @@ class TestKernel : public Test::Suite
 public:
     TestKernel();
     
-    virtual bool setup();
+    bool setup() override;
 
     void testCreateKernel();
     void testCreateKernelsInProgram();
@@ -33,7 +33,7 @@ public:
     void testEnqueueNativeKernel();
     void testKernelResult();
 
-    virtual void tear_down();
+    void tear_down() override;
     
 private:
     cl_context context;

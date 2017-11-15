@@ -16,7 +16,7 @@ class TestEvent : public Test::Suite
 public:
     TestEvent();
     
-    virtual bool setup();
+    bool setup() override;
     
     void testCreateUserEvent();
     void testSetUserEventStatus();
@@ -33,7 +33,7 @@ public:
     void testFlush();
     void testFinish();
     
-    virtual void tear_down();
+    void tear_down() override;
 
     size_t event_count;
 private:

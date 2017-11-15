@@ -16,13 +16,14 @@ class TestExecutions : public Test::Suite
 public:
 	TestExecutions();
 
-	virtual bool setup();
+	bool setup() override;
 
 	void testFibonacci();
 	void testFFT2();
+	void testHistogram();
 	//TODO more tests, md4/5, sha1, ...
 
-	virtual void tear_down();
+	void tear_down() override;
 
 private:
 	cl_context context;

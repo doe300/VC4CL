@@ -17,7 +17,7 @@ public:
     TestProgram();
     
 
-    virtual bool setup();
+    bool setup() override;
     
     void testCreateProgramWithSource();
     void testCreateProgramWithBinary();
@@ -31,7 +31,7 @@ public:
     void testGetProgramInfo();
     void testGetProgramBuildInfo();
     
-    virtual void tear_down();
+    void tear_down() override;
     
     unsigned num_callback;
     

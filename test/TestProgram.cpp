@@ -18,7 +18,7 @@ uint32_t hello_world_vector_hex[] = {
 
 static std::string sourceCode;
 
-TestProgram::TestProgram() : num_callback(0), context(NULL), source_program(NULL), binary_program(NULL)
+TestProgram::TestProgram() : num_callback(0), context(nullptr), source_program(nullptr), binary_program(nullptr)
 {
     TEST_ADD(TestProgram::testCreateProgramWithSource);
     TEST_ADD(TestProgram::testCreateProgramWithBinary);
@@ -37,7 +37,7 @@ bool TestProgram::setup()
 {
     cl_int errcode = CL_SUCCESS;
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    context = VC4CL_FUNC(clCreateContext)(NULL, 1, &device_id, NULL, NULL, &errcode);
+    context = VC4CL_FUNC(clCreateContext)(nullptr, 1, &device_id, nullptr, nullptr, &errcode);
     return errcode == CL_SUCCESS && context != NULL;
 }
 
@@ -46,7 +46,7 @@ void TestProgram::testCreateProgramWithSource()
     cl_int errcode = CL_SUCCESS;
     sourceCode = readFile("./test/hello_world_vector.cl");
     const std::size_t sourceLength = sourceCode.size();
-    source_program = VC4CL_FUNC(clCreateProgramWithSource)(context, 1, NULL, &sourceLength, &errcode);
+    source_program = VC4CL_FUNC(clCreateProgramWithSource)(context, 1, nullptr, &sourceLength, &errcode);
     TEST_ASSERT(errcode != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, source_program);
     
@@ -60,7 +60,7 @@ void TestProgram::testCreateProgramWithBinary()
 {
     cl_int errcode = CL_SUCCESS;
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    binary_program = VC4CL_FUNC(clCreateProgramWithBinary)(context, 1, &device_id, NULL, NULL, NULL, &errcode);
+    binary_program = VC4CL_FUNC(clCreateProgramWithBinary)(context, 1, &device_id, nullptr, nullptr, nullptr, &errcode);
     TEST_ASSERT(errcode != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, binary_program);
     
@@ -97,7 +97,7 @@ void TestProgram::testBuildProgram()
 {
 	CallbackData data{this, 1};
 	cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    cl_int state = VC4CL_FUNC(clBuildProgram)(binary_program, 1, &device_id, NULL, &build_callback, &data);
+    cl_int state = VC4CL_FUNC(clBuildProgram)(binary_program, 1, &device_id, nullptr, &build_callback, &data);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }
 
@@ -105,7 +105,7 @@ void TestProgram::testCompileProgram()
 {
 	CallbackData data{this, 4};
 	cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    cl_int state = VC4CL_FUNC(clCompileProgram)(source_program, 1, &device_id, "-Wall", 0, NULL, NULL, &build_callback, &data);
+    cl_int state = VC4CL_FUNC(clCompileProgram)(source_program, 1, &device_id, "-Wall", 0, nullptr, nullptr, &build_callback, &data);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }
 
@@ -114,14 +114,14 @@ void TestProgram::testLinkProgram()
 	CallbackData data{this, 8};
     cl_int errcode = CL_SUCCESS;
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    cl_program program = VC4CL_FUNC(clLinkProgram)(context, 1, &device_id, NULL, 1, &source_program, &build_callback, &data, &errcode);
+    cl_program program = VC4CL_FUNC(clLinkProgram)(context, 1, &device_id, nullptr, 1, &source_program, &build_callback, &data, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
     TEST_ASSERT_EQUALS(source_program, program);
 }
 
 void TestProgram::testUnloadPlatformCompiler()
 {
-    cl_int state = VC4CL_FUNC(clUnloadPlatformCompiler)(NULL);
+    cl_int state = VC4CL_FUNC(clUnloadPlatformCompiler)(nullptr);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
     //1 + 4 + 8 = 13

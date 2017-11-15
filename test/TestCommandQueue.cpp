@@ -13,7 +13,7 @@
 
 using namespace vc4cl;
 
-TestCommandQueue::TestCommandQueue() : context(NULL), queue(NULL)
+TestCommandQueue::TestCommandQueue() : context(nullptr), queue(nullptr)
 {
     TEST_ADD(TestCommandQueue::testCreateCommandQueue);
     TEST_ADD(TestCommandQueue::testGetCommandQueueInfo);
@@ -25,11 +25,11 @@ void TestCommandQueue::testCreateCommandQueue()
 {
     cl_int errcode = CL_SUCCESS;
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    context = VC4CL_FUNC(clCreateContext)(NULL, 1, &device_id, NULL, NULL, &errcode);
+    context = VC4CL_FUNC(clCreateContext)(nullptr, 1, &device_id, nullptr, nullptr, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
     TEST_ASSERT(context != NULL);
     
-    queue = VC4CL_FUNC(clCreateCommandQueue)(context, NULL, 0, &errcode);
+    queue = VC4CL_FUNC(clCreateCommandQueue)(context, nullptr, 0, &errcode);
     TEST_ASSERT(errcode != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, queue);
     

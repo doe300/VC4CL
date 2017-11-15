@@ -14,7 +14,7 @@
 
 using namespace vc4cl;
 
-TestDevice::TestDevice() : device(NULL)
+TestDevice::TestDevice() : device(nullptr)
 {
     TEST_ADD(TestDevice::testGetDeviceIDs);
     TEST_ADD(TestDevice::testGetDeviceInfo);
@@ -27,21 +27,21 @@ void TestDevice::testGetDeviceIDs()
 {
     cl_uint num_devices = 0;
     cl_device_id ids[8];
-    cl_int state = VC4CL_FUNC(clGetDeviceIDs)(NULL, CL_DEVICE_TYPE_ACCELERATOR, 8, ids, &num_devices);
+    cl_int state = VC4CL_FUNC(clGetDeviceIDs)(nullptr, CL_DEVICE_TYPE_ACCELERATOR, 8, ids, &num_devices);
     TEST_ASSERT_EQUALS(CL_DEVICE_NOT_FOUND, state);
     
-    state = VC4CL_FUNC(clGetDeviceIDs)(NULL, CL_DEVICE_TYPE_CPU, 8, ids, &num_devices);
+    state = VC4CL_FUNC(clGetDeviceIDs)(nullptr, CL_DEVICE_TYPE_CPU, 8, ids, &num_devices);
     TEST_ASSERT_EQUALS(CL_DEVICE_NOT_FOUND, state);
     
-    state = VC4CL_FUNC(clGetDeviceIDs)(NULL, CL_DEVICE_TYPE_CUSTOM, 8, ids, &num_devices);
+    state = VC4CL_FUNC(clGetDeviceIDs)(nullptr, CL_DEVICE_TYPE_CUSTOM, 8, ids, &num_devices);
     TEST_ASSERT_EQUALS(CL_DEVICE_NOT_FOUND, state);
     
-    state = VC4CL_FUNC(clGetDeviceIDs)(NULL, CL_DEVICE_TYPE_DEFAULT, 8, ids, &num_devices);
+    state = VC4CL_FUNC(clGetDeviceIDs)(nullptr, CL_DEVICE_TYPE_DEFAULT, 8, ids, &num_devices);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(1u, num_devices);
     TEST_ASSERT_EQUALS(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), ids[0]);
     
-    state = VC4CL_FUNC(clGetDeviceIDs)(NULL, CL_DEVICE_TYPE_GPU, 8, ids, &num_devices);
+    state = VC4CL_FUNC(clGetDeviceIDs)(nullptr, CL_DEVICE_TYPE_GPU, 8, ids, &num_devices);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(1u, num_devices);
     TEST_ASSERT_EQUALS(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), ids[0]);

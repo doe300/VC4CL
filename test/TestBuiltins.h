@@ -15,8 +15,8 @@ class TestBuiltins : Test::Suite
 public:
     TestBuiltins();
     
-    virtual bool setup();
-    virtual bool before(const std::string& methodName);
+    bool setup() override;
+    bool before(const std::string& methodName) override;
 
     void testMathFunctions();
     void testIntegerFunctions();
@@ -28,8 +28,8 @@ public:
     void testAtomicFunctions();
     void testImageFunctions();
 
-    virtual void after(const std::string& methodName, const bool success);
-    virtual void tear_down();
+    void after(const std::string& methodName, const bool success) override;
+    void tear_down() override;
     
 private:
     cl_context context;

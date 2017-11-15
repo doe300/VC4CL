@@ -13,7 +13,7 @@
 
 using namespace vc4cl;
 
-TestContext::TestContext() : context(NULL)
+TestContext::TestContext() : context(nullptr)
 {
     TEST_ADD(TestContext::testCreateContext);
     TEST_ADD(TestContext::testCreateContextFromType); 
@@ -26,13 +26,13 @@ void TestContext::testCreateContext()
 {
     cl_int errcode = CL_SUCCESS;
     cl_context_properties props[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)NULL, 0};
-    context = VC4CL_FUNC(clCreateContext)(props, 1, NULL, NULL, NULL, &errcode);
+    context = VC4CL_FUNC(clCreateContext)(props, 1, nullptr, nullptr, nullptr, &errcode);
     TEST_ASSERT_EQUALS(nullptr, context);
     TEST_ASSERT(errcode != CL_SUCCESS);
     
     props[1] = reinterpret_cast<cl_context_properties>(Platform::getVC4CLPlatform().toBase());
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    context = VC4CL_FUNC(clCreateContext)(props, 1, &device_id, NULL, NULL, &errcode);
+    context = VC4CL_FUNC(clCreateContext)(props, 1, &device_id, nullptr, nullptr, &errcode);
     TEST_ASSERT(context != NULL);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
     
@@ -44,11 +44,11 @@ void TestContext::testCreateContextFromType()
 {
     cl_int errcode = CL_SUCCESS;
     cl_context_properties props[3] = {CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(Platform::getVC4CLPlatform().toBase()), 0};
-    context = VC4CL_FUNC(clCreateContextFromType)(props, CL_DEVICE_TYPE_ACCELERATOR, NULL, NULL, &errcode);
+    context = VC4CL_FUNC(clCreateContextFromType)(props, CL_DEVICE_TYPE_ACCELERATOR, nullptr, nullptr, &errcode);
     TEST_ASSERT_EQUALS(nullptr, context);
     TEST_ASSERT(errcode != CL_SUCCESS);
     
-    context = VC4CL_FUNC(clCreateContextFromType)(props, CL_DEVICE_TYPE_DEFAULT, NULL, NULL, &errcode);
+    context = VC4CL_FUNC(clCreateContextFromType)(props, CL_DEVICE_TYPE_DEFAULT, nullptr, nullptr, &errcode);
     TEST_ASSERT(context != NULL);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 }

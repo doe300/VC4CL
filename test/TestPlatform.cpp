@@ -13,7 +13,7 @@
 
 using namespace vc4cl;
 
-TestPlatform::TestPlatform() : platform(NULL)
+TestPlatform::TestPlatform() : platform(nullptr)
 {
     TEST_ADD(TestPlatform::testGetPlatformIDs);
     TEST_ADD(TestPlatform::testGetPlatformInfo);

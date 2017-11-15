@@ -14,7 +14,7 @@ using namespace vc4cl;
 
 #define GET(buffer, type, index) (reinterpret_cast<type*>(toType<Buffer>(buffer)->deviceBuffer->hostPointer)[index])
 
-TestBuiltins::TestBuiltins() : context(nullptr), queue(nullptr), program(nullptr), in(nullptr), out0(nullptr), out1(nullptr)
+TestBuiltins::TestBuiltins() : context(nullptr), queue(nullptr), program(nullptr), kernel(nullptr), in(nullptr), out0(nullptr), out1(nullptr)
 {
     TEST_ADD(TestBuiltins::testMathFunctions);
     TEST_ADD(TestBuiltins::testIntegerFunctions);
@@ -31,7 +31,7 @@ bool TestBuiltins::setup()
 {
     cl_int errcode = CL_SUCCESS;
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    context = VC4CL_FUNC(clCreateContext)(NULL, 1, &device_id, NULL, NULL, &errcode);
+    context = VC4CL_FUNC(clCreateContext)(nullptr, 1, &device_id, nullptr, nullptr, &errcode);
     queue = VC4CL_FUNC(clCreateCommandQueue)(context, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), 0, &errcode);
     
     //TODO create and compile program
@@ -126,7 +126,7 @@ void TestBuiltins::testMathFunctions()
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
     cl_event event = NULL;
-    state = VC4CL_FUNC(clEnqueueTask(queue, kernel, 0, NULL, &event));
+    state = VC4CL_FUNC(clEnqueueTask(queue, kernel, 0, nullptr, &event));
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
     int i = 0;
@@ -212,7 +212,7 @@ void TestBuiltins::testIntegerFunctions()
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
     cl_event event = NULL;
-    state = VC4CL_FUNC(clEnqueueTask(queue, kernel, 0, NULL, &event));
+    state = VC4CL_FUNC(clEnqueueTask(queue, kernel, 0, nullptr, &event));
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
     int i = 0;

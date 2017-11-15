@@ -15,14 +15,14 @@ class TestExtension : public Test::Suite
 public:
     TestExtension(Test::Output* output);
 
-    virtual bool setup();
-    virtual void tear_down();
+    bool setup() override;
     
     void runKernel();
     void testPerformanceValues(bool shouldBeZero);
     void testResetPerformanceCounters();
     void testReleasePerformanceCounters();
     
+    void tear_down() override;
 private:
     cl_context context;
     cl_counter_vc4cl write_stalls;

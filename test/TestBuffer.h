@@ -16,7 +16,7 @@ class TestBuffer : public Test::Suite
 public:
     TestBuffer();
     
-    virtual bool setup();
+    bool setup() override;
     
     void testCreateBuffer();
     void testCreateSubBuffer();
@@ -37,7 +37,7 @@ public:
     void testReleaseMemObject();
     void testSetMemObjectDestructorCallback();
     
-    virtual void tear_down();
+    void tear_down() override;
     
     size_t num_callback_called;
     
