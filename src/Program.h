@@ -43,7 +43,7 @@ namespace vc4cl
 	};
 
 	/*
-	 * NOTE: ParamInfo and KernelInfo need to map exactly to the corresponding types in the VC4C project!
+	 * NOTE: ParamInfo KernelInfo and ModuleInfo need to map exactly to the corresponding types in the VC4C project!
 	 */
 	struct ParamInfo : private Bitfield<uint64_t>
 	{
@@ -78,7 +78,7 @@ namespace vc4cl
 	};
 
 	/*
-	 * NOTE: ParamInfo and KernelInfo need to map exactly to the corresponding types in the VC4C project!
+	 * NOTE: ParamInfo KernelInfo and ModuleInfo need to map exactly to the corresponding types in the VC4C project!
 	 */
 	struct KernelInfo : private Bitfield<uint64_t>
 	{
@@ -99,6 +99,25 @@ namespace vc4cl
 		std::vector<ParamInfo> params;
 
 		size_t getExplicitUniformCount() const;
+	};
+
+	/*
+	 * NOTE: ParamInfo KernelInfo and ModuleInfo need to map exactly to the corresponding types in the VC4C project!
+	 */
+	struct ModuleInfo : Bitfield<uint64_t>
+	{
+		ModuleInfo(uint64_t val = 0) : Bitfield(val) { }
+
+		//number of kernel-infos in this module
+		BITFIELD_ENTRY(InfoCount, uint16_t, 0, Short)
+		//offset of global-data in multiples of 64-bit
+		BITFIELD_ENTRY(GlobalDataOffset, uint16_t, 16, Short)
+		//size of the global data segment in multiples of 64-bit
+		BITFIELD_ENTRY(GlobalDataSize, uint16_t, 32, Short)
+		//size of a single stack-frame, appended to the global-data segment. In multiples of 64-bit
+		BITFIELD_ENTRY(StackFrameSize, uint16_t, 48, Short)
+
+		std::vector<KernelInfo> kernelInfos;
 	};
 
 	typedef void(CL_CALLBACK* BuildCallback)(cl_program program, void* user_data);
@@ -124,13 +143,13 @@ namespace vc4cl
 
 		BuildInfo buildInfo;
 
-		//the kernel-infos, extracted from the VC4C binary
+		//the module-info, extracted from the VC4C binary
 		//if this is set, the program is completely finished compiling
-		std::vector<KernelInfo> kernelInfo;
+		ModuleInfo moduleInfo;
 
 		BuildStatus getBuildStatus() const;
 	private:
-		cl_int extractKernelInfo(cl_ulong** ptr, cl_uint* minKernelOffset);
+		cl_int extractKernelInfo(cl_ulong** ptr);
 	};
 
 } /* namespace vc4cl */

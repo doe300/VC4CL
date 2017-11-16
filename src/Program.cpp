@@ -121,7 +121,7 @@ cl_int Program::compile(const std::string& options, BuildCallback callback, void
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "There is no source code to compile!");
 	//if the program was already compiled, clear all results
 	binaryCode.clear();
-	kernelInfo.clear();
+	moduleInfo.kernelInfos.clear();
 #if HAS_COMPILER
 	buildInfo.status = CL_BUILD_IN_PROGRESS;
 	cl_int state = compile_program(this, options);
@@ -140,39 +140,41 @@ cl_int Program::link(const std::string& options, BuildCallback callback, void* u
 		//not yet compiled
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Program needs to be compiled first!");
 	//if the program was already compiled, clear all results
-	kernelInfo.clear();
+	moduleInfo.kernelInfos.clear();
 
 	// extract kernel-info
 	cl_ulong* ptr = reinterpret_cast<cl_ulong*>(binaryCode.data());
-	ptr += 1;	//skips magic number
-	//the minimum offset for the first kernel-function
-	cl_uint min_kernel_offset = UINT32_MAX;
-	while(ptr[0] != 0)
+	//check and skip magic number
+	if(*reinterpret_cast<const cl_uint*>(ptr) != kernel_config::BINARY_MAGIC_NUMBER)
+		return returnError(CL_INVALID_BINARY, __FILE__, __LINE__, "Invalid binary data given, magic number does not match!");
+	ptr += 1;
+
+	//read and skip module info
+	moduleInfo = ModuleInfo(*ptr);
+	ptr += 1;
+	while(moduleInfo.kernelInfos.size() < moduleInfo.getInfoCount())
 	{
-		cl_int state = extractKernelInfo(&ptr, &min_kernel_offset);
+		cl_int state = extractKernelInfo(&ptr);
 		if(state != CL_SUCCESS)
 		{
-			kernelInfo.clear();
+			moduleInfo.kernelInfos.clear();
 			return state;
 		}
 	}
 
-	if(min_kernel_offset == UINT32_MAX)
+	if(moduleInfo.kernelInfos.empty())
 	{
 		//no kernel meta-data was found!
 		buildInfo.status = CL_BUILD_ERROR;
 		return returnError(CL_INVALID_PROGRAM, __FILE__, __LINE__, "No kernel offset found!");
 	}
 
-	ptr += 1; //skips the 0-long as marker between header and data
-	if(reinterpret_cast<cl_ulong*>(binaryCode.data() + (min_kernel_offset - 1) * sizeof(cl_ulong)) != ptr)
+	if(moduleInfo.getGlobalDataSize() > 0)
 	{
-		//if the pointer to the second next instruction after the header is not the pointer to the first kernel, there are global data
-		cl_uchar* global_data_ptr = reinterpret_cast<cl_uchar*>(ptr);
-		const size_t globalDataSize = reinterpret_cast<cl_uchar*>(binaryCode.data() + (min_kernel_offset - 1) * sizeof(cl_ulong)) - global_data_ptr;
-		globalData.reserve(globalDataSize);
+		cl_uchar* globalsPtr = reinterpret_cast<cl_uchar*>(reinterpret_cast<cl_ulong*>(binaryCode.data()) + moduleInfo.getGlobalDataOffset());
+		globalData.reserve(moduleInfo.getGlobalDataSize());
 
-		std::copy(global_data_ptr, global_data_ptr + globalDataSize, std::back_inserter(globalData));
+		std::copy(globalsPtr, globalsPtr + moduleInfo.getGlobalDataSize(), std::back_inserter(globalData));
 	}
 
 	if(callback != NULL)
@@ -184,7 +186,7 @@ cl_int Program::link(const std::string& options, BuildCallback callback, void* u
 cl_int Program::getInfo(cl_program_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
 	std::string kernelNames;
-	for(const KernelInfo& info : kernelInfo)
+	for(const KernelInfo& info : moduleInfo.kernelInfos)
 	{
 		kernelNames.append(info.name).append(";");
 	}
@@ -220,11 +222,11 @@ cl_int Program::getInfo(cl_program_info param_name, size_t param_value_size, voi
 				return returnValue(nullptr, 0, 0, param_value_size, param_value, param_value_size_ret);
 			return returnValue<unsigned char*>(reinterpret_cast<unsigned char*>(binaryCode.data()), param_value_size, param_value, param_value_size_ret);
 		case CL_PROGRAM_NUM_KERNELS:
-			if(kernelInfo.empty())
+			if(moduleInfo.kernelInfos.empty())
 				return CL_INVALID_PROGRAM_EXECUTABLE;
-			return returnValue<size_t>(kernelInfo.size(), param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(moduleInfo.kernelInfos.size(), param_value_size, param_value, param_value_size_ret);
 		case CL_PROGRAM_KERNEL_NAMES:
-			if(kernelInfo.empty())
+			if(moduleInfo.kernelInfos.empty())
 				return CL_INVALID_PROGRAM_EXECUTABLE;
 			return returnString(kernelNames, param_value_size, param_value, param_value_size_ret);
 	}
@@ -247,7 +249,7 @@ cl_int Program::getBuildInfo(cl_program_build_info param_name, size_t param_valu
 		case CL_PROGRAM_BINARY_TYPE:
 			if(binaryCode.empty())
 				return returnValue<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_NONE, param_value_size, param_value, param_value_size_ret);
-			if(kernelInfo.empty())
+			if(moduleInfo.kernelInfos.empty())
 				//not yet "linked"
 				return returnValue<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT, param_value_size, param_value, param_value_size_ret);
 			return returnValue<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_EXECUTABLE, param_value_size, param_value, param_value_size_ret);
@@ -260,7 +262,7 @@ BuildStatus Program::getBuildStatus() const
 {
 	if(binaryCode.empty())
 		return BuildStatus::NOT_BUILD;
-	if(kernelInfo.empty())
+	if(moduleInfo.kernelInfos.empty())
 		return BuildStatus::COMPILED;
 	return BuildStatus::DONE;
 }
@@ -276,7 +278,7 @@ static std::string readString(cl_ulong** ptr, cl_uint stringLength)
 	return s;
 }
 
-cl_int Program::extractKernelInfo(cl_ulong** ptr, cl_uint* min_kernel_offset)
+cl_int Program::extractKernelInfo(cl_ulong** ptr)
 {
 	KernelInfo info(*reinterpret_cast<uint64_t*>(*ptr));
 
@@ -300,9 +302,7 @@ cl_int Program::extractKernelInfo(cl_ulong** ptr, cl_uint* min_kernel_offset)
 		info.params.push_back(param);
 	}
 
-	*min_kernel_offset = std::min(*min_kernel_offset, static_cast<cl_uint>(info.getOffset()));
-
-	kernelInfo.push_back(info);
+	moduleInfo.kernelInfos.push_back(info);
 
 	return CL_SUCCESS;
 }

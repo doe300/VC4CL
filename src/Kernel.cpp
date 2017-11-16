@@ -323,7 +323,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 		return returnError(CL_INVALID_CONTEXT, __FILE__, __LINE__, "Contexts of command queue and program do not match!");
 	}
 
-	if(program->kernelInfo.empty())
+	if(program->moduleInfo.kernelInfos.empty())
 	{
 		return returnError(CL_INVALID_PROGRAM_EXECUTABLE, __FILE__, __LINE__, "Kernel was not yet compiled!");
 	}
@@ -465,14 +465,14 @@ cl_kernel VC4CL_FUNC(clCreateKernel)(cl_program program, const char* kernel_name
 {
 	CHECK_PROGRAM_ERROR_CODE(toType<Program>(program), errcode_ret, cl_kernel)
 
-	if(toType<Program>(program)->kernelInfo.empty())
+	if(toType<Program>(program)->moduleInfo.kernelInfos.empty())
 		return returnError<cl_kernel>(CL_INVALID_PROGRAM_EXECUTABLE, errcode_ret, __FILE__, __LINE__, "Program has no kernel-info, may not be compiled!");
 
 	if(kernel_name == NULL)
 		return returnError<cl_kernel>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "No kernel-name was set!");
 
 	const KernelInfo* info = nullptr;
-	for(const KernelInfo& i : toType<Program>(program)->kernelInfo)
+	for(const KernelInfo& i : toType<Program>(program)->moduleInfo.kernelInfos)
 	{
 		if(i.name.compare(kernel_name) == 0)
 		{
@@ -520,14 +520,14 @@ cl_int VC4CL_FUNC(clCreateKernelsInProgram)(cl_program program, cl_uint num_kern
 {
 	CHECK_PROGRAM(toType<Program>(program))
 
-		if(toType<Program>(program)->kernelInfo.empty())
+		if(toType<Program>(program)->moduleInfo.kernelInfos.empty())
 		return returnError(CL_INVALID_PROGRAM_EXECUTABLE, __FILE__, __LINE__, "No kernel-info found, maybe program was not yet compiled!");
 
-	if(kernels != NULL && num_kernels < toType<Program>(program)->kernelInfo.size())
-		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Output parameter cannot hold all %d kernels", toType<Program>(program)->kernelInfo.size()));
+	if(kernels != NULL && num_kernels < toType<Program>(program)->moduleInfo.kernelInfos.size())
+		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Output parameter cannot hold all %d kernels", toType<Program>(program)->moduleInfo.kernelInfos.size()));
 
 	size_t i = 0;
-	for(const KernelInfo& info : toType<Program>(program)->kernelInfo)
+	for(const KernelInfo& info : toType<Program>(program)->moduleInfo.kernelInfos)
 	{
 		//if kernels is NULL, kernels are created but not referenced -> they leak!!
 		if(kernels != NULL)
@@ -540,7 +540,7 @@ cl_int VC4CL_FUNC(clCreateKernelsInProgram)(cl_program program, cl_uint num_kern
 	}
 
 	if(num_kernels_ret != NULL)
-		*num_kernels_ret = static_cast<cl_uint>(toType<Program>(program)->kernelInfo.size());
+		*num_kernels_ret = static_cast<cl_uint>(toType<Program>(program)->moduleInfo.kernelInfos.size());
 
 	return CL_SUCCESS;
 }
