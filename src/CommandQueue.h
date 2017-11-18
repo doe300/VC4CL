@@ -6,7 +6,6 @@
 #ifndef VC4CL_COMMANDQUEUE_H
 #define VC4CL_COMMANDQUEUE_H
 
-#include "Object.h"
 #include "Context.h"
 
 namespace vc4cl
@@ -17,8 +16,8 @@ namespace vc4cl
 	class CommandQueue : public Object<_cl_command_queue, CL_INVALID_COMMAND_QUEUE>, public HasContext
 	{
 	public:
-		CommandQueue(Context* context, const bool outOfOrderExecution, const bool profiling);
-		~CommandQueue();
+		CommandQueue(Context* context, bool outOfOrderExecution, bool profiling);
+		~CommandQueue() override;
 
 		CHECK_RETURN cl_int getInfo(cl_command_queue_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const;
 

@@ -36,9 +36,9 @@
 
 #include "common.h"
 
-#include <vector>
 #include <chrono>
 #include <utility>
+#include <vector>
 
 #define PAGE_ALIGNMENT 4096
 
@@ -85,7 +85,7 @@ namespace vc4cl
 		L1_NONALLOCATING = (DIRECT | COHERENT), /* Allocating in L2 */
 		ZERO = 1 << 4,  /* initialise buffer to all zeros */
 		NO_INIT = 1 << 5, /* don't initialise (default is initialise to all ones */
-		HINT_PERMALOCK = 1 << 6, /* Likely to be locked for long periods of time. */
+		HINT_PERMALOCK = 1 << 6 /* Likely to be locked for long periods of time. */
 	};
 
 	/*
@@ -150,7 +150,7 @@ namespace vc4cl
 		CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout) const;
 		uint32_t getTotalGPUMemory() const;
 
-		CHECK_RETURN bool readMailbox(const MailboxTag tag, const unsigned bufferLength, const std::vector<unsigned>& requestData, std::vector<unsigned>& resultData) const;
+		CHECK_RETURN bool readMailbox(MailboxTag tag, unsigned bufferLength, const std::vector<unsigned>& requestData, std::vector<unsigned>& resultData) const;
 
 	private:
 		int fd;

@@ -5,13 +5,14 @@
  */
 
 #include "Device.h"
+
+#include "Mailbox.h"
 #include "Platform.h"
 #include "V3D.h"
 #include "extensions.h"
-#include "Mailbox.h"
 
-#include <chrono>
 #include <algorithm>
+#include <chrono>
 
 using namespace vc4cl;
 
@@ -56,8 +57,8 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			// Returns n size_t entries, where n is the value returned by the query for CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS.
 			// The minimum value is (1, 1, 1)."
 			size_t numQPUs = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
-			size_t tmp[kernel_config::NUM_DIMENSIONS] = {numQPUs, numQPUs, numQPUs};
-			return returnValue(tmp, sizeof(size_t), kernel_config::NUM_DIMENSIONS, param_value_size, param_value, param_value_size_ret);
+			std::array<size_t, kernel_config::NUM_DIMENSIONS> tmp{numQPUs, numQPUs, numQPUs};
+			return returnValue(tmp.data(), sizeof(size_t), tmp.size(), param_value_size, param_value, param_value_size_ret);
 		}
 		case CL_DEVICE_MAX_WORK_GROUP_SIZE:
 			//"Maximum number of work-items in a work-group executing a kernel on a single compute unit, using the data parallel execution model."
@@ -359,13 +360,13 @@ cl_int VC4CL_FUNC(clGetDeviceIDs)(cl_platform_id platform, cl_device_type device
 {
 	CHECK_PLATFORM(platform)
 
-	if(devices == NULL && num_devices == NULL)
+	if(devices == nullptr && num_devices == nullptr)
 		//can't return anything
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "No output parameter set!");
 
 	if(num_entries == 0)
 	{
-		if(devices != NULL)
+		if(devices != nullptr)
 		{
 			//can't fetch 0 devices
 			return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot retrieve 0 devices!");
@@ -391,13 +392,13 @@ cl_int VC4CL_FUNC(clGetDeviceIDs)(cl_platform_id platform, cl_device_type device
 	{
 		device_found = true;
 		//default device queried -> GPU
-		if(devices != NULL)
+		if(devices != nullptr)
 			devices[num_found] = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
 		++num_found;
 	}
 	if(!device_found)
 		return returnError(CL_DEVICE_NOT_FOUND, __FILE__, __LINE__, buildString("No device for the given criteria: platform %p, type: %d!", platform, device_type));
-	if(num_devices != NULL)
+	if(num_devices != nullptr)
 	{
 		*num_devices = num_found;
 	}

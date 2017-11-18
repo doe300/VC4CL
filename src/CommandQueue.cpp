@@ -3,11 +3,12 @@
  *
  * See the file "LICENSE" for the full license governing this code.
  */
-#include "queue_handler.h"
 #include "CommandQueue.h"
-#include "Event.h"
+
 #include "Buffer.h"
+#include "Event.h"
 #include "Kernel.h"
+#include "queue_handler.h"
 
 using namespace vc4cl;
 

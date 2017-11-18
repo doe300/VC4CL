@@ -7,11 +7,12 @@
 #ifndef VC4CL_OBJECT_H
 #define VC4CL_OBJECT_H
 
-#include <CL/opencl.h>
-#include <string>
-#include <string.h>
-
 #include "common.h"
+
+#include <CL/opencl.h>
+
+#include <cstring>
+#include <string>
 
 namespace vc4cl
 {
@@ -19,11 +20,13 @@ namespace vc4cl
 	class Object
 	{
 	public:
+		//make sure, objects can't be copied or moved, since it invalidates the pointers
+		Object(const Object&) = delete;
+		Object(Object&&) = delete;
+		virtual ~Object() = default;
 
-		virtual ~Object()
-		{
-			//required, so the destructors of the child-classes are called
-		}
+		Object& operator=(const Object&) = delete;
+		Object& operator=(Object&&) = delete;
 
 		CHECK_RETURN cl_int retain()
 		{
@@ -72,14 +75,6 @@ namespace vc4cl
 		{
 			//reference-count is implicitly retained
 		}
-
-	private:
-		//make sure, objects can't be copied or moved, since it invalidates the pointers
-		Object(const Object&) = delete;
-		Object(Object&&) = delete;
-
-		Object& operator=(const Object&) = delete;
-		Object& operator=(Object&&) = delete;
 	};
 
 	template<typename T>
@@ -184,6 +179,6 @@ namespace vc4cl
 				throw std::runtime_error("Failed to retain object!");
 		}
 	};
-};
+} // namespace vc4cl
 
 #endif /* VC4CL_OBJECT_H */

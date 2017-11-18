@@ -4,12 +4,13 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <CL/opencl.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sstream>
-
 #include "common.h"
+
+#include <CL/opencl.h>
+
+#include <cstdlib>
+#include <cstring>
+#include <sstream>
 
 using namespace vc4cl;
 

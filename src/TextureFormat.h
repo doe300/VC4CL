@@ -7,9 +7,9 @@
 #ifndef VC4CL_TEXTURE_FORMAT
 #define VC4CL_TEXTURE_FORMAT
 
-#include <vector>
-#include <utility>
 #include <array>
+#include <utility>
+#include <vector>
 
 namespace vc4cl
 {
@@ -20,15 +20,12 @@ namespace vc4cl
 		const std::size_t x;
 		const std::size_t y;
 
-		constexpr Coordinates2D(const std::size_t x, const std::size_t y) : x(x), y(y)
-		{
-
-		}
+		constexpr Coordinates2D(std::size_t x, std::size_t y) : x(x), y(y) { }
 
 		/*
 		 * NOTE: This function is only correct for standard raster order!
 		 */
-		constexpr std::size_t toByteOffset(const std::size_t widthInElements, const std::size_t elementSize) const
+		constexpr std::size_t toByteOffset(std::size_t widthInElements, std::size_t elementSize) const
 		{
 			return (y * widthInElements + x) * elementSize;
 		}
@@ -38,13 +35,13 @@ namespace vc4cl
 	{
 	public:
 
-		virtual ~TextureAccessor();
+		virtual ~TextureAccessor() = default;
 
 		virtual int checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const = 0;
 		virtual void* calculatePixelOffset(void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const = 0;
 
-		virtual std::size_t readSinglePixel(const std::array<std::size_t, 3>& pixelCoordinates, void* output, const std::size_t outputSize) const;
-		virtual bool writeSinglePixel(const std::array<std::size_t, 3>& pixelCoordinates, const void* input, const std::size_t inputSize) const;
+		virtual std::size_t readSinglePixel(const std::array<std::size_t, 3>& pixelCoordinates, void* output, std::size_t outputSize) const;
+		virtual bool writeSinglePixel(const std::array<std::size_t, 3>& pixelCoordinates, const void* input, std::size_t inputSize) const;
 
 		virtual void readPixelData(const std::array<std::size_t, 3>& pixelCoordinates, const std::array<std::size_t, 3>& pixelRegion, void* output, std::size_t outputRowPitch, std::size_t outputSlicePitch) const;
 		virtual void writePixelData(const std::array<std::size_t, 3>& pixelCoordinates, const std::array<std::size_t, 3>& pixelRegion, void* source, std::size_t sourceRowPitch, std::size_t sourceSlicePitch) const;
@@ -58,14 +55,14 @@ namespace vc4cl
 	protected:
 		Image& image;
 
-		TextureAccessor(Image& image);
+		explicit TextureAccessor(Image& image);
 	};
 
 	struct TFormatAccessor : public TextureAccessor
 	{
 	public:
-		TFormatAccessor(Image& image);
-		virtual ~TFormatAccessor();
+		explicit TFormatAccessor(Image& image);
+		~TFormatAccessor() override = default;
 
 		int checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const override;
 		void* calculatePixelOffset(void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const override;
@@ -74,8 +71,8 @@ namespace vc4cl
 	struct LTFormatAccessor : public TextureAccessor
 	{
 	public:
-		LTFormatAccessor(Image& image);
-		virtual ~LTFormatAccessor();
+		explicit LTFormatAccessor(Image& image);
+		~LTFormatAccessor() override = default;
 
 		int checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const override;
 		void* calculatePixelOffset(void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const override;
@@ -84,8 +81,8 @@ namespace vc4cl
 	struct RasterFormatAccessor : public TextureAccessor
 	{
 	public:
-		RasterFormatAccessor(Image& image);
-		virtual ~RasterFormatAccessor();
+		explicit RasterFormatAccessor(Image& image);
+		~RasterFormatAccessor() override = default;
 
 		int checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const override;
 		void* calculatePixelOffset(void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const override;

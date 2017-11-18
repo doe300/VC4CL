@@ -7,10 +7,8 @@
 #ifndef PERFORMANCE_COUNTER_H
 #define PERFORMANCE_COUNTER_H
 
-#include "extensions.h"
-
-#include "Object.h"
 #include "Context.h"
+#include "extensions.h"
 
 namespace vc4cl
 {
@@ -18,7 +16,7 @@ namespace vc4cl
 	{
 	public:
 		PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index);
-		~PerformanceCounter();
+		~PerformanceCounter() override;
 
 		cl_int getValue(cl_uint* value) const;
 		cl_int reset();

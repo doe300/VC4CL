@@ -7,11 +7,10 @@
 #ifndef VC4CL_PROGRAM
 #define VC4CL_PROGRAM
 
-#include <vector>
-
-#include "Object.h"
-#include "Context.h"
 #include "Bitfield.h"
+#include "Context.h"
+
+#include <vector>
 
 namespace vc4cl
 {
@@ -47,7 +46,7 @@ namespace vc4cl
 	 */
 	struct ParamInfo : private Bitfield<uint64_t>
 	{
-		ParamInfo(uint64_t val = 0) : Bitfield(val) { }
+		explicit ParamInfo(uint64_t val = 0) noexcept : Bitfield(val) { }
 
 		//the size of this parameter in bytes (e.g. 4 for pointers)
 		BITFIELD_ENTRY(Size, uint8_t, 0, Byte)
@@ -82,7 +81,7 @@ namespace vc4cl
 	 */
 	struct KernelInfo : private Bitfield<uint64_t>
 	{
-		KernelInfo(uint64_t val = 0) : Bitfield(val) { }
+		explicit KernelInfo(uint64_t val = 0) noexcept : Bitfield(val) { }
 
 		//the offset of the instruction belonging to the kernel, in instructions (8 byte)
 		BITFIELD_ENTRY(Offset, uint16_t, 0, Short)
@@ -106,7 +105,7 @@ namespace vc4cl
 	 */
 	struct ModuleInfo : Bitfield<uint64_t>
 	{
-		ModuleInfo(uint64_t val = 0) : Bitfield(val) { }
+		explicit ModuleInfo(uint64_t val = 0) noexcept : Bitfield(val) { }
 
 		//number of kernel-infos in this module
 		BITFIELD_ENTRY(InfoCount, uint16_t, 0, Short)
@@ -120,13 +119,13 @@ namespace vc4cl
 		std::vector<KernelInfo> kernelInfos;
 	};
 
-	typedef void(CL_CALLBACK* BuildCallback)(cl_program program, void* user_data);
+	using BuildCallback = void(CL_CALLBACK*)(cl_program program, void* user_data);
 
 	class Program: public Object<_cl_program, CL_INVALID_PROGRAM>, public HasContext
 	{
 	public:
-		Program(Context* context, const std::vector<char>& code, const bool isBinary);
-		~Program();
+		Program(Context* context, const std::vector<char>& code, bool isBinary);
+		~Program() override;
 
 
 		CHECK_RETURN cl_int compile(const std::string& options, BuildCallback callback, void* userData);

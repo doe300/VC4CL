@@ -5,6 +5,7 @@
  */
 
 #include "Image.h"
+
 #include "Buffer.h"
 
 #include <unordered_map>
@@ -89,7 +90,7 @@ Image::Image(Context* context, cl_mem_flags flags, const cl_image_format& imageF
 
 cl_int Image::getImageInfo(cl_image_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
-	cl_image_format format;
+	cl_image_format format{};
 	format.image_channel_data_type = channelType.id;
 	format.image_channel_order = channelOrder.id;
 
@@ -153,7 +154,7 @@ cl_int Image::enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, cons
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot read non-readable image!");
 
 	Event* e = createBufferActionEvent(commandQueue, CommandType::IMAGE_READ, numEventsInWaitList, waitList, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create image event!");
 	}
@@ -165,14 +166,14 @@ cl_int Image::enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, cons
 
 	e->action.reset(access);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing read image failed!");
-	if(blockingRead)
+	if(blockingRead == CL_TRUE)
 	{
 		return e->waitFor();
 	}
@@ -199,7 +200,7 @@ cl_int Image::enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, co
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot write non-writable image!");
 
 	Event* e = createBufferActionEvent(commandQueue, CommandType::IMAGE_WRITE, numEventsInWaitList, waitList, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create image event!");
 	}
@@ -211,7 +212,7 @@ cl_int Image::enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, co
 
 	e->action.reset(access);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
@@ -260,7 +261,7 @@ cl_int Image::enqueueCopyInto(CommandQueue* commandQueue, Image* destination, co
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot copy into non-writable image!");
 
 	Event* e = createBufferActionEvent(commandQueue, CommandType::IMAGE_COPY, numEventsInWaitList, waitList, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create image event!");
 	}
@@ -270,7 +271,7 @@ cl_int Image::enqueueCopyInto(CommandQueue* commandQueue, Image* destination, co
 
 	e->action.reset(access);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
@@ -290,7 +291,7 @@ cl_int Image::enqueueFill(CommandQueue* commandQueue, const void* color, const s
 		return errcode;
 
 	Event* e = createBufferActionEvent(commandQueue, CommandType::IMAGE_FILL, numEventsInWaitList, waitList, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create image event!");
 	}
@@ -300,7 +301,7 @@ cl_int Image::enqueueFill(CommandQueue* commandQueue, const void* color, const s
 
 	e->action.reset(access);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
@@ -326,7 +327,7 @@ cl_int Image::enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "The region copied exceeds the buffer size!");
 
 	Event* e = createBufferActionEvent(commandQueue, CommandType::IMAGE_COPY_TO_BUFFER, numEventsInWaitList, waitList, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create image event!");
 	}
@@ -336,7 +337,7 @@ cl_int Image::enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer
 
 	e->action.reset(access);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
@@ -369,9 +370,9 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
 	//our implementation does so automatically
 
 	Event* e = createBufferActionEvent(commandQueue, CommandType::IMAGE_MAP, numEventsInWaitList, waitList, errcode_ret);
-	if(e == NULL)
+	if(e == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	uintptr_t out_ptr = reinterpret_cast<uintptr_t>(nullptr);
@@ -392,7 +393,7 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
 	CHECK_ALLOCATION_ERROR_CODE(action, errcode_ret, void*)
 	e->action.reset(action);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
@@ -403,7 +404,7 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
 	{
 		*errcode_ret = e->waitFor();
 		if(*errcode_ret != CL_SUCCESS)
-			return NULL;
+			return nullptr;
 	}
 
 	RETURN_OBJECT(reinterpret_cast<void*>(out_ptr), errcode_ret)
@@ -534,7 +535,7 @@ cl_int Sampler::getInfo(cl_sampler_info param_name, size_t param_value_size, voi
 
 static bool check_image_format(const cl_image_format* format)
 {
-	if(format == NULL)
+	if(format == nullptr)
 		return false;
 
 	for(const auto& pair : supportedFormats)
@@ -718,12 +719,12 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
 	if(moreThanOneHostAccessFlagSet(flags))
 		return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "More than one host-access flag set!");
 
-	if(image_format == NULL)
+	if(image_format == nullptr)
 		return returnError<cl_mem>(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR, errcode_ret, __FILE__, __LINE__, "Image format is not set!");
 	if(!check_image_format(image_format))
 		return returnError<cl_mem>(CL_IMAGE_FORMAT_NOT_SUPPORTED, errcode_ret, __FILE__, __LINE__, buildString("Unsupported image format (type: %u, order: %u)!", image_format->image_channel_data_type, image_format->image_channel_order));
 
-	if(image_desc == NULL)
+	if(image_desc == nullptr)
 		return returnError<cl_mem>(CL_INVALID_IMAGE_DESCRIPTOR, errcode_ret, __FILE__, __LINE__, "Image description is not set!");
 	if(image_desc->image_type != CL_MEM_OBJECT_IMAGE1D && image_desc->image_type != CL_MEM_OBJECT_IMAGE1D_ARRAY && image_desc->image_type != CL_MEM_OBJECT_IMAGE1D_BUFFER &&
 		image_desc->image_type != CL_MEM_OBJECT_IMAGE2D && image_desc->image_type != CL_MEM_OBJECT_IMAGE2D_ARRAY && image_desc->image_type != CL_MEM_OBJECT_IMAGE3D)
@@ -851,7 +852,7 @@ cl_mem VC4CL_FUNC(clCreateImage2D)(cl_context context, cl_mem_flags flags, const
 	desc.image_slice_pitch = 0;
 	desc.num_mip_levels = 0;
 	desc.num_samples = 0;
-	desc.buffer = NULL;
+	desc.buffer = nullptr;
 	return VC4CL_FUNC(clCreateImage)(context, flags, image_format, &desc, host_ptr, errcode_ret);
 }
 
@@ -869,7 +870,7 @@ cl_mem VC4CL_FUNC(clCreateImage3D)(cl_context context, cl_mem_flags flags, const
 	desc.image_slice_pitch = image_slice_pitch;
 	desc.num_mip_levels = 0;
 	desc.num_samples = 0;
-	desc.buffer = NULL;
+	desc.buffer = nullptr;
 	return VC4CL_FUNC(clCreateImage)(context, flags, image_format, &desc, host_ptr, errcode_ret);
 }
 
@@ -914,7 +915,7 @@ cl_int VC4CL_FUNC(clGetSupportedImageFormats)(cl_context context, cl_mem_flags f
 	return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Image support is not enabled!");
 #endif
 
-	if((num_entries == 0) != (image_formats == NULL))
+	if((num_entries == 0) != (image_formats == nullptr))
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Output parameters are empty!");
 
 	if(num_entries >= supportedFormats.size())
@@ -925,7 +926,7 @@ cl_int VC4CL_FUNC(clGetSupportedImageFormats)(cl_context context, cl_mem_flags f
 			++image_formats;
 		}
 	}
-	if(num_image_formats != NULL)
+	if(num_image_formats != nullptr)
 		*num_image_formats = static_cast<cl_uint>(supportedFormats.size());
 
 	return CL_SUCCESS;

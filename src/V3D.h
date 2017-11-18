@@ -7,11 +7,11 @@
 #ifndef VC4CL_V3D
 #define VC4CL_V3D
 
-#include <stdint.h>
-#include <chrono>
-#include <utility>
-
 #include "common.h"
+
+#include <chrono>
+#include <cstdint>
+#include <utility>
 
 namespace vc4cl
 {
@@ -29,7 +29,7 @@ namespace vc4cl
 		USER_PROGRAMS_COMPLETED_COUNT,
 		USER_REQUESTS_COUNT,
 		PROGRAM_QUEUE_FULL,
-		PROGRAM_QUEUE_LENGTH,
+		PROGRAM_QUEUE_LENGTH
 	};
 
 	//see official documentation, page 98
@@ -108,17 +108,17 @@ namespace vc4cl
 
 		~V3D();
 
-		uint32_t getSystemInfo(const SystemInfo key) const;
+		uint32_t getSystemInfo(SystemInfo key) const;
 
-		CHECK_RETURN bool setCounter(uint8_t counterIndex, const CounterType type);
+		CHECK_RETURN bool setCounter(uint8_t counterIndex, CounterType type);
 		void resetCounterValue(uint8_t counterIndex);
 		int32_t getCounter(uint8_t counterIndex) const;
 		void disableCounter(uint8_t counterIndex);
 
-		CHECK_RETURN bool setReservation(const uint8_t qpu, const QPUReservation val);
-		QPUReservation getReservation(const uint8_t qpu) const;
+		CHECK_RETURN bool setReservation(uint8_t qpu, QPUReservation val);
+		QPUReservation getReservation(uint8_t qpu) const;
 
-		bool hasError(const ErrorType type) const;
+		bool hasError(ErrorType type) const;
 
 		CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> addressPairs, bool flushBuffer, std::chrono::milliseconds timeout);
 

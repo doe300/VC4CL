@@ -6,19 +6,19 @@
 #ifndef VC4CL_BUFFER
 #define VC4CL_BUFFER
 
-#include <utility>
-#include <vector>
-#include <memory>
-#include <list>
-
-#include "Object.h"
 #include "CommandQueue.h"
 #include "Event.h"
 #include "Mailbox.h"
+#include "Object.h"
+
+#include <list>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace vc4cl
 {
-	typedef void(CL_CALLBACK* BufferCallback)(cl_mem event, void* user_data);
+	using BufferCallback = void(CL_CALLBACK*)(cl_mem event, void* user_data);
 
 	class Image;
 	struct BufferMapping;
@@ -28,7 +28,7 @@ namespace vc4cl
 	public:
 		Buffer(Context* context, cl_mem_flags flags);
 		Buffer(Buffer* parent, cl_mem_flags flags);
-		~Buffer();
+		~Buffer() override;
 
 		Buffer* createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer_create_type, const void* buffer_create_info, cl_int* errcode_ret);
 		CHECK_RETURN cl_int enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t offset, size_t size, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
@@ -73,7 +73,7 @@ namespace vc4cl
 		CHECK_RETURN Event* createBufferActionEvent(CommandQueue* queue, CommandType command_type, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_int* errcode_ret) const;
 
 		friend class Image;
-		friend class BufferMapping;
+		friend struct BufferMapping;
 	};
 
 	struct BufferMapping : public EventAction
@@ -115,7 +115,7 @@ namespace vc4cl
 
 		cl_int operator()(Event* event) override;
 	};
-	
+
 	struct BufferFill : public EventAction
 	{
 		object_wrapper<Buffer> buffer;

@@ -6,14 +6,14 @@
 
 #include "V3D.h"
 
-#include <memory>
+#include <cerrno>
+#include <cstdio>
 #include <fcntl.h>
-#include <stdio.h>
-#include <errno.h>
+#include <iostream>
+#include <memory>
 #include <sys/mman.h>
 #include <system_error>
 #include <unistd.h>
-#include <iostream>
 
 using namespace vc4cl;
 
@@ -60,11 +60,11 @@ V3D::~V3D()
 
 V3D& V3D::instance()
 {
-	if(singleton.get() == nullptr)
+	if(singleton == nullptr)
 	{
 		singleton.reset(new V3D());
 	}
-	return *singleton.get();
+	return *singleton;
 }
 
 uint32_t V3D::getSystemInfo(const SystemInfo key) const

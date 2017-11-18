@@ -5,11 +5,11 @@
  */
 
 #include "Kernel.h"
+
 #include "Buffer.h"
 #include "Device.h"
 #include "SVM.h"
 #include "V3D.h"
-
 #include "extensions.h"
 
 using namespace vc4cl;
@@ -119,7 +119,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 		//"If the argument is declared to be a pointer of a built-in scalar or vector type [...] the memory object specified as argument value must be a buffer object (or NULL)"
 		// -> no pointers to non-buffer objects are allowed! -> good, no extra checking required
 		uint32_t pointer_arg = reinterpret_cast<uintptr_t>(nullptr);
-		if(arg_value != NULL && *static_cast<const void* const *>(arg_value) != NULL)
+		if(arg_value != nullptr && *static_cast<const void* const *>(arg_value) != nullptr)
 		{
 			if(isSVMPointer)
 			{
@@ -155,7 +155,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 #endif
 	}
 
-	argsSetMask.set(arg_index, 1);
+	argsSetMask.set(arg_index, true);
 
 	return CL_SUCCESS;
 }
@@ -237,21 +237,21 @@ static bool split_compile_work_size(const std::array<std::size_t,kernel_config::
 {
 	if(compile_group_sizes[0] == 0 && compile_group_sizes[1] == 0 && compile_group_sizes[2] == 0)
 		//no compile-time sizes set
-		return CL_FALSE;
+		return false;
 	const cl_uint max_group_size = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
 
 	if((global_sizes[0] % compile_group_sizes[0]) != 0 || (global_sizes[1] % compile_group_sizes[1]) != 0 || (global_sizes[2] % compile_group_sizes[2]) != 0)
 		//doesn't fit into compile-time sizes
-		return CL_FALSE;
+		return false;
 
 	if(compile_group_sizes[0] * compile_group_sizes[1] * compile_group_sizes[2] > max_group_size)
 		//would fit into compile-time sizes, but are too many work-items in group
-		return CL_FALSE;
+		return false;
 
 	local_sizes[0] = compile_group_sizes[0];
 	local_sizes[1] = compile_group_sizes[1];
 	local_sizes[2] = compile_group_sizes[2];
-	return CL_TRUE;
+	return true;
 }
 
 /*
@@ -338,17 +338,17 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 		return returnError(CL_INVALID_WORK_DIMENSION, __FILE__, __LINE__, buildString("Illegal number of work-group dimensions: %u (of 1 to %u)", work_dim, kernel_config::NUM_DIMENSIONS));
 	}
 
-	if(global_work_size == NULL)
+	if(global_work_size == nullptr)
 	{
 		return returnError(CL_INVALID_GLOBAL_WORK_SIZE, __FILE__, __LINE__, "Global-work-size is not set!");
 	}
 
 	CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
 
-	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> work_offsets;
-	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> work_sizes;
-	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> local_sizes;
-	if(global_work_offset == NULL)
+	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> work_offsets{};
+	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> work_sizes{};
+	std::array<std::size_t,kernel_config::NUM_DIMENSIONS> local_sizes{};
+	if(global_work_offset == nullptr)
 		work_offsets.fill(0);
 	else
 		memcpy(work_offsets.data(), global_work_offset, work_dim * sizeof(size_t));
@@ -356,11 +356,11 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 	//fill to 3 dimensions
 	for(size_t i = work_dim; i < kernel_config::NUM_DIMENSIONS; ++i)
 	{
-		work_offsets[i] = 0;
-		work_sizes[i] = 1;
-		local_sizes[i] = 1;
+		work_offsets.at(i) = 0;
+		work_sizes.at(i) = 1;
+		local_sizes.at(i) = 1;
 	}
-	if(local_work_size == NULL)
+	if(local_work_size == nullptr)
 	{
 		//"local_work_size can also be a NULL value in which case the OpenCL implementation
 		// will determine how to be break the global work-items into appropriate work-group instances."
@@ -374,7 +374,13 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 		{
 			return returnError(state, __FILE__, __LINE__, buildString("Error splitting the global-work-size into local-work-sizes: %u, %u, %u", work_sizes[0], work_sizes[1], work_sizes[2]));
 		}
+
+		//TODO "CL_INVALID_WORK_GROUP_SIZE if local_work_size is NULL and the __attribute__((reqd_work_group_size(X, Y, Z))) qualifier is used to declare the work-group size for kernel in the program source."
 	}
+	else if((info.compileGroupSizes[0] != 0) && local_work_size[0] != info.compileGroupSizes[0] &&
+			(work_dim < 2 || local_work_size[1] != info.compileGroupSizes[1]) && (work_dim < 3 || local_work_size[2] != info.compileGroupSizes[2]))
+		return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__, buildString("Local work size does not match the compile-time work-size: %u(%u), %u(%u), %u(%u)",
+				local_work_size[0], info.compileGroupSizes[0], work_dim < 2 ? 1 : local_work_size[1], info.compileGroupSizes[1], work_dim < 3 ? 1 : local_work_size[2], info.compileGroupSizes[2]));
 	else
 		memcpy(local_sizes.data(), local_work_size, work_dim * sizeof(size_t));
 	if(exceedsLimits<size_t>(work_sizes[0], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[0]) ||
@@ -395,9 +401,9 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 	//check divisibility of local_sizes[i] by work_sizes[i]
 	for(cl_uint i = 0; i < kernel_config::NUM_DIMENSIONS; ++i)
 	{
-		if(work_sizes[i] % local_sizes[i] != 0)
+		if(work_sizes.at(i) % local_sizes.at(i) != 0)
 		{
-			return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__, buildString("Global-work-size is not divisible by local-work-size: %u and %u", work_sizes[i], local_sizes[i]));
+			return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__, buildString("Global-work-size is not divisible by local-work-size: %u and %u", work_sizes.at(i), local_sizes.at(i)));
 		}
 	}
 
@@ -418,7 +424,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 
 	if(ret_val == CL_SUCCESS)
 	{
-		if(event != NULL)
+		if(event != nullptr)
 			//copy event to output
 			*event = kernelEvent->toBase();
 	}
@@ -429,10 +435,6 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 }
 
 KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), numDimensions(0)
-{
-}
-
-KernelExecution::~KernelExecution()
 {
 }
 
@@ -468,7 +470,7 @@ cl_kernel VC4CL_FUNC(clCreateKernel)(cl_program program, const char* kernel_name
 	if(toType<Program>(program)->moduleInfo.kernelInfos.empty())
 		return returnError<cl_kernel>(CL_INVALID_PROGRAM_EXECUTABLE, errcode_ret, __FILE__, __LINE__, "Program has no kernel-info, may not be compiled!");
 
-	if(kernel_name == NULL)
+	if(kernel_name == nullptr)
 		return returnError<cl_kernel>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "No kernel-name was set!");
 
 	const KernelInfo* info = nullptr;
@@ -530,7 +532,7 @@ cl_int VC4CL_FUNC(clCreateKernelsInProgram)(cl_program program, cl_uint num_kern
 	for(const KernelInfo& info : toType<Program>(program)->moduleInfo.kernelInfos)
 	{
 		//if kernels is NULL, kernels are created but not referenced -> they leak!!
-		if(kernels != NULL)
+		if(kernels != nullptr)
 		{
 			Kernel* k = newObject<Kernel>(toType<Program>(program), info);
 			CHECK_ALLOCATION(k)
@@ -539,7 +541,7 @@ cl_int VC4CL_FUNC(clCreateKernelsInProgram)(cl_program program, cl_uint num_kern
 		++i;
 	}
 
-	if(num_kernels_ret != NULL)
+	if(num_kernels_ret != nullptr)
 		*num_kernels_ret = static_cast<cl_uint>(toType<Program>(program)->moduleInfo.kernelInfos.size());
 
 	return CL_SUCCESS;
@@ -689,7 +691,7 @@ cl_int VC4CL_FUNC(clGetKernelInfo)(cl_kernel kernel, cl_kernel_info param_name, 
 cl_int VC4CL_FUNC(clGetKernelWorkGroupInfo)(cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
 	CHECK_KERNEL(toType<Kernel>(kernel))
-	if(device == NULL)
+	if(device == nullptr)
 			device = const_cast<cl_device_id>(toType<Kernel>(kernel)->program->context()->device->toBase());
 	CHECK_DEVICE_WITH_CONTEXT(toType<Device>(device), toType<Kernel>(kernel)->program->context())
 	return toType<Kernel>(kernel)->getWorkGroupInfo(param_name, param_value_size, param_value, param_value_size_ret);

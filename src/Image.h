@@ -7,13 +7,12 @@
 #ifndef VC4CL_IMAGE
 #define VC4CL_IMAGE
 
-#include <limits>
-
-#include "Object.h"
-#include "Context.h"
 #include "Buffer.h"
-#include "TextureFormat.h"
+#include "Context.h"
 #include "TextureConfiguration.h"
+#include "TextureFormat.h"
+
+#include <limits>
 
 namespace vc4cl
 {
@@ -22,7 +21,7 @@ namespace vc4cl
 		cl_channel_order id;
 		unsigned char numChannels;
 
-		constexpr ChannelOrder(cl_channel_order id, unsigned char channels) : id(id), numChannels(channels) { }
+		constexpr ChannelOrder(cl_channel_order id, unsigned char channels) noexcept : id(id), numChannels(channels) { }
 	};
 
 	static constexpr ChannelOrder CHANNEL_RED(CL_R, 1);
@@ -47,29 +46,29 @@ namespace vc4cl
 		bool isNormalized;
 		bool isSigned;
 
-		constexpr ChannelType(cl_channel_type id, unsigned char typeWidth, bool normalized, bool sign) : id(id), bytesPerComponent(typeWidth), isNormalized(normalized), isSigned(sign) { }
+		constexpr ChannelType(cl_channel_type id, unsigned char typeWidth, bool normalized, bool sign) noexcept : id(id), bytesPerComponent(typeWidth), isNormalized(normalized), isSigned(sign) { }
 
 		template<typename T>
-		constexpr static ChannelType create(cl_channel_type id, bool normalized = false)
+		constexpr static ChannelType create(cl_channel_type id, bool normalized = false) noexcept
 		{
 			//this wrapper is required, since C++ doesn't support specifying the type of template constructors
 			return ChannelType(id, sizeof(T), normalized, std::numeric_limits<T>::is_signed);
 		}
 	};
 
-	static constexpr ChannelType CHANNEL_SNORM_INT8(ChannelType::create<signed char>(CL_SNORM_INT8, true));
-	static constexpr ChannelType CHANNEL_SNORM_INT16(ChannelType::create<signed short>(CL_SNORM_INT16, true));
-	static constexpr ChannelType CHANNEL_UNORM_INT8(ChannelType::create<unsigned char>(CL_UNORM_INT8, true));
-	static constexpr ChannelType CHANNEL_UNORM_INT16(ChannelType::create<unsigned short>(CL_UNORM_INT16, true));
-	static constexpr ChannelType CHANNEL_UNORM_SHORT_565(ChannelType::create<unsigned short>(CL_UNORM_SHORT_565, true));
-	static constexpr ChannelType CHANNEL_UNORM_SHORT_555(ChannelType::create<unsigned short>(CL_UNORM_SHORT_555, true));
-	static constexpr ChannelType CHANNEL_UNORM_INT_101010(ChannelType::create<unsigned int>(CL_UNORM_INT_101010, true));
-	static constexpr ChannelType CHANNEL_SIGNED_INT8(ChannelType::create<signed char>(CL_SIGNED_INT8));
-	static constexpr ChannelType CHANNEL_SIGNED_INT16(ChannelType::create<signed short>(CL_SIGNED_INT16));
-	static constexpr ChannelType CHANNEL_SIGNED_INT32(ChannelType::create<signed int>(CL_SIGNED_INT32));
-	static constexpr ChannelType CHANNEL_UNSIGNED_INT8(ChannelType::create<unsigned char>(CL_UNSIGNED_INT8));
-	static constexpr ChannelType CHANNEL_UNSIGNED_INT16(ChannelType::create<unsigned short>(CL_UNSIGNED_INT16));
-	static constexpr ChannelType CHANNEL_UNSIGNED_INT32(ChannelType::create<unsigned int>(CL_UNSIGNED_INT32));
+	static constexpr ChannelType CHANNEL_SNORM_INT8(ChannelType::create<int8_t>(CL_SNORM_INT8, true));
+	static constexpr ChannelType CHANNEL_SNORM_INT16(ChannelType::create<int16_t>(CL_SNORM_INT16, true));
+	static constexpr ChannelType CHANNEL_UNORM_INT8(ChannelType::create<uint8_t>(CL_UNORM_INT8, true));
+	static constexpr ChannelType CHANNEL_UNORM_INT16(ChannelType::create<uint16_t>(CL_UNORM_INT16, true));
+	static constexpr ChannelType CHANNEL_UNORM_SHORT_565(ChannelType::create<uint16_t>(CL_UNORM_SHORT_565, true));
+	static constexpr ChannelType CHANNEL_UNORM_SHORT_555(ChannelType::create<uint16_t>(CL_UNORM_SHORT_555, true));
+	static constexpr ChannelType CHANNEL_UNORM_INT_101010(ChannelType::create<uint32_t>(CL_UNORM_INT_101010, true));
+	static constexpr ChannelType CHANNEL_SIGNED_INT8(ChannelType::create<int8_t>(CL_SIGNED_INT8));
+	static constexpr ChannelType CHANNEL_SIGNED_INT16(ChannelType::create<int16_t>(CL_SIGNED_INT16));
+	static constexpr ChannelType CHANNEL_SIGNED_INT32(ChannelType::create<int32_t>(CL_SIGNED_INT32));
+	static constexpr ChannelType CHANNEL_UNSIGNED_INT8(ChannelType::create<uint8_t>(CL_UNSIGNED_INT8));
+	static constexpr ChannelType CHANNEL_UNSIGNED_INT16(ChannelType::create<uint16_t>(CL_UNSIGNED_INT16));
+	static constexpr ChannelType CHANNEL_UNSIGNED_INT32(ChannelType::create<uint32_t>(CL_UNSIGNED_INT32));
 	static constexpr ChannelType CHANNEL_HALF_FLOAT(CL_HALF_FLOAT, sizeof(short), false, true);
 	static constexpr ChannelType CHANNEL_FLOAT(ChannelType::create<float>(CL_FLOAT));
 
@@ -80,7 +79,7 @@ namespace vc4cl
 		bool isImageBuffer;
 		bool isImageArray;
 
-		constexpr ImageType(cl_mem_object_type id, unsigned char dims, bool isBuffer = false, bool isArray = false) : id(id), numDimensions(dims), isImageBuffer(isBuffer), isImageArray(isArray) { }
+		constexpr ImageType(cl_mem_object_type id, unsigned char dims, bool isBuffer = false, bool isArray = false) noexcept : id(id), numDimensions(dims), isImageBuffer(isBuffer), isImageArray(isArray) { }
 	};
 
 	static constexpr ImageType IMAGE_1D(CL_MEM_OBJECT_IMAGE1D, 1);
@@ -102,7 +101,7 @@ namespace vc4cl
 		CHECK_RETURN cl_int enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, const size_t* origin, const size_t* region, size_t row_pitch, size_t slice_pitch, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
 		CHECK_RETURN cl_int enqueueCopyInto(CommandQueue* commandQueue, Image* destination, const size_t* srcOrigin, const size_t* dstOrigin, const size_t* region, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
 		CHECK_RETURN cl_int enqueueFill(CommandQueue* commandQueue, const void* color, const size_t* origin, const size_t* region, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
-		CHECK_RETURN cl_int enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer, const size_t* origin, const size_t* region, const size_t bufferOffset, bool copyIntoImage, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
+		CHECK_RETURN cl_int enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer, const size_t* origin, const size_t* region, size_t bufferOffset, bool copyIntoImage, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event);
 		CHECK_RETURN void* enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_flags mapFlags, const size_t* origin, const size_t* region, size_t* rowPitchOutput, size_t* slicePitchOutput, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event, cl_int* errcode_ret);
 
 		TextureConfiguration toTextureConfiguration() const;
@@ -125,14 +124,14 @@ namespace vc4cl
 
 	private:
 		CHECK_RETURN cl_int checkImageAccess(const size_t* origin, const size_t* region) const;
-		CHECK_RETURN cl_int checkImageSlices(const size_t* region, const size_t row_pitch, const size_t slice_pitch) const;
+		CHECK_RETURN cl_int checkImageSlices(const size_t* region, size_t row_pitch, size_t slice_pitch) const;
 	};
 
 	class Sampler : public Object<_cl_sampler, CL_INVALID_SAMPLER>, public HasContext
 	{
 	public:
 		Sampler(Context* context, bool normalizeCoords, cl_addressing_mode addressingMode, cl_filter_mode filterMode);
-		~Sampler();
+		~Sampler() override;
 
 		CHECK_RETURN cl_int getInfo(cl_sampler_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 
@@ -192,7 +191,7 @@ namespace vc4cl
 		std::array<size_t, 3> imageRegion;
 		std::size_t bufferOffset;
 
-		ImageCopyBuffer(Image* image, Buffer* buffer, bool copyIntoImage, const std::size_t imgOrigin[3], const std::size_t region[3], const size_t bufferOffset);
+		ImageCopyBuffer(Image* image, Buffer* buffer, bool copyIntoImage, const std::size_t imgOrigin[3], const std::size_t region[3], size_t bufferOffset);
 
 		cl_int operator()(Event* event) override;
 	};
@@ -207,12 +206,12 @@ namespace vc4cl
 
 	struct hash_cl_image_format : public std::hash<std::string>
 	{
-		size_t operator()(const cl_image_format& ) const noexcept;
+		size_t operator()(const cl_image_format& format) const noexcept;
 	};
 
 	struct equal_cl_image_format : public std::equal_to<cl_image_format>
 	{
-		bool operator()(const cl_image_format&, const cl_image_format&) const noexcept;
+		bool operator()(const cl_image_format& f1, const cl_image_format& f2) const noexcept;
 	};
 
 } /* namespace vc4cl */

@@ -31,16 +31,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Mailbox.h"
+
 #include "V3D.h"
 
-#include <sys/ioctl.h>
-#include <system_error>
+#include <cstdio>
 #include <fcntl.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <memory>
 #include <iostream>
+#include <memory>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <system_error>
+#include <unistd.h>
 
 using namespace vc4cl;
 
@@ -110,7 +111,7 @@ DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentIn
 
 bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer) const
 {
-	if(buffer->hostPointer != NULL)
+	if(buffer->hostPointer != nullptr)
 		unmapmem(buffer->hostPointer, buffer->size);
 	if(buffer->memHandle != 0)
 	{
@@ -127,26 +128,26 @@ bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer) const
 
 bool Mailbox::executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const
 {
-	int i=0;
-	unsigned p[32];
-	p[i++] = 0; // size
-	p[i++] = 0x00000000; // process request
+	std::size_t i=0;
+	std::array<unsigned, 32> p{};
+	p.at(i++) = 0; // size
+	p.at(i++) = 0x00000000; // process request
 
-	p[i++] = 0x30010; // (the tag id)
-	p[i++] = 28; // (size of the buffer)
-	p[i++] = 28; // (size of the data)
-	p[i++] = codeAddress;
-	p[i++] = valueR0;
-	p[i++] = valueR1;
-	p[i++] = valueR2;
-	p[i++] = valueR3;
-	p[i++] = valueR4;
-	p[i++] = valueR5;
+	p.at(i++) = 0x30010; // (the tag id)
+	p.at(i++) = 28; // (size of the buffer)
+	p.at(i++) = 28; // (size of the data)
+	p.at(i++) = codeAddress;
+	p.at(i++) = valueR0;
+	p.at(i++) = valueR1;
+	p.at(i++) = valueR2;
+	p.at(i++) = valueR3;
+	p.at(i++) = valueR4;
+	p.at(i++) = valueR5;
 
-	p[i++] = 0x00000000; // end tag
-	p[0] = i*static_cast<unsigned>(sizeof(*p)); // actual size
+	p.at(i++) = 0x00000000; // end tag
+	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
 
-	if(mailboxCall(p) < 0)
+	if(mailboxCall(p.data()) < 0)
 		return false;
 	return p[5] == 0;
 }
@@ -160,23 +161,23 @@ bool Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> contro
 		return false;
 #endif
 	}
-	int i=0;
-	unsigned p[32];
+	std::size_t i=0;
+	std::array<unsigned, 32> p{};
 
-	p[i++] = 0; // size
-	p[i++] = 0x00000000; // process request
-	p[i++] = 0x30011; // (the tag id)
-	p[i++] = 16; // (size of the buffer)
-	p[i++] = 16; // (size of the data)
-	p[i++] = numQPUs;
-	p[i++] = controlAddress.second;
-	p[i++] = !flushBuffer;
-	p[i++] = static_cast<uint32_t>(timeout.count()); // ms
+	p.at(i++) = 0; // size
+	p.at(i++) = 0x00000000; // process request
+	p.at(i++) = 0x30011; // (the tag id)
+	p.at(i++) = 16; // (size of the buffer)
+	p.at(i++) = 16; // (size of the data)
+	p.at(i++) = numQPUs;
+	p.at(i++) = controlAddress.second;
+	p.at(i++) = !flushBuffer;
+	p.at(i++) = static_cast<uint32_t>(timeout.count()); // ms
 
-	p[i++] = 0x00000000; // end tag
-	p[0] = i * static_cast<uint32_t>(sizeof(*p)); // actual size
+	p.at(i++) = 0x00000000; // end tag
+	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
 
-	if(mailboxCall(p) < 0)
+	if(mailboxCall(p.data()) < 0)
 		return false;
 	return p[5] == 0;
 }
@@ -192,32 +193,32 @@ uint32_t Mailbox::getTotalGPUMemory() const
 
 bool Mailbox::readMailbox(const MailboxTag tag, const unsigned bufferLength, const std::vector<unsigned>& requestData, std::vector<unsigned>& resultData) const
 {
-	int i=0;
-	unsigned p[32];
+	std::size_t i=0;
+	std::array<unsigned, 32> p{};
 
-	p[i++] = 0; // size
-	p[i++] = 0x00000000; // process request
+	p.at(i++) = 0; // size
+	p.at(i++) = 0x00000000; // process request
 
-	p[i++] = tag; // (the tag id)
-	p[i++] = bufferLength * static_cast<unsigned>(sizeof(unsigned)); // (size of the buffer in bytes)
-	p[i++] = static_cast<unsigned>(requestData.size() * sizeof(unsigned)); // (size of the data in bytes)
+	p.at(i++) = tag; // (the tag id)
+	p.at(i++) = bufferLength * static_cast<unsigned>(sizeof(unsigned)); // (size of the buffer in bytes)
+	p.at(i++) = static_cast<unsigned>(requestData.size() * sizeof(unsigned)); // (size of the data in bytes)
 	for(unsigned u : requestData)
-		p[i++] = u;
+		p.at(i++) = u;
 	//fill with empty space, if buffer-length > request_length
 	for(unsigned j = static_cast<unsigned>(requestData.size()); j < bufferLength; ++j)
-		p[i++] = 0x00000000;	//empty space for return values
+		p.at(i++) = 0x00000000;	//empty space for return values
 
-	p[i++] = 0x00000000; // end tag
+	p.at(i++) = 0x00000000; // end tag
 	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
 
-	if(mailboxCall(p) < 0)
+	if(mailboxCall(p.data()) < 0)
 		return false;
 	resultData.clear();
 	resultData.reserve(bufferLength);
-	for(size_t i = 0; i < bufferLength; ++i)
+	for(size_t j = 0; j < bufferLength; ++j)
 	{
 		//p[5] is the first content field
-		resultData.push_back(p[5 + i]);
+		resultData.push_back(p.at(5 + j));
 	}
 
 	if(p[1] >> 31)	//0x8000000x
@@ -270,103 +271,103 @@ int Mailbox::mailboxCall(void *buffer) const
 
 bool Mailbox::enableQPU(bool enable) const
 {
-	int i=0;
-	unsigned p[32];
+	std::size_t i=0;
+	std::array<unsigned, 32> p{};
 
-	p[i++] = 0; // size
-	p[i++] = 0x00000000; // process request
+	p.at(i++) = 0; // size
+	p.at(i++) = 0x00000000; // process request
 
-	p[i++] = 0x30012; // (the tag id)
-	p[i++] = 4; // (size of the buffer)
-	p[i++] = 4; // (size of the data)
-	p[i++] = enable;
+	p.at(i++) = 0x30012; // (the tag id)
+	p.at(i++) = 4; // (size of the buffer)
+	p.at(i++) = 4; // (size of the data)
+	p.at(i++) = enable;
 
-	p[i++] = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(*p)); // actual size
+	p.at(i++) = 0x00000000; // end tag
+	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
 
-	if(mailboxCall(p) < 0)
+	if(mailboxCall(p.data()) < 0)
 		return false;
 	return p[5] == 0;
 }
 
 unsigned Mailbox::memAlloc(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags) const
 {
-	int i=0;
-	unsigned p[32];
-	p[i++] = 0; // size
-	p[i++] = 0x00000000; // process request
+	std::size_t i=0;
+	std::array<unsigned, 32> p{};
+	p.at(i++) = 0; // size
+	p.at(i++) = 0x00000000; // process request
 
-	p[i++] = 0x3000c; // (the tag id)
-	p[i++] = 12; // (size of the buffer)
-	p[i++] = 12; // (size of the data)
-	p[i++] = sizeInBytes; // (num bytes? or pages?)
-	p[i++] = alignmentInBytes; // (alignment)
-	p[i++] = flags; // (MEM_FLAG_L1_NONALLOCATING)
+	p.at(i++) = 0x3000c; // (the tag id)
+	p.at(i++) = 12; // (size of the buffer)
+	p.at(i++) = 12; // (size of the data)
+	p.at(i++) = sizeInBytes; // (num bytes? or pages?)
+	p.at(i++) = alignmentInBytes; // (alignment)
+	p.at(i++) = flags; // (MEM_FLAG_L1_NONALLOCATING)
 
-	p[i++] = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(*p)); // actual size
+	p.at(i++) = 0x00000000; // end tag
+	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
 
-	if(mailboxCall(p) < 0)
+	if(mailboxCall(p.data()) < 0)
 		return 0;
 	return p[5];
 }
 
 unsigned Mailbox::memLock(unsigned handle) const
 {
-	int i=0;
-   unsigned p[32];
-   p[i++] = 0; // size
-   p[i++] = 0x00000000; // process request
+	std::size_t i=0;
+	std::array<unsigned, 32> p{};
+	p.at(i++) = 0; // size
+	p.at(i++) = 0x00000000; // process request
 
-   p[i++] = 0x3000d; // (the tag id)
-   p[i++] = 4; // (size of the buffer)
-   p[i++] = 4; // (size of the data)
-   p[i++] = handle;
+	p.at(i++) = 0x3000d; // (the tag id)
+	p.at(i++) = 4; // (size of the buffer)
+	p.at(i++) = 4; // (size of the data)
+	p.at(i++) = handle;
 
-   p[i++] = 0x00000000; // end tag
-   p[0] = i * static_cast<unsigned>(sizeof(*p)); // actual size
+	p.at(i++) = 0x00000000; // end tag
+	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
 
-   if(mailboxCall(p) < 0)
+	if(mailboxCall(p.data()) < 0)
 	   return reinterpret_cast<uintptr_t>(nullptr);
-   return p[5];
+	return p[5];
 }
 
 bool Mailbox::memUnlock(unsigned handle) const
 {
-	int i=0;
-	unsigned p[32];
-	p[i++] = 0; // size
-	p[i++] = 0x00000000; // process request
+	std::size_t i=0;
+	std::array<unsigned, 32> p{};
+	p.at(i++) = 0; // size
+	p.at(i++) = 0x00000000; // process request
 
-	p[i++] = 0x3000e; // (the tag id)
-	p[i++] = 4; // (size of the buffer)
-	p[i++] = 4; // (size of the data)
-	p[i++] = handle;
+	p.at(i++) = 0x3000e; // (the tag id)
+	p.at(i++) = 4; // (size of the buffer)
+	p.at(i++) = 4; // (size of the data)
+	p.at(i++) = handle;
 
-	p[i++] = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(*p)); // actual size
+	p.at(i++) = 0x00000000; // end tag
+	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
 
-	if(mailboxCall(p) < 0)
+	if(mailboxCall(p.data()) < 0)
 		return false;
 	return p[5] == 0;
 }
 
 bool Mailbox::memFree(unsigned handle) const
 {
-	int i=0;
-	unsigned p[32];
-	p[i++] = 0; // size
-	p[i++] = 0x00000000; // process request
+	std::size_t i=0;
+	std::array<unsigned, 32> p{};
+	p.at(i++) = 0; // size
+	p.at(i++) = 0x00000000; // process request
 
-	p[i++] = 0x3000f; // (the tag id)
-	p[i++] = 4; // (size of the buffer)
-	p[i++] = 4; // (size of the data)
-	p[i++] = handle;
+	p.at(i++) = 0x3000f; // (the tag id)
+	p.at(i++) = 4; // (size of the buffer)
+	p.at(i++) = 4; // (size of the data)
+	p.at(i++) = handle;
 
-	p[i++] = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(*p)); // actual size
+	p.at(i++) = 0x00000000; // end tag
+	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
 
-	if(mailboxCall(p) < 0)
+	if(mailboxCall(p.data()) < 0)
 		return false;
 	return p[5] == 0;
 }
@@ -375,9 +376,9 @@ static std::unique_ptr<Mailbox> mb;
 
 Mailbox& vc4cl::mailbox()
 {
-	if(mb.get() == nullptr)
+	if(mb == nullptr)
 	{
 		mb.reset(new Mailbox());
 	}
-	return *mb.get();
+	return *mb;
 }

@@ -7,11 +7,11 @@
 #ifndef VC4CL_SVM
 #define VC4CL_SVM
 
-#include <memory>
-
 #include "Context.h"
-#include "Mailbox.h"
 #include "Event.h"
+#include "Mailbox.h"
+
+#include <memory>
 
 namespace vc4cl
 {
@@ -34,11 +34,11 @@ namespace vc4cl
 	{
 	public:
 		SharedVirtualMemory(Context* context, std::shared_ptr<DeviceBuffer> buffer);
-		~SharedVirtualMemory();
+		~SharedVirtualMemory() override;
 
 		cl_int getHostOffset(const void* hostPointer) const;
-		void* getDevicePointer(const size_t offset = 0);
-		void* getHostPointer(const size_t offset = 0);
+		void* getDevicePointer(size_t offset = 0);
+		void* getHostPointer(size_t offset = 0);
 
 		static SharedVirtualMemory* findSVM(const void* hostPtr);
 	private:

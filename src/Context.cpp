@@ -4,8 +4,6 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 #include "Context.h"
-#include "Platform.h"
-#include "Device.h"
 
 using namespace vc4cl;
 
@@ -21,18 +19,18 @@ Context::~Context()
 cl_int Context::getInfo(cl_context_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
 	size_t propertiesSize = 0;
-	cl_context_properties props[4];
+	std::array<cl_context_properties, 4> props;
 	//this makes sure, only the explicit set properties are returned
 	if((explicitProperties & ContextProperty::PLATFORM) == ContextProperty::PLATFORM)
 	{
-		props[propertiesSize] = CL_CONTEXT_PLATFORM;
-		props[propertiesSize + 1] = reinterpret_cast<cl_context_properties>(platform);
+		props.at(propertiesSize) = CL_CONTEXT_PLATFORM;
+		props.at(propertiesSize + 1) = reinterpret_cast<cl_context_properties>(platform);
 		propertiesSize += 2;
 	}
 	if((explicitProperties & ContextProperty::USER_SYNCHRONISATION) == ContextProperty::USER_SYNCHRONISATION)
 	{
-		props[propertiesSize] = CL_CONTEXT_INTEROP_USER_SYNC;
-		props[propertiesSize + 1] = userSync ? CL_TRUE : CL_FALSE;
+		props.at(propertiesSize) = CL_CONTEXT_INTEROP_USER_SYNC;
+		props.at(propertiesSize + 1) = userSync ? CL_TRUE : CL_FALSE;
 		propertiesSize += 2;
 	}
 
@@ -49,7 +47,7 @@ cl_int Context::getInfo(cl_context_info param_name, size_t param_value_size, voi
 			return returnValue<cl_device_id>(const_cast<cl_device_id>(device->toBase()), param_value_size, param_value, param_value_size_ret);
 		case CL_CONTEXT_PROPERTIES:
 			//"Return the properties argument specified in clCreateContext or clCreateContextFromType."
-			return returnValue(props, sizeof(cl_context_properties), propertiesSize, param_value_size, param_value, param_value_size_ret);
+			return returnValue(props.data(), sizeof(cl_context_properties), propertiesSize, param_value_size, param_value, param_value_size_ret);
 		default:
 			return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_context_info value %u", param_name));
 	}
@@ -133,7 +131,7 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 	cl_platform_id platform = Platform::getVC4CLPlatform().toBase();
 	bool user_sync = false;
 
-	if(properties != NULL)
+	if(properties != nullptr)
 	{
 		const cl_context_properties* ptr = properties;
 		while(*ptr != 0)
@@ -157,10 +155,10 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 		}
 	}
 
-	if(platform != NULL && platform != Platform::getVC4CLPlatform().toBase())
+	if(platform != nullptr && platform != Platform::getVC4CLPlatform().toBase())
         return returnError<cl_context>(CL_INVALID_PLATFORM, errcode_ret, __FILE__, __LINE__, "Platform is not the VC4CL platform!");
 
-	if(num_devices == 0 || devices == NULL)
+	if(num_devices == 0 || devices == nullptr)
 		return returnError<cl_context>(CL_INVALID_PROPERTY, errcode_ret, __FILE__, __LINE__, "No device(s) specified!");
 
 	size_t i = 0;
@@ -172,7 +170,7 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 	}
 	cl_device_id device = *devices;
 
-	if(pfn_notify == NULL && user_data != NULL)
+	if(pfn_notify == nullptr && user_data != nullptr)
 		return returnError<cl_context>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "User data given, but no callback set!");
 
 	Context* context = newObject<Context>(toType<Device>(device), user_sync, &Platform::getVC4CLPlatform(), explicitProperties, pfn_notify, user_data);

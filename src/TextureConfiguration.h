@@ -17,7 +17,7 @@ namespace vc4cl
 	 */
 	struct TextureType
 	{
-		constexpr TextureType(unsigned char val, unsigned char bpp, unsigned char chans, bool isRasterFormat = false) : id(val), bitsPerPixel(bpp), channels(chans), isRasterFormat(isRasterFormat) {};
+		constexpr TextureType(unsigned char val, unsigned char bpp, unsigned char chans, bool isRasterFormat = false) noexcept : id(val), bitsPerPixel(bpp), channels(chans), isRasterFormat(isRasterFormat) { }
 
 		unsigned char id;
 		unsigned char bitsPerPixel;
@@ -119,7 +119,7 @@ namespace vc4cl
 	{
 	public:
 
-		BasicTextureSetup(uint32_t texturePointer, TextureType type) : Bitfield(0)
+		BasicTextureSetup(uint32_t texturePointer, TextureType type) noexcept : Bitfield(0)
 		{
 			setBasePointer(texturePointer);
 			setType(type.id & 0xF);
@@ -160,7 +160,7 @@ namespace vc4cl
 	{
 	public:
 
-		TextureAccessSetup(TextureType type, uint16_t width, uint16_t height) : Bitfield(0)
+		TextureAccessSetup(TextureType type, uint16_t width, uint16_t height) noexcept : Bitfield(0)
 		{
 			setTypeExtended(type.id >> 4);
 			setHeight(height);
@@ -210,14 +210,14 @@ namespace vc4cl
 	{
 	public:
 
-		ExtendedTextureSetup(uint32_t cubeMapStride, bool disableAutomaticLOD = false) : Bitfield(0)
+		explicit ExtendedTextureSetup(uint32_t cubeMapStride, bool disableAutomaticLOD = false) noexcept : Bitfield(0)
 		{
 			setParameterType(ParameterType::CUBE_MAP);
 			setCubeMapStride(cubeMapStride);
 			setDisableAutomaticLOD(disableAutomaticLOD);
 		}
 
-		explicit ExtendedTextureSetup() : Bitfield(0)
+		explicit ExtendedTextureSetup() noexcept : Bitfield(0)
 		{
 
 		}
@@ -285,8 +285,6 @@ namespace vc4cl
 		ExtendedTextureSetup childImageOffsetSetup;
 		ChannelConfig channelConfig;
 	};
-}
-
-
+} // namespace vc4cl
 
 #endif /* VC4CL_TEXTURE_CONFIGURATION */

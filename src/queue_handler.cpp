@@ -5,16 +5,17 @@
  */
 
 #include "queue_handler.h"
-#include <queue>
+
+#include "Buffer.h"
+#include "Event.h"
+
+#include <chrono>
+#include <condition_variable>
 #include <deque>
 #include <mutex>
-#include <condition_variable>
-#include <thread>
-#include <chrono>
+#include <queue>
 #include <sys/prctl.h>
-
-#include "Event.h"
-#include "Buffer.h"
+#include <thread>
 
 using namespace vc4cl;
 

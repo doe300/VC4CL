@@ -4,18 +4,18 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <CL/opencl.h>
-#include <string.h>
-#include <stdio.h>
-#include <algorithm>
-#include <thread>
-#include <chrono>
-
-#include "common.h"
 #include "Event.h"
 #include "Kernel.h"
 #include "Mailbox.h"
 #include "V3D.h"
+
+#include <CL/opencl.h>
+
+#include <algorithm>
+#include <chrono>
+#include <cstdio>
+#include <cstring>
+#include <thread>
 
 using namespace vc4cl;
 
@@ -33,7 +33,7 @@ static const unsigned NUM_HIDDEN_PARAMETERS = 14;
 static unsigned AS_GPU_ADDRESS(const unsigned* ptr, DeviceBuffer* buffer)
 {
 	const char* tmp = *reinterpret_cast<const char**>(&ptr);
-	return static_cast<unsigned>(buffer->qpuPointer + ((tmp) - (char*)buffer->hostPointer));
+	return static_cast<unsigned>(buffer->qpuPointer + ((tmp) - reinterpret_cast<char*>(buffer->hostPointer)));
 }
 
 static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data_size)
@@ -189,13 +189,13 @@ cl_int executeKernel(Event* event)
 	std::cout << "[VC4CL] Copied " << kernel->info.getLength() * sizeof(int64_t) << " bytes of kernel code to device buffer" << std::endl;
 #endif
 
-	unsigned* uniform_pointers[16][MAX_ITERATIONS];
+	std::array<std::array<unsigned*, MAX_ITERATIONS>, 16> uniformPointers;
 	// Build Uniforms
 	const unsigned* qpu_uniform = p;
 	for (unsigned i = 0; i < num_qpus; ++i) {
 		for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
 		{
-			uniform_pointers[i][iteration] = p;
+			uniformPointers.at(i).at(iteration) = p;
 			p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration);
 			for(unsigned u = 0; u < kernel->info.params.size(); ++u)
 			{
@@ -231,7 +231,7 @@ cl_int executeKernel(Event* event)
 	//on first execution, flush code cache
 	bool result = executeQPU(static_cast<unsigned>(num_qpus), std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), true, KERNEL_TIMEOUT);
 #ifdef DEBUG_MODE
-	std::cout << "[VC4CL] Execution: " << (result == true ? "successful" : "failed") << std::endl;
+	std::cout << "[VC4CL] Execution: " << (result ? "successful" : "failed") << std::endl;
 #endif
 	if(result == false)
 		return CL_OUT_OF_RESOURCES;
@@ -243,7 +243,7 @@ cl_int executeKernel(Event* event)
 		{
 			for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
 			{
-				set_work_item_info(uniform_pointers[i][iteration], args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration);
+				set_work_item_info(uniformPointers.at(i).at(iteration), args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration);
 			}
 			increment_index(local_indices, args.localSizes, 1);
 		}
@@ -254,7 +254,7 @@ cl_int executeKernel(Event* event)
 		//TODO test effect of turning on/off cache flush
 		result = executeQPU(static_cast<unsigned>(num_qpus), std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), false, KERNEL_TIMEOUT);
 #ifdef DEBUG_MODE
-		std::cout << "[VC4CL] Execution: " << (result == true ? "successful" : "failed") << std::endl;
+		std::cout << "[VC4CL] Execution: " << (result ? "successful" : "failed") << std::endl;
 #endif
 		if(result == false)
 			return CL_OUT_OF_RESOURCES;

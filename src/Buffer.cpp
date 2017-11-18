@@ -66,11 +66,11 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 			return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Invalid/Unsupported cl_buffer_create_type %u!", buffer_create_type));
 	}
 
-	if(region != NULL)
+	if(region != nullptr)
 	{
 		if(region->size == 0)
 			return returnError<Buffer*>(CL_INVALID_BUFFER_SIZE, errcode_ret, __FILE__, __LINE__, "Sub buffer has no size!");
-		if(hostPtr != NULL && region->origin + region->size > deviceBuffer->size)
+		if(hostPtr != nullptr && region->origin + region->size > deviceBuffer->size)
 			return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Sub buffer maximum (%u) exceeds parent's (%u) size!", region->origin + region->size, deviceBuffer->size));
 		if(region->origin % device_config::BUFFER_ALIGNMENT != 0)
 			return returnError<Buffer*>(CL_MISALIGNED_SUB_BUFFER_OFFSET, errcode_ret, __FILE__, __LINE__, "Sub-buffer has invalid alignment of!");
@@ -95,9 +95,9 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 	subBuffer->copyHostPtr = copyHostPtr;
 
 	//set sub-region
-	if(region != NULL)
+	if(region != nullptr)
 	{
-		if(hostPtr != NULL)
+		if(hostPtr != nullptr)
 		{
 			subBuffer->hostPtr = hostPtr + region->origin;
 			subBuffer->hostSize = region->size;
@@ -116,14 +116,14 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 
 cl_int Buffer::enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t offset, size_t size, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
 {
-	if(size == 0 || offset + size > deviceBuffer->size || ptr == NULL)
+	if(size == 0 || offset + size > deviceBuffer->size || ptr == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid read size (%u)!", size));
 	if(!hostReadable)
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Can't read from non host-readable buffer!");
 
 	cl_int errcode = CL_SUCCESS;
 	Event* e = createBufferActionEvent(commandQueue, CommandType::BUFFER_READ, numEventsInWaitList, waitList, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create buffer event!");
 	}
@@ -134,7 +134,7 @@ cl_int Buffer::enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t
 
 	e->action.reset(access);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
@@ -150,14 +150,14 @@ cl_int Buffer::enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t
 
 cl_int Buffer::enqueueWrite(CommandQueue* commandQueue, bool blockingWrite, size_t offset, size_t size, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
 {
-	if(size == 0 || offset + size > deviceBuffer->size || ptr == NULL)
+	if(size == 0 || offset + size > deviceBuffer->size || ptr == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid write size (%u)!", size));
 	if(!hostWriteable)
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot write to non-writeable buffer");
 
 	cl_int errcode = CL_SUCCESS;
 	Event* e = createBufferActionEvent(commandQueue, CommandType::BUFFER_WRITE, numEventsInWaitList, waitList, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create buffer event!");
 	}
@@ -168,7 +168,7 @@ cl_int Buffer::enqueueWrite(CommandQueue* commandQueue, bool blockingWrite, size
 
 	e->action.reset(access);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
@@ -203,7 +203,7 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, c
 
 	if(size == 0 || buffer_offset + size > deviceBuffer->size)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid read size (%u)!", size));
-	if(ptr == NULL)
+	if(ptr == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Read destination pointer in NULL");
 
 	CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
@@ -213,7 +213,7 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, c
 
 	cl_int errcode = CL_SUCCESS;
 	Event* e = createBufferActionEvent(commandQueue, CommandType::BUFFER_READ_RECT, num_events_in_wait_list, event_wait_list, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create buffer event!");
 	}
@@ -229,7 +229,7 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, c
 	access->hostSlicePitch = host_slice_pitch;
 	e->action.reset(access);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
@@ -249,14 +249,14 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write,
 	const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
 	const size_t size = calculate_size(region);
 
-	if(size == 0 || buffer_offset + size > deviceBuffer->size || ptr == NULL)
+	if(size == 0 || buffer_offset + size > deviceBuffer->size || ptr == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid write size (%u)!", size));
 	if(!hostWriteable)
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot write to non-writeable buffer");
 
 	cl_int errcode = CL_SUCCESS;
 	Event* e = createBufferActionEvent(commandQueue, CommandType::BUFFER_WRITE_RECT, num_events_in_wait_list, event_wait_list, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return returnError(errcode, __FILE__, __LINE__, "Failed to create buffer event!");
 	}
@@ -272,7 +272,7 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write,
 	access->hostSlicePitch = host_slice_pitch;
 	e->action.reset(access);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
@@ -307,7 +307,7 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
 
 	cl_int errcode = CL_SUCCESS;
 	Event* e = createBufferActionEvent(commandQueue, CommandType::BUFFER_COPY, num_events_in_wait_list, event_wait_list, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return errcode;
 	}
@@ -319,7 +319,7 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
 	action->destOffset = dst_offset;
 	e->action.reset(action);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
@@ -355,7 +355,7 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
 
 	cl_int errcode = CL_SUCCESS;
 	Event* e = createBufferActionEvent(commandQueue, CommandType::BUFFER_COPY_RECT, num_events_in_wait_list, event_wait_list, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return errcode;
 	}
@@ -372,7 +372,7 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
 
 	e->action.reset(action);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
@@ -386,14 +386,14 @@ cl_int Buffer::enqueueFill(CommandQueue* commandQueue, const void* pattern, size
 {
 	if(size == 0 || offset + size > deviceBuffer->size)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid fill size (%u)", size));
-	if(pattern == NULL || pattern_size == 0 || offset % pattern_size != 0)
+	if(pattern == nullptr || pattern_size == 0 || offset % pattern_size != 0)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid pattern %p or pattern-size %u", pattern, pattern_size));
 	if(!hostWriteable)
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot fill a non host-writeable buffer!");
 
 	cl_int errcode = CL_SUCCESS;
 	Event* e = createBufferActionEvent(commandQueue, CommandType::BUFFER_FILL, num_events_in_wait_list, event_wait_list, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return errcode;
 	}
@@ -404,7 +404,7 @@ cl_int Buffer::enqueueFill(CommandQueue* commandQueue, const void* pattern, size
 	action->bufferOffset = offset;
 	e->action.reset(action);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
@@ -431,9 +431,9 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
 	//our implementation does so automatically
 
 	Event* e = createBufferActionEvent(commandQueue, CommandType::BUFFER_MAP, num_events_in_wait_list, event_wait_list, errcode_ret);
-	if(e == NULL)
+	if(e == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	uintptr_t out_ptr = reinterpret_cast<uintptr_t>(nullptr);
@@ -452,7 +452,7 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
 	CHECK_ALLOCATION_ERROR_CODE(action, errcode_ret, void*)
 	e->action.reset(action);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
@@ -463,7 +463,7 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
 	{
 		*errcode_ret = e->waitFor();
 		if(*errcode_ret != CL_SUCCESS)
-			return NULL;
+			return nullptr;
 	}
 
 	RETURN_OBJECT(reinterpret_cast<void*>(out_ptr), errcode_ret)
@@ -471,7 +471,7 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
 
 cl_int Buffer::setDestructorCallback(BufferCallback callback, void* userData)
 {
-	if(callback == NULL)
+	if(callback == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot set a NUL callback!");
 
 	callbacks.emplace_back(callback, userData);
@@ -480,7 +480,7 @@ cl_int Buffer::setDestructorCallback(BufferCallback callback, void* userData)
 
 cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
-	if(mapped_ptr == NULL || mappings.size() == 0)
+	if(mapped_ptr == nullptr || mappings.empty())
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("No such memory area to unmap %p!", mapped_ptr));
 	bool mappingFound = false;
 	for(const void* mapped : mappings)
@@ -495,7 +495,7 @@ cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uin
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Memory area %p was not mapped to this buffer!", mapped_ptr));
 	cl_int errcode = CL_SUCCESS;
 	Event* e = createBufferActionEvent(commandQueue, CommandType::BUFFER_UNMAP, num_events_in_wait_list, event_wait_list, &errcode);
-	if(e == NULL)
+	if(e == nullptr)
 	{
 		return errcode;
 	}
@@ -504,7 +504,7 @@ cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uin
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
@@ -790,10 +790,10 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(cl_context context, cl_mem_flags flags, size_t
 	if(exceedsLimits<size_t>(size, 1, mailbox().getTotalGPUMemory()))
 		return returnError<cl_mem>(CL_INVALID_BUFFER_SIZE, errcode_ret, __FILE__, __LINE__, buildString("Buffer size (%u) exceeds system maximum (%u)!", size, mailbox().getTotalGPUMemory()));
 
-	if(host_ptr == NULL && ((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
+	if(host_ptr == nullptr && ((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
 		return returnError<cl_mem>(CL_INVALID_HOST_PTR, errcode_ret, __FILE__, __LINE__, "Usage of host-pointer specified in flags but no host-buffer given!");
 
-	if(host_ptr != NULL && !((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
+	if(host_ptr != nullptr && !((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
 		return returnError<cl_mem>(CL_INVALID_HOST_PTR, errcode_ret, __FILE__, __LINE__, "Host pointer given, but not used according to flags!");
 
 	Buffer* buffer = newObject<Buffer>(toType<Context>(context), flags);
@@ -821,7 +821,7 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(cl_context context, cl_mem_flags flags, size_t
 	}
 	if(flags & CL_MEM_COPY_HOST_PTR)
 	{
-		if(host_ptr == NULL)
+		if(host_ptr == nullptr)
 		{
 			delete buffer;
 			return returnError<cl_mem>(CL_INVALID_HOST_PTR, errcode_ret, __FILE__, __LINE__, "Cannot copy from NULL host-pointer!");
@@ -1549,7 +1549,7 @@ cl_int VC4CL_FUNC(clEnqueueMigrateMemObjects)(cl_command_queue command_queue, cl
 {
 	CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
 	CommandQueue* commandQueue = toType<CommandQueue>(command_queue);
-	if(num_mem_objects == 0 || mem_objects == NULL)
+	if(num_mem_objects == 0 || mem_objects == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "No memory objects set to migrate!");
 	for(cl_uint i = 0; i < num_mem_objects; ++i)
 	{

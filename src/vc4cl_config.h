@@ -8,9 +8,10 @@
 #define VC4CL_CONFIG_H
 
 #include <CL/opencl.h>
+
+#include <array>
 #include <string>
 #include <vector>
-#include <array>
 
 namespace vc4cl
 {
@@ -45,7 +46,7 @@ namespace vc4cl
 #endif
 				VC4CL_PERFORMANCE_EXTENSION
 		};
-	}
+	} // namespace platform_config
 
     /*
      * Device configuration
@@ -109,7 +110,7 @@ namespace vc4cl
 		static constexpr cl_uint BUFFER_ALIGNMENT = sizeof(cl_int16);
 		//according to tests, values are always rounded to zero
 		static constexpr cl_uint FLOATING_POINT_CONFIG = CL_FP_ROUND_TO_ZERO;
-	}
+	} // namespace device_config
 
 	/*
 	 * Kernel and parameter configuration
@@ -139,9 +140,9 @@ namespace vc4cl
 		 */
 		//magic number to recognize VC4CL binaries, must be the same as set in VC4C
 		static constexpr cl_uint BINARY_MAGIC_NUMBER = 0xDEADBEAF;
-	}
+	} // namespace kernel_config
     
-};
+} // namespace vc4cl
 
 #endif /* VC4CL_CONFIG_H */
 

@@ -4,14 +4,15 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <sstream>
-#include <iterator>
-
 #include "Program.h"
+
 #include "Device.h"
-#include "extensions.h"
 #include "V3D.h"
-#include <stdlib.h>
+#include "extensions.h"
+
+#include <cstdlib>
+#include <iterator>
+#include <sstream>
 
 #ifdef COMPILER_HEADER
 #define CPPLOG_NAMESPACE logging
@@ -125,7 +126,7 @@ cl_int Program::compile(const std::string& options, BuildCallback callback, void
 #if HAS_COMPILER
 	buildInfo.status = CL_BUILD_IN_PROGRESS;
 	cl_int state = compile_program(this, options);
-	if(callback != NULL)
+	if(callback != nullptr)
 		(callback)(toBase(), userData);
 #else
 	buildInfo.status = CL_BUILD_NONE;
@@ -177,7 +178,7 @@ cl_int Program::link(const std::string& options, BuildCallback callback, void* u
 		std::copy(globalsPtr, globalsPtr + moduleInfo.getGlobalDataSize(), std::back_inserter(globalData));
 	}
 
-	if(callback != NULL)
+	if(callback != nullptr)
 		(callback)(toBase(), userData);
 
 	return CL_SUCCESS;
@@ -334,11 +335,11 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(cl_context context, cl_uint cou
 {
 	CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
 
-	if(count == 0 || strings == NULL)
+	if(count == 0 || strings == nullptr)
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "No source given!");
 	for(cl_uint i = 0; i < count; ++i)
 	{
-		if(strings[i] == NULL)
+		if(strings[i] == nullptr)
 			return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Source code line is NULL!");
 	}
 
@@ -348,7 +349,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(cl_context context, cl_uint cou
 	for(cl_uint i = 0; i < count; ++i)
 	{
 		size_t line_length = 0;
-		if(lengths == NULL || lengths[i] == 0)
+		if(lengths == nullptr || lengths[i] == 0)
 			line_length = strlen(strings[i]);
 		else
 			line_length = lengths[i];
@@ -359,7 +360,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(cl_context context, cl_uint cou
 	for(cl_uint i = 0; i < count; ++i)
 	{
 		size_t line_length = 0;
-		if(lengths == NULL || lengths[i] == 0)
+		if(lengths == nullptr || lengths[i] == 0)
 			line_length = strlen(strings[i]);
 		else
 			line_length = lengths[i];
@@ -461,7 +462,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBinary)(cl_context context, cl_uint num
 {
 	CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
 
-	if(num_devices == 0 || device_list == NULL)
+	if(num_devices == 0 || device_list == nullptr)
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "No devices specified!");
 
 	if(num_devices > 1)
@@ -471,9 +472,9 @@ cl_program VC4CL_FUNC(clCreateProgramWithBinary)(cl_context context, cl_uint num
 	if(device_list[0] != Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase())
 		return returnError<cl_program>(CL_INVALID_DEVICE, errcode_ret, __FILE__, __LINE__, "Device specified is not the VC4CL GPU device!");
 
-	if(lengths == NULL || binaries == NULL)
+	if(lengths == nullptr || binaries == nullptr)
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "No binary data given!");
-	if(lengths[0] == 0 || binaries[0] == NULL)
+	if(lengths[0] == 0 || binaries[0] == nullptr)
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Empty binary data given!");
 
 	//"The program binary can consist of either or both:
@@ -489,7 +490,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBinary)(cl_context context, cl_uint num
 	Program* program = newObject<Program>(toType<Context>(context), buffer, true);
 	CHECK_ALLOCATION_ERROR_CODE(program, errcode_ret, cl_program)
 
-	if(binary_status != NULL)
+	if(binary_status != nullptr)
 		binary_status[0] = CL_SUCCESS;
 
 	RETURN_OBJECT(program->toBase(), errcode_ret)
@@ -523,7 +524,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBuiltInKernels)(cl_context context, cl_
 {
 	CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
 
-	if(exceedsLimits<cl_uint>(num_devices, 1, 1) || device_list == NULL)
+	if(exceedsLimits<cl_uint>(num_devices, 1, 1) || device_list == nullptr)
 		//only 1 device supported
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Invalid number of devices given, a single is supported!");
 
@@ -682,19 +683,19 @@ cl_int VC4CL_FUNC(clCompileProgram)(cl_program program, cl_uint num_devices, con
 {
 	CHECK_PROGRAM(toType<Program>(program))
 
-	if(num_devices > 1 || (num_devices == 0 && device_list != NULL) || (num_devices > 0 && device_list == NULL))
+	if(num_devices > 1 || (num_devices == 0 && device_list != nullptr) || (num_devices > 0 && device_list == nullptr))
 		//only 1 device supported
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Only the single VC4CL GPU device is supported!");
-	if(device_list != NULL && device_list[0] != Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase())
+	if(device_list != nullptr && device_list[0] != Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase())
 		return returnError(CL_INVALID_DEVICE, __FILE__, __LINE__, "Invalid device given!");
 
-	if((num_input_headers == 0 && (header_include_names != NULL || input_headers != NULL)) || (num_input_headers > 0 && (header_include_names == NULL || input_headers == NULL)))
+	if((num_input_headers == 0 && (header_include_names != nullptr || input_headers != nullptr)) || (num_input_headers > 0 && (header_include_names == nullptr || input_headers == nullptr)))
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Invalid additional headers parameters!");
 
-	if(pfn_notify == NULL && user_data != NULL)
+	if(pfn_notify == nullptr && user_data != nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "User data was set, but callback wasn't!");
 
-	const std::string opts(options == NULL ? "" : options);
+	const std::string opts(options == nullptr ? "" : options);
 	return toType<Program>(program)->compile( opts, pfn_notify, user_data);
 }
 
@@ -755,11 +756,11 @@ cl_int VC4CL_FUNC(clCompileProgram)(cl_program program, cl_uint num_devices, con
 cl_program VC4CL_FUNC(clLinkProgram)(cl_context context, cl_uint num_devices, const cl_device_id* device_list, const char* options, cl_uint num_input_programs, const cl_program* input_programs, void(CL_CALLBACK* pfn_notify)(cl_program program, void* user_data), void* user_data, cl_int* errcode_ret)
 {
 	CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
-	if((num_devices == 0) != (device_list == NULL))
+	if((num_devices == 0) != (device_list == nullptr))
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "No devices given!");
-	if(num_devices > 1 || (device_list != NULL && device_list[0] != Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase()))
+	if(num_devices > 1 || (device_list != nullptr && device_list[0] != Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase()))
 		return returnError<cl_program>(CL_INVALID_DEVICE, errcode_ret, __FILE__, __LINE__, "Invalid device(s) given, only the VC4CL GPU device is supported!");
-	if(num_input_programs == 0 || input_programs == NULL || num_input_programs > 1)
+	if(num_input_programs == 0 || input_programs == nullptr || num_input_programs > 1)
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Invalid input program");
 	cl_program program = input_programs[0];
 	CHECK_PROGRAM_ERROR_CODE(toType<Program>(program), errcode_ret, cl_program)

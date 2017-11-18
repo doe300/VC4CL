@@ -4,15 +4,15 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <CL/opencl.h>
-#include <string.h>
-#include <stdio.h>
-
-#include "common.h"
 #include "extensions.h"
-#include "icd_loader.h"
-#include "Platform.h"
+
 #include "Device.h"
+#include "Platform.h"
+#include "icd_loader.h"
+
+#include <CL/opencl.h>
+#include <cstdio>
+#include <cstring>
 
 using namespace vc4cl;
 
@@ -67,7 +67,7 @@ void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platfo
 	std::cout << "[VC4CL] extension function address not found for: " << funcname << std::endl;
 #endif
 	
-	return NULL;
+	return nullptr;
 }
 
 void* clGetExtensionFunctionAddress(const char* name) {

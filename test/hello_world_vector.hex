@@ -1,6 +1,8 @@
-0xdeadbeaf, 0xdeadbeaf,
-// Kernel 'hello_world', offset 15, with following parameters: __global const in <16 x i8>* in (4 B, 1 items), __global out <16 x i8>* out (4 B, 1 items)
-0x003a000f, 0x0002000b, 
+// Module with 1 kernels, global data with 0 words (64-bit each), starting at offset 15 words and 0 words of stack-frame
+0xdeadbeaf, 0xdeadbeaf, 
+0x000f0001, 0x00000000, 
+// Kernel 'hello_world', offset 16, with following parameters: __global const in <16 x i8>* in (4 B, 1 items), __global out <16 x i8>* out (4 B, 1 items)
+0x003a0010, 0x0002000b, 
 0x00010001, 0x00000001, 
 0x6c6c6568, 0x6f775f6f, 
 0x00646c72, 0x00000000, 
@@ -12,48 +14,48 @@
 0x0074756f, 0x00000000, 
 0x2036313c, 0x38692078, 
 0x00002a3e, 0x00000000, 
-0,0,
-0,0,
+0x00000000, 0x00000000, 
+0x00000000, 0x00000000, 
 0x15827d80, 0x100209e7, //or -, unif, unif
 0x15827d80, 0x10020867, //or r1, unif, unif
-0x15827d80, 0x10020127, //or ra4, unif, unif
+0x15827d80, 0x100200e7, //or ra3, unif, unif
 0x15827d80, 0x100209e7, //or -, unif, unif
 0x15827d80, 0x100209e7, //or -, unif, unif
 0x15827d80, 0x100209e7, //or -, unif, unif
 0x15827d80, 0x10020827, //or r0, unif, unif
 0x15827d80, 0x100209e7, //or -, unif, unif
 0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100208a7, //or r2, unif, unif
+0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100209e7, //or -, unif, unif
+0x15827d80, 0x100209e7, //or -, unif, unif
 0x15827d80, 0x100200a7, //or ra2, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
 0x15827d80, 0x10020067, //or ra1, unif, unif
-0x15827d80, 0x10020027, //or ra0, unif, unif
-0x959c003f, 0xd00240e0, //or ra3, r0, r0; v8min r0, 0 (0), 0 (0)
-0x0e9e7200, 0x100208a7, //shr r2, r1, r0
+0x959c003f, 0xd0024020, //or ra0, r0, r0; v8min r0, 0 (0), 0 (0)
+0x0e9e7200, 0x10020827, //shr r0, r1, r0
 0x000000ff, 0xe0021867, //ldi r1, 255
-0x149e7440, 0x100208e7, //and r3, r2, r1
-0x150a7d80, 0x100208a7, //or r2, ra2, ra2
-0x0e127c00, 0x10020827, //shr r0, ra4, r0
+0x149e7040, 0x100208e7, //and r3, r0, r1
+0x959c04bf, 0xd00248a0, //or r2, r2, r2; v8min r0, 0 (0), 0 (0)
+0x0e0e7c00, 0x10020827, //shr r0, ra3, r0
 0x149e7040, 0x10020867, //and r1, r0, r1
-0x400e7033, 0x100049e0, //mul24 r0, ra3, r3
+0x40027033, 0x100049e0, //mul24 r0, ra0, r3
 0x0c9e7400, 0x10020827, //add r0, r2, r0
 0x0c9e7040, 0x100208a7, //add r2, r0, r1
 0x009e7000, 0x100009e7, //nop.never 
 0x159e7480, 0x10020827, //or r0, r2, r2
 0x119c41c0, 0xd0020827, //shl r0, r0, 4 (4)
-0x0c067c00, 0x10020827, //add r0, ra1, r0
+0x0c0a7c00, 0x10020827, //add r0, ra2, r0
 0x15ce7d80, 0x100209e7, //or -, mutex_acq, mutex_acq
 0x80011000, 0xe0020c67, //ldi vpr_setup, 2147553280
 0x90000010, 0xe0020c67, //ldi vpr_setup, 2415919120
 0x159e7000, 0x10020ca7, //or vpr_addr, r0, r0
 0x15ca7d80, 0x100209e7, //or -, vpr_wait, vpr_wait
-0x00004800, 0xe0020c67, //ldi vpr_setup, 18432
+0x00104800, 0xe0020c67, //ldi vpr_setup, 1067008
 0x15c27d80, 0x10020867, //or r1, vpm, vpm
 0x159c1fc0, 0xd0020ce7, //or mutex_rel, 1 (1), 1 (1)
 0x159e7480, 0x10020827, //or r0, r2, r2
 0x119c41c0, 0xd0020827, //shl r0, r0, 4 (4)
-0x0c027c00, 0x10020827, //add r0, ra0, r0
+0x0c067c00, 0x10020827, //add r0, ra1, r0
 0x15ce7d80, 0x100209e7, //or -, mutex_acq, mutex_acq
 0x00004800, 0xe0021c67, //ldi vpw_setup, 18432
 0x159e7240, 0x10020c27, //or vpm, r1, r1

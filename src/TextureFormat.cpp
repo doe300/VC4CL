@@ -29,10 +29,6 @@ TextureAccessor::TextureAccessor(Image& image) : image(image)
 
 }
 
-TextureAccessor::~TextureAccessor()
-{
-}
-
 std::size_t TextureAccessor::readSinglePixel(const std::array<std::size_t, 3>& pixelCoordinates, void* output, const std::size_t outputSize) const
 {
 	const void* ptr = calculatePixelOffset(image.deviceBuffer->hostPointer, pixelCoordinates);
@@ -60,7 +56,7 @@ bool TextureAccessor::writeSinglePixel(const std::array<std::size_t, 3>& pixelCo
 void TextureAccessor::readPixelData(const std::array<std::size_t, 3>& pixelCoordinates, const std::array<std::size_t, 3>& pixelRegion, void* output, std::size_t outputRowPitch, std::size_t outputSlicePitch) const
 {
 	const std::size_t pixelWidth = image.calculateElementSize();
-	std::array<std::size_t, 3> inputCoords;
+	std::array<std::size_t, 3> inputCoords{};
 	for(std::size_t z = 0; z < pixelRegion[2]; ++z)
 	{
 		inputCoords[2] = pixelCoordinates[2] + z;
@@ -80,7 +76,7 @@ void TextureAccessor::readPixelData(const std::array<std::size_t, 3>& pixelCoord
 void TextureAccessor::writePixelData(const std::array<std::size_t, 3>& pixelCoordinates, const std::array<std::size_t, 3>& pixelRegion, void* source, std::size_t sourceRowPitch, std::size_t sourceSlicePitch) const
 {
 	const std::size_t pixelWidth = image.calculateElementSize();
-	std::array<std::size_t, 3> outputCoords;
+	std::array<std::size_t, 3> outputCoords{};
 	for(std::size_t z = 0; z < pixelRegion[2]; ++z)
 	{
 		outputCoords[2] = pixelCoordinates[2] + z;
@@ -100,7 +96,7 @@ void TextureAccessor::writePixelData(const std::array<std::size_t, 3>& pixelCoor
 void TextureAccessor::fillPixelData(const std::array<std::size_t, 3>& pixelCoordinates, const std::array<std::size_t, 3>& pixelRegion, void* fillColor) const
 {
 	const std::size_t pixelWidth = image.calculateElementSize();
-	std::array<std::size_t, 3> outputCoords;
+	std::array<std::size_t, 3> outputCoords{};
 	for(std::size_t z = 0; z < pixelRegion[2]; ++z)
 	{
 		outputCoords[2] = pixelCoordinates[2] + z;
@@ -119,9 +115,9 @@ void TextureAccessor::fillPixelData(const std::array<std::size_t, 3>& pixelCoord
 bool TextureAccessor::copyPixelData(const TextureAccessor& source, TextureAccessor& destination, const std::array<std::size_t, 3>& sourceCoordinates, const std::array<std::size_t, 3>& destCoordinates, const std::array<std::size_t, 3>& pixelRegion)
 {
 	//maximum pixel size is 4 components * 64-bit
-	char buffer[64];
-	std::array<std::size_t, 3> inputCoords;
-	std::array<std::size_t, 3> outputCoords;
+	std::array<char, 64> buffer{};
+	std::array<std::size_t, 3> inputCoords{};
+	std::array<std::size_t, 3> outputCoords{};
 	for(std::size_t z = 0; z < pixelRegion[2]; ++z)
 	{
 		inputCoords[2] = sourceCoordinates[2] + z;
@@ -135,8 +131,8 @@ bool TextureAccessor::copyPixelData(const TextureAccessor& source, TextureAccess
 				inputCoords[0] = sourceCoordinates[0] + x;
 				outputCoords[0] = destCoordinates[0] + x;
 
-				const std::size_t numBytes = source.readSinglePixel(inputCoords, buffer, sizeof(buffer));
-				if(!destination.writeSinglePixel(outputCoords, buffer, numBytes))
+				const std::size_t numBytes = source.readSinglePixel(inputCoords, buffer.data(), buffer.size());
+				if(!destination.writeSinglePixel(outputCoords, buffer.data(), numBytes))
 					return false;
 			}
 		}
@@ -172,11 +168,6 @@ static size_t roundUp(size_t numToRound, size_t multiple)
 }
 
 TFormatAccessor::TFormatAccessor(Image& image) : TextureAccessor(image)
-{
-
-}
-
-TFormatAccessor::~TFormatAccessor()
 {
 
 }
@@ -218,11 +209,6 @@ LTFormatAccessor::LTFormatAccessor(Image& image) : TextureAccessor(image)
 
 }
 
-LTFormatAccessor::~LTFormatAccessor()
-{
-
-}
-
 int LTFormatAccessor::checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const
 {
 	//This format stores micro-tiles in raster order, so pitches need to be multiple of micro-tile size
@@ -259,7 +245,7 @@ void* LTFormatAccessor::calculatePixelOffset(void* basePointer, const std::array
 	const Coordinates2D mtIndex = Microtile::calculateIndices(image, pixelCoordinates.data());
 	const Coordinates2D mtOffset = Microtile::calculateOffsets(image, pixelCoordinates.data());
 
-	const uintptr_t offsetSlice = pixelCoordinates[3] * getSlicePitchInBytes(image);
+	const uintptr_t offsetSlice = pixelCoordinates[2] * getSlicePitchInBytes(image);
 
 	/*
 	 * Indices of micro-tiles:
@@ -286,10 +272,6 @@ RasterFormatAccessor::RasterFormatAccessor(Image& image) : TextureAccessor(image
 
 }
 
-RasterFormatAccessor::~RasterFormatAccessor()
-{
-
-}
 
 cl_int RasterFormatAccessor::checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const
 {
@@ -312,7 +294,7 @@ void* RasterFormatAccessor::calculatePixelOffset(void* basePointer, const std::a
 void RasterFormatAccessor::readPixelData(const std::array<std::size_t, 3>& pixelCoordinates, const std::array<std::size_t, 3>& pixelRegion, void* output, std::size_t outputRowPitch, std::size_t outputSlicePitch) const
 {
 	const std::size_t pixelWidth = image.calculateElementSize();
-	std::array<std::size_t, 3> inputCoords;
+	std::array<std::size_t, 3> inputCoords{};
 	inputCoords[0] = pixelCoordinates[0];
 	for(std::size_t z = 0; z < pixelRegion[2]; ++z)
 	{
@@ -330,7 +312,7 @@ void RasterFormatAccessor::readPixelData(const std::array<std::size_t, 3>& pixel
 void RasterFormatAccessor::writePixelData(const std::array<std::size_t, 3>& pixelCoordinates, const std::array<std::size_t, 3>& pixelRegion, void* source, std::size_t sourceRowPitch, std::size_t sourceSlicePitch) const
 {
 	const std::size_t pixelWidth = image.calculateElementSize();
-	std::array<std::size_t, 3> outputCoords;
+	std::array<std::size_t, 3> outputCoords{};
 	outputCoords[0] = pixelCoordinates[0];
 	for(std::size_t z = 0; z < pixelRegion[2]; ++z)
 	{

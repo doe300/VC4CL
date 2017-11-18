@@ -7,19 +7,20 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <CL/opencl.h>
-#include <type_traits>
-#include <assert.h>
-
 #include "vc4cl_config.h"
 #include "icd_loader.h"
+
+#include <CL/opencl.h>
+
+#include <cassert>
+#include <type_traits>
 
 struct _cl_platform_id
 {
 	vc4cl_icd_dispatch
 	void* object;
 
-	_cl_platform_id(void* object) : object(object)
+	explicit _cl_platform_id(void* object) : object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_platform_id>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -35,7 +36,7 @@ struct _cl_device_id
 	vc4cl_icd_dispatch
 	void* object;
 
-	_cl_device_id(void* object) : object(object)
+	explicit _cl_device_id(void* object) : object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_device_id>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -51,7 +52,7 @@ struct _cl_context
 	vc4cl_icd_dispatch
 	void* object;
 
-	_cl_context(void* object) : object(object)
+	explicit _cl_context(void* object) : object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_context>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -74,7 +75,7 @@ struct _cl_command_queue
 	vc4cl_icd_dispatch
 	void* object;
 
-	_cl_command_queue(void* object) : object(object)
+	explicit _cl_command_queue(void* object) : object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_command_queue>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -95,7 +96,7 @@ struct _cl_mem
 	vc4cl_icd_dispatch
 	void* object;
 
-	_cl_mem(void* object) : object(object)
+	explicit _cl_mem(void* object) : object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_mem>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -126,7 +127,7 @@ struct _cl_event
 	vc4cl_icd_dispatch
 	void* object;
 
-	_cl_event(void* object) : object(object)
+	explicit _cl_event(void* object) : object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_event>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -155,7 +156,7 @@ struct _cl_program
 	vc4cl_icd_dispatch
 	void* object;
 
-	_cl_program(void* object) : object(object)
+	explicit _cl_program(void* object) : object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_program>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -178,7 +179,7 @@ struct _cl_kernel
 	vc4cl_icd_dispatch
 	void* object;
 
-	_cl_kernel(void* object) : object(object)
+	explicit _cl_kernel(void* object) : object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_kernel>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -200,7 +201,7 @@ struct _cl_sampler
 	vc4cl_icd_dispatch
 	void* object;
 
-	_cl_sampler(void* object) : object(object)
+	explicit _cl_sampler(void* object) : object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_sampler>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -219,7 +220,7 @@ struct _cl_counter_vc4cl
 	vc4cl_icd_dispatch
 	void* object;
 
-	_cl_counter_vc4cl(void* object) : object(object)
+	explicit _cl_counter_vc4cl(void* object) : object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_counter_vc4cl>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd

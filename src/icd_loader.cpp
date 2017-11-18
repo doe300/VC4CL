@@ -4,14 +4,14 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <CL/opencl.h>
+#include "icd_loader.h"
 
 #include "common.h"
 #include "extensions.h"
-#include "icd_loader.h"
-#include "Platform.h"
 #include "Device.h"
+#include "Platform.h"
 
+#include <CL/opencl.h>
 
 /*
  * Specification for the ICD loader:
@@ -23,13 +23,13 @@
 
 cl_int VC4CL_FUNC(clIcdGetPlatformIDsKHR)(cl_uint num_entries, cl_platform_id *platforms, cl_uint *num_platforms)
 {
-	if ((num_entries == 0) != (platforms == NULL))
+	if ((num_entries == 0) != (platforms == nullptr))
 		return vc4cl::returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Output parameter is empty!");
 
-	if (num_platforms != NULL) {
+	if (num_platforms != nullptr) {
 		*num_platforms = 1;
 	}
-	if (platforms != NULL) {
+	if (platforms != nullptr) {
 		*platforms = vc4cl::Platform::getVC4CLPlatform().toBase();
 	}
 	return CL_SUCCESS;

@@ -5,9 +5,10 @@
  */
 
 #include "SVM.h"
+
 #include "Event.h"
-#include "extensions.h"
 #include "V3D.h"
+#include "extensions.h"
 
 #include <unordered_map>
 
@@ -151,7 +152,7 @@ void* VC4CL_FUNC(clSVMAllocARM)(cl_context context, cl_svm_mem_flags_arm flags, 
 		return nullptr;
 
 	std::shared_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(static_cast<unsigned>(size), alignment));
-	if(buffer.get() == nullptr)
+	if(buffer == nullptr)
 		return nullptr;
 
 	allocatedSVMs.emplace(buffer->hostPointer, SharedVirtualMemory(toType<Context>(context), buffer));
@@ -248,7 +249,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMFreeARM)(cl_command_queue command_queue, cl_uint n
 	CHECK_ALLOCATION(source)
 	e->action.reset(source);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
@@ -324,14 +325,14 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemcpyARM)(cl_command_queue command_queue, cl_bool
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing memcpy SVM failed!");
-	if(blocking_copy)
+	if(blocking_copy == CL_TRUE)
 	{
 		return e->waitFor();
 	}
@@ -406,7 +407,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemFillARM)(cl_command_queue command_queue, void* 
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
@@ -476,7 +477,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMMapARM)(cl_command_queue command_queue, cl_bool bl
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
@@ -544,7 +545,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMUnmapARM)(cl_command_queue command_queue, void* sv
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
 
-	if(event != NULL)
+	if(event != nullptr)
 		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);

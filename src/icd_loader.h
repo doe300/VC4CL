@@ -9,6 +9,7 @@
 #ifndef ICD_LOADER_H
 #define ICD_LOADER_H
 
+#include <CL/opencl.h>
 
 #ifdef __cplusplus
 extern "C"

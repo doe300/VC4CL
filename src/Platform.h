@@ -7,7 +7,6 @@
 #ifndef VC4CL_PLATFORM
 #define VC4CL_PLATFORM
 
-#include "Object.h"
 #include "Device.h"
 
 namespace vc4cl
@@ -15,7 +14,13 @@ namespace vc4cl
 	class Platform : public Object<_cl_platform_id, CL_INVALID_PLATFORM>
 	{
 	public:
-		~Platform();
+		Platform(const Platform&) = delete;
+		Platform(Platform&&) = delete;
+		~Platform() override;
+
+		Platform& operator=(const Platform&) = delete;
+		Platform& operator=(Platform&&) = delete;
+
 		CHECK_RETURN cl_int getInfo(cl_platform_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const;
 
 		static Platform& getVC4CLPlatform();
@@ -23,11 +28,9 @@ namespace vc4cl
 		Device VideoCoreIVGPU;
 	private:
 		Platform();
-		Platform(const Platform&) = delete;
-		Platform(Platform&&) = delete;
 	};
 
 
-} /* namespace vc4c */
+} /* namespace vc4cl */
 
 #endif /* VC4CL_PLATFORM */

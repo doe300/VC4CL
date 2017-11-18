@@ -5,10 +5,11 @@
  */
 
 #include "Platform.h"
-#include <pthread.h>
+
 #include <dlfcn.h>
-#include <stdexcept>
 #include <memory>
+#include <pthread.h>
+#include <stdexcept>
 
 using namespace vc4cl;
 
@@ -82,21 +83,21 @@ Platform& Platform::getVC4CLPlatform()
  */
 cl_int VC4CL_FUNC(clGetPlatformIDs)(cl_uint num_entries, cl_platform_id* platforms, cl_uint* num_platforms)
 {
-	if(platforms == NULL && num_platforms == NULL)
+	if(platforms == nullptr && num_platforms == nullptr)
 		//can't return anything
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Output parameters are empty!");
 
 	if(num_entries == 0)
 	{
-		if(platforms != NULL)
+		if(platforms != nullptr)
 		{
 			return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot return 0 platforms!");
 		}
 	}
 
-	if(platforms != NULL)
+	if(platforms != nullptr)
 		*platforms = Platform::getVC4CLPlatform().toBase();
-	if(num_platforms != NULL)
+	if(num_platforms != nullptr)
 		//only one single platform
 		*num_platforms = 1;
 	return CL_SUCCESS;

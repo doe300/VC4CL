@@ -4,12 +4,13 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <memory>
-#include <array>
-
 #include "PerformanceCounter.h"
+
 #include "Device.h"
 #include "V3D.h"
+
+#include <array>
+#include <memory>
 
 using namespace vc4cl;
 
@@ -48,7 +49,7 @@ cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(cl_device_id device
 	cl_char counter_index = -1;
 	for(cl_char i = 0; i < counters.size(); ++i)
 	{
-		if(counters[i].get() == nullptr)
+		if(counters[i] == nullptr)
 		{
 			counter_index = i;
 			break;
@@ -57,15 +58,15 @@ cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(cl_device_id device
 	if(counter_index < 0)
 		return returnError<cl_counter_vc4cl>(CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__, "No more free counters!");
 
-	counters[counter_index].reset(newObject<PerformanceCounter>(counter_type, counter_index));
+	counters.at(counter_index).reset(newObject<PerformanceCounter>(counter_type, counter_index));
 	CHECK_ALLOCATION_ERROR_CODE(counters[counter_index].get(), errcode_ret, cl_counter_vc4cl)
 	if(V3D::instance().setCounter(counter_index, static_cast<vc4cl::CounterType>(counter_type)) != 0)
 	{
-		counters[counter_index].reset();
+		counters.at(counter_index).reset();
 		return returnError<cl_counter_vc4cl>(CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__, "Failed to set counter configuration!");
 	}
 
-	RETURN_OBJECT(counters[counter_index]->toBase(), errcode_ret)
+	RETURN_OBJECT(counters.at(counter_index)->toBase(), errcode_ret)
 }
 
 cl_int VC4CL_FUNC(clGetPerformanceCounterValueVC4CL)(cl_counter_vc4cl counter, cl_uint* value)

@@ -7,15 +7,13 @@
 #ifndef VC4CL_EVENT
 #define VC4CL_EVENT
 
-#include <utility>
-#include <vector>
-#include <memory>
-#include <functional>
-
-#include "Object.h"
 #include "CommandQueue.h"
 #include "extensions.h"
 
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace vc4cl
 {
@@ -74,20 +72,16 @@ namespace vc4cl
 
 	struct EventAction
 	{
-	public:
-		EventAction();
-
-		virtual ~EventAction();
-
-		CHECK_RETURN virtual cl_int operator()(Event* event) = 0;
-
-	private:
+		explicit EventAction() = default;
 		//prohibit copying or moving, since it might screw up with the manual reference counts
 		EventAction(const EventAction&) = delete;
 		EventAction(EventAction&&) = delete;
+		virtual ~EventAction();
 
 		EventAction& operator=(const EventAction&) = delete;
 		EventAction& operator=(EventAction&&) = delete;
+
+		CHECK_RETURN virtual cl_int operator()(Event* event) = 0;
 	};
 
 	/*
@@ -97,7 +91,8 @@ namespace vc4cl
 	{
 		const std::function<cl_int(Event*)> func;
 
-		CustomAction(const std::function<cl_int(Event*)> callback) : func(callback) { }
+		explicit CustomAction(const std::function<cl_int(Event*)>& callback) : func(callback) { }
+		~CustomAction() override;
 
 		cl_int operator()(Event* event) override
 		{
@@ -111,7 +106,8 @@ namespace vc4cl
 	struct NoAction : public EventAction
 	{
 		const cl_int status;
-		NoAction(cl_int status = CL_SUCCESS) : status(status) { }
+		explicit NoAction(cl_int status = CL_SUCCESS) : status(status) { }
+		~NoAction() override;
 
 		cl_int operator()(Event* event) override
 		{
@@ -119,13 +115,13 @@ namespace vc4cl
 		}
 	};
 
-	typedef void(CL_CALLBACK* EventCallback)(cl_event event, cl_int event_command_exec_status, void* user_data);
+	using EventCallback = void(CL_CALLBACK*)(cl_event event, cl_int event_command_exec_status, void* user_data);
 
 	class Event: public Object<_cl_event, CL_INVALID_EVENT>, public HasContext
 	{
 	public:
 		Event(Context* context, cl_int status, CommandType type);
-		~Event();
+		~Event() override;
 
 		CHECK_RETURN cl_int setUserEventStatus(cl_int execution_status);
 		CHECK_RETURN cl_int getInfo(cl_event_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const;

@@ -16,7 +16,7 @@ namespace vc4cl
 	class Device : public Object<_cl_device_id, CL_INVALID_DEVICE>
 	{
 	public:
-		~Device();
+		~Device() override;
 		CHECK_RETURN cl_int getInfo(cl_device_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const;
 
 	private:

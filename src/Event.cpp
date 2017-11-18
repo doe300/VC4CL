@@ -11,12 +11,17 @@
 
 using namespace vc4cl;
 
-EventAction::EventAction()
+EventAction::~EventAction()
 {
 
 }
 
-EventAction::~EventAction()
+CustomAction::~CustomAction()
+{
+
+}
+
+NoAction::~NoAction()
 {
 
 }
@@ -64,7 +69,7 @@ cl_int Event::getInfo(cl_event_info param_name, size_t param_value_size, void* p
 
 cl_int Event::setCallback(cl_int command_exec_callback_type, EventCallback callback, void* user_data)
 {
-	if(callback == NULL)
+	if(callback == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot set a NULL callback!");
 	if(command_exec_callback_type != CL_SUBMITTED && command_exec_callback_type != CL_RUNNING && command_exec_callback_type != CL_COMPLETE)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid type for event callback: %d!", command_exec_callback_type));
@@ -247,7 +252,7 @@ cl_int VC4CL_FUNC(clSetUserEventStatus)(cl_event event, cl_int execution_status)
  */
 cl_int VC4CL_FUNC(clWaitForEvents)(cl_uint num_events, const cl_event* event_list)
 {
-	if(num_events == 0 || event_list == NULL)
+	if(num_events == 0 || event_list == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "No events to wait for!");
 
 	for(cl_uint i = 0; i < num_events; ++i)
@@ -284,7 +289,7 @@ cl_int VC4CL_FUNC(clEnqueueWaitForEvents)(cl_command_queue command_queue, cl_uin
 {
 	CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
 
-	if(num_events == 0 || event_list == NULL)
+	if(num_events == 0 || event_list == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "No events to wait for!");
 	//since our command-queue is always in-order, do nothing
 	return CL_SUCCESS;
