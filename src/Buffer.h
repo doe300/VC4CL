@@ -48,6 +48,12 @@ namespace vc4cl
 		void setCopyHostPointer(void* hostPtr, size_t hostSize);
 		cl_mem_flags getMemFlags() const;
 
+		/*
+		 * For use with CL_MEM_USE_HOST_PTR, this synchronizes the data in the device-buffer with the host-buffer
+		 */
+		CHECK_RETURN cl_int copyIntoHostBuffer(size_t offset, size_t size);
+		CHECK_RETURN cl_int copyFromHostBuffer(size_t offset, size_t size);
+
 		std::list<void*> mappings;
 
 		bool readable;

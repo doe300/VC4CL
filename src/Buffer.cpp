@@ -593,6 +593,50 @@ Event* Buffer::createBufferActionEvent(CommandQueue* commandQueue, CommandType c
 	RETURN_OBJECT(event, errcode_ret)
 }
 
+cl_int Buffer::copyIntoHostBuffer(size_t offset, size_t size)
+{
+	/*
+	 * Copies the data from the device-buffer into the host-buffer, if the buffer was created with CL_MEM_USE_HOST_PTR
+	 *
+	 * TODO when does this need to be called? After every kernel writing this buffer, after write-buffer, ...?
+	 */
+	if(!useHostPtr)
+		return CL_SUCCESS;
+	if(hostPtr == nullptr)
+		return CL_INVALID_VALUE;
+	if(offset + size > deviceBuffer->size)
+		return CL_INVALID_VALUE;
+	if(hostPtr == deviceBuffer->hostPointer)
+		//e.g. allocate host-pointer
+		return CL_SUCCESS;
+	//TODO check for sub-buffer
+	uintptr_t dest = reinterpret_cast<uintptr_t>(hostPtr) + offset;
+	uintptr_t src = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset;
+	memcpy(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), size);
+	return CL_SUCCESS;
+}
+
+cl_int Buffer::copyFromHostBuffer(size_t offset, size_t size)
+{
+	/*
+	 * Copies the data from the host-buffer into the device-buffer, if the buffer was created with CL_MEM_USE_HOST_PTR
+	 */
+	if(!useHostPtr)
+		return CL_SUCCESS;
+	if(hostPtr == nullptr)
+		return CL_INVALID_VALUE;
+	if(offset + size > deviceBuffer->size)
+		return CL_INVALID_VALUE;
+	if(hostPtr == deviceBuffer->hostPointer)
+		//e.g. allocate host-pointer
+		return CL_SUCCESS;
+	//TODO check for sub-buffer
+	uintptr_t dest = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset;
+	uintptr_t src = reinterpret_cast<uintptr_t>(hostPtr) + offset;
+	memcpy(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), size);
+	return CL_SUCCESS;
+}
+
 BufferMapping::BufferMapping(Buffer* buffer, void* hostPtr, bool unmap) : buffer(buffer), hostPtr(hostPtr), unmap(unmap)
 {
 
@@ -600,20 +644,22 @@ BufferMapping::BufferMapping(Buffer* buffer, void* hostPtr, bool unmap) : buffer
 
 cl_int BufferMapping::operator ()(Event* event)
 {
-	//this command doesn't actually do anything, since GPU-memory is always mapped to host-memory
+	cl_int status = CL_SUCCESS;
 	if(unmap)
+	{
+		//"Reads or writes from the host using the pointer returned by clEnqueueMapBuffer or clEnqueueMapImage are considered to be complete."
+		//-> when un-mapping, we need to write possible changes back to the device buffer
+		status = buffer->copyFromHostBuffer(0, std::min(buffer->hostSize, static_cast<size_t>(buffer->deviceBuffer->size)));
 		buffer->mappings.remove(hostPtr);
+	}
 	else
 	{
 		//"If the buffer object is created with CL_MEM_USE_HOST_PTR [...]"
-		if(buffer->useHostPtr && buffer->hostPtr != nullptr)
-		{
-			//"The host_ptr specified in clCreateBuffer is guaranteed to contain the latest bits [...]"
-			memcpy(buffer->hostPtr, buffer->deviceBuffer->hostPointer, std::min(buffer->hostSize, static_cast<size_t>(buffer->deviceBuffer->size)));
-		}
+		//"The host_ptr specified in clCreateBuffer is guaranteed to contain the latest bits [...]"
+		status = buffer->copyIntoHostBuffer(0, std::min(buffer->hostSize, static_cast<size_t>(buffer->deviceBuffer->size)));
 		buffer->mappings.push_back(hostPtr);
 	}
-	return CL_SUCCESS;
+	return status;
 }
 
 BufferAccess::BufferAccess(Buffer* buffer, void* hostPtr, std::size_t numBytes, bool writeBuffer) : buffer(buffer), bufferOffset(0), hostPtr(hostPtr), hostOffset(0), numBytes(numBytes), writeToBuffer(writeBuffer)
@@ -809,9 +855,8 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(cl_context context, cl_mem_flags flags, size_t
 	if(flags & CL_MEM_USE_HOST_PTR)
 	{
 		//"OpenCL implementations are allowed to cache the buffer contents pointed to by host_ptr in device memory."
-		//TODO when to synchronize buffers?? Currently only done when mapping
-		//Also at start/end of kernel using them??
 		buffer->setUseHostPointer(host_ptr, size);
+		buffer->copyFromHostBuffer(0, size);
 	}
 	else if(flags & CL_MEM_ALLOC_HOST_PTR)
 	{

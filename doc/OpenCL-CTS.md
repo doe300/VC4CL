@@ -46,8 +46,8 @@ Run with work-size of 8
 | readimage3d_int16                   | skipped ||
 | readimage3d_fp32                    | skipped ||
 | bufferreadwriterect                 | FAILED | value mismatch |
-| arrayreadwrite                      | PASSED |
-| arraycopy                           | FAILED | fails for CL_MEM_USE_HOST_PTR |
+| arrayreadwrite                      | PASSED ||
+| arraycopy                           | PASSED ||
 | imagearraycopy                      | skipped ||
 | imagearraycopy3d                    | skipped ||
 | imagecopy                           | skipped ||
@@ -427,7 +427,6 @@ Not supported
 
 ### Buffers (buffers/test_buffers)
 Run with work-size of 8
-TODO: All buffer_map_* tests fail for CL_MEM_USE_HOST_PTR
 
 | Test name                               | Status | Reason |
 |-----------------------------------------|--------|--------|
@@ -461,16 +460,16 @@ TODO: All buffer_map_* tests fail for CL_MEM_USE_HOST_PTR
 | buffer_read_uchar                       | PASSED ||
 | buffer_read_struct                      | PASSED ||
 | buffer_read_random_size                 | PASSED |
-| buffer_map_read_int                     | PASSED/FAILED ||
-| buffer_map_read_uint                    | PASSED/FAILED ||
+| buffer_map_read_int                     | PASSED ||
+| buffer_map_read_uint                    | PASSED ||
 | buffer_map_read_long                    | skipped ||
 | buffer_map_read_ulong                   | skipped ||
-| buffer_map_read_short                   | FAILED | fails for tests with CL_MEM_USE_HOST_PTR |
-| buffer_map_read_ushort                  | FAILED ||
-| buffer_map_read_char                    | FAILED ||
-| buffer_map_read_uchar                   | FAILED ||
+| buffer_map_read_short                   | PASSED ||
+| buffer_map_read_ushort                  | PASSED ||
+| buffer_map_read_char                    | PASSED ||
+| buffer_map_read_uchar                   | PASSED ||
 | buffer_map_read_float                   | PASSED ||
-| buffer_map_read_struct                  | PASSED/FAILED | fails for tests with CL_MEM_USE_HOST_PTR |
+| buffer_map_read_struct                  | FAILED | fails for all cases |
 | buffer_map_write_int                    | PASSED ||
 | buffer_map_write_uint                   | PASSED ||
 | buffer_map_write_long                   | skipped ||
@@ -481,17 +480,17 @@ TODO: All buffer_map_* tests fail for CL_MEM_USE_HOST_PTR
 | buffer_map_write_uchar                  | PASSED ||
 | buffer_map_write_float                  | PASSED ||
 | buffer_map_write_struct                 | PASSED ||
-| buffer_write_int                        | FAILED | fails for tests with src CL_MEM_USE_HOST_PTR | 
-| buffer_write_uint
-| buffer_write_short
-| buffer_write_ushort
-| buffer_write_char
-| buffer_write_uchar
-| buffer_write_float
-| buffer_write_half
+| buffer_write_int                        | PASSED ||
+| buffer_write_uint                       | PASSED ||
+| buffer_write_short                      | PASSED ||
+| buffer_write_ushort                     | PASSED ||
+| buffer_write_char                       | PASSED ||
+| buffer_write_uchar                      | PASSED ||
+| buffer_write_float                      | PASSED ||
+| buffer_write_half                       | not implemented ||
 | buffer_write_long                       | skipped ||
 | buffer_write_ulong                      | skipped || 
-| buffer_write_struct                     | FAILED | fails for tests with src CL_MEM_USE_HOST_PTR | 
+| buffer_write_struct                     | PASSED || 
 | buffer_write_async_int                  | PASSED ||
 | buffer_write_async_uint                 | PASSED ||
 | buffer_write_async_short                | PASSED ||
@@ -501,8 +500,8 @@ TODO: All buffer_map_* tests fail for CL_MEM_USE_HOST_PTR
 | buffer_write_async_float                | PASSED ||
 | buffer_write_async_long                 | skipped ||
 | buffer_write_async_ulong                | skipped ||
-| buffer_copy                             | FAILED | fails for tests with src CL_MEM_USE_HOST_PTR | 
-| buffer_partial_copy                     | FAILED | fails for tests with src CL_MEM_USE_HOST_PTR |
+| buffer_copy                             | PASSED || 
+| buffer_partial_copy                     | PASSED ||
 | mem_read_write_flags                    | PASSED ||
 | mem_write_only_flags                    | PASSED ||
 | mem_read_only_flags                     | PASSED ||
