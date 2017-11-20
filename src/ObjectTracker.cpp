@@ -29,7 +29,7 @@ ObjectTracker::~ObjectTracker()
 
 void ObjectTracker::addObject(ParentObject* obj)
 {
-	std::lock_guard<std::mutex> guard(liveObjectsTracker.trackerMutex);
+	std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
 	liveObjectsTracker.liveObjects.emplace(obj);
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Tracking live-time of object: " << obj->typeName << std::endl;
@@ -38,10 +38,10 @@ void ObjectTracker::addObject(ParentObject* obj)
 
 void ObjectTracker::removeObject(ParentObject* obj)
 {
+	std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Releasing live-time of object: " << obj->typeName << std::endl;
 #endif
-	std::lock_guard<std::mutex> guard(liveObjectsTracker.trackerMutex);
 	auto it = std::find_if(liveObjectsTracker.liveObjects.begin(), liveObjectsTracker.liveObjects.end(), [obj](const std::unique_ptr<ParentObject>& ptr) -> bool
 	{
 		return ptr.get() == obj;

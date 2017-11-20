@@ -28,7 +28,8 @@ namespace vc4cl
 		static void removeObject(ParentObject* obj);
 	private:
 		std::set<std::unique_ptr<ParentObject>> liveObjects;
-		std::mutex trackerMutex;
+		//recursive-mutex required, since a #removeObject() can cause #removeObject() to be called multiple times (e.g. for last CommandQueue also releasing the Context)
+		std::recursive_mutex trackerMutex;
 	};
 
 } /* namespace vc4cl */
