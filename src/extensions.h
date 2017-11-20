@@ -153,6 +153,41 @@ extern "C"
 #endif
 
 	/*
+	 * Altera live object tracking (cl_altera_live_object_tracking)
+	 * https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_live_object_tracking.txt
+	 *
+	 * Introduces two new runtime-functions to track all currently allocated OpenCL objects
+	 *
+	 * Implementation and usage notes:
+	 *
+	 * - Also, the runtime may cause some objects to automatically retain other objects, so reference counts may be higher than apparent from host program source code.
+	 */
+
+	/*!
+	 * Registers a future interest in enumerating all the live objects in the runtime API.
+	 * Registering such an interest may itself increase memory use and runtime, which is why is must be explicitly requested.
+	 *
+	 * Behaviour is unspecified if the clTrackLiveObjectsAltera method is called before the the first call to clGetPlatformIDs.
+	 */
+	void VC4CL_FUNC(clTrackLiveObjectsAltera)(cl_platform_id platform);
+	/*!
+	 * Requests an enumeration of all live objects in the runtime.  The enumeration is performed by calling the callback function once for each live object in some implementation-defined sequence (i.e. not concurrently).
+	 *
+	 * The arguments to clReportLiveObjectsAltera are as follows:
+	 *
+	 * \param platform is the platform for which live objects are being tracked.
+	 *
+	 * \param report_fn is a callback function. It is called for every live object in the runtime. The arguments to the callback function are:
+	 * - user_data is the user_data argument specified to clReportLiveObjectsAltera
+	 * - obj_ptr is a pointer to the live object, cast to type void*. (Note that all OpenCL API objects tracked are type-defined in the OpenCL API header files to be pointers to implementation-defined structs.)
+	 * - type_name is a C string corresponding to the OpenCL API object type.  For example, a leaked cl_mem object will have "cl_mem" as its type string.
+	 * - refcount is an instantaneous reference count for the object. Consider it to be immediately stale.
+	 *
+	 * \param user_data is a pointer to user supplied data.
+	 */
+	void VC4CL_FUNC(clReportLiveObjectsAltera)(cl_platform_id platform, void (CL_CALLBACK * report_fn)( void* /* user_data */, void* /* obj_ptr */, const char* /* type_name */, cl_uint /* refcount */), void* user_data);
+
+	/*
 	 * VC4CL performance counters (cl_vc4cl_performance_counters)
 	 */
 

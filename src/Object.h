@@ -18,17 +18,26 @@
 namespace vc4cl
 {
 	//This class exists only, so the object-tracker can track Objects on a common base class
-	class ParentObject
+	class BaseObject
 	{
 	public:
-		ParentObject(std::string typeName) : typeName(std::move(typeName)) { }
-		virtual ~ParentObject() = default;
+		BaseObject(std::string typeName) : typeName(std::move(typeName)), referenceCount(1)
+		{
+			//reference-count is implicitly retained
+		}
+		virtual ~BaseObject() = default;
+
+		virtual void* getBasePointer() = 0;
 
 		const std::string typeName;
+	protected:
+		cl_uint referenceCount;
+
+		friend class ObjectTracker;
 	};
 
 	template<typename BaseType, cl_int invalidObjectCode>
-	class Object : public ParentObject
+	class Object : public BaseObject
 	{
 	public:
 		//make sure, objects can't be copied or moved, since it invalidates the pointers
@@ -77,14 +86,15 @@ namespace vc4cl
 			return referenceCount;
 		}
 
+		void* getBasePointer() override
+		{
+			return reinterpret_cast<void*>(&base);
+		}
+
 	protected:
 		BaseType base;
-		cl_uint referenceCount;
 
-		Object() : ParentObject(BaseType::TYPE_NAME), base(this), referenceCount(1)
-		{
-			//reference-count is implicitly retained
-		}
+		Object() : BaseObject(BaseType::TYPE_NAME), base(this) { }
 	};
 
 	template<typename T>

@@ -6,6 +6,7 @@
 
 #include "ObjectTracker.h"
 #include "Object.h"
+#include "extensions.h"
 
 #include <algorithm>
 #include <iostream>
@@ -27,7 +28,7 @@ ObjectTracker::~ObjectTracker()
 #endif
 }
 
-void ObjectTracker::addObject(ParentObject* obj)
+void ObjectTracker::addObject(BaseObject* obj)
 {
 	std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
 	liveObjectsTracker.liveObjects.emplace(obj);
@@ -36,13 +37,13 @@ void ObjectTracker::addObject(ParentObject* obj)
 #endif
 }
 
-void ObjectTracker::removeObject(ParentObject* obj)
+void ObjectTracker::removeObject(BaseObject* obj)
 {
 	std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Releasing live-time of object: " << obj->typeName << std::endl;
 #endif
-	auto it = std::find_if(liveObjectsTracker.liveObjects.begin(), liveObjectsTracker.liveObjects.end(), [obj](const std::unique_ptr<ParentObject>& ptr) -> bool
+	auto it = std::find_if(liveObjectsTracker.liveObjects.begin(), liveObjectsTracker.liveObjects.end(), [obj](const std::unique_ptr<BaseObject>& ptr) -> bool
 	{
 		return ptr.get() == obj;
 	});
@@ -52,4 +53,25 @@ void ObjectTracker::removeObject(ParentObject* obj)
 	else
 		std::cout << "[VC4CL] Removing object not previously tracked: " << obj->typeName << std::endl;
 #endif
+}
+
+void ObjectTracker::iterateObjects(ReportFunction func, void* userData)
+{
+	std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
+
+	for(const auto& obj : liveObjects)
+	{
+		func(userData, obj->getBasePointer(), obj->typeName.data(), obj->referenceCount);
+	}
+}
+
+
+void VC4CL_FUNC(clTrackLiveObjectsAltera)(cl_platform_id platform)
+{
+	//no-op, object tracking is always enabled
+}
+
+void VC4CL_FUNC(clReportLiveObjectsAltera)(cl_platform_id platform, void (CL_CALLBACK * report_fn)( void* /* user_data */, void* /* obj_ptr */, const char* /* type_name */, cl_uint /* refcount */), void* user_data)
+{
+	liveObjectsTracker.iterateObjects(report_fn, user_data);
 }

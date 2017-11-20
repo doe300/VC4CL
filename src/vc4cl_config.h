@@ -37,6 +37,8 @@ namespace vc4cl
 				"cl_khr_il_program",
 				// supports querying the device temperature with clGetDeviceInfo
 				"cl_altera_device_temperature",
+				// supports additional functions to query all currently live OpenCL objects
+				"cl_altera_live_object_tracking",
 				//supports OpenCL 2.x SVM for OpenCL < 2.0
 				//TODO is this actually true? If so, only for 32-bit architectures
 				//"cl_arm_shared_virtual_memory",

@@ -51,6 +51,12 @@ void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platfo
 	if(strcmp("clSetKernelExecInfoARM", funcname) == 0)
 		return reinterpret_cast<void*>(&(VC4CL_FUNC(clSetKernelExecInfoARM)));
 
+	//cl_altera_live_object_tracking
+	if(strcmp("clTrackLiveObjectsAltera", funcname) == 0)
+		return reinterpret_cast<void*>(&(VC4CL_FUNC(clTrackLiveObjectsAltera)));
+	if(strcmp("clReportLiveObjectsAltera", funcname) == 0)
+		return reinterpret_cast<void*>(&(VC4CL_FUNC(clReportLiveObjectsAltera)));
+
 	//cl_vc4cl_performance_counters
 	if(strcmp("clCreatePerformanceCounterVC4CL", funcname) == 0)
 		return reinterpret_cast<void*>(&VC4CL_FUNC(clCreatePerformanceCounterVC4CL));

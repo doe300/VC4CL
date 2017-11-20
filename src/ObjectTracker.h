@@ -15,19 +15,23 @@
 
 namespace vc4cl
 {
-	class ParentObject;
+	class BaseObject;
 	/*
 	 * Tracks all live OpenCL objects
 	 */
 	class ObjectTracker
 	{
+		using ReportFunction = void(CL_CALLBACK*)(void* userData, void* objPtr, const char* typeName, cl_uint refCount);
+
 	public:
 		~ObjectTracker();
 
-		static void addObject(ParentObject* obj);
-		static void removeObject(ParentObject* obj);
+		static void addObject(BaseObject* obj);
+		static void removeObject(BaseObject* obj);
+
+		void iterateObjects(ReportFunction func, void* userData);
 	private:
-		std::set<std::unique_ptr<ParentObject>> liveObjects;
+		std::set<std::unique_ptr<BaseObject>> liveObjects;
 		//recursive-mutex required, since a #removeObject() can cause #removeObject() to be called multiple times (e.g. for last CommandQueue also releasing the Context)
 		std::recursive_mutex trackerMutex;
 	};
