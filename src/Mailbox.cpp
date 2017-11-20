@@ -86,7 +86,7 @@ Mailbox::Mailbox() : fd(mbox_open())
 
 Mailbox::~Mailbox()
 {
-	ignoreReturnValue(enableQPU(false), __FILE__, __LINE__, "There is no way of handling an error here");
+	ignoreReturnValue(enableQPU(false) ? CL_SUCCESS : CL_OUT_OF_RESOURCES, __FILE__, __LINE__, "There is no way of handling an error here");
 	close(fd);
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Mailbox file descriptor closed: " << fd << std::endl;

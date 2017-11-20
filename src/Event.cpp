@@ -208,7 +208,7 @@ void Event::setTime(cl_ulong& field)
 cl_event VC4CL_FUNC(clCreateUserEvent)(cl_context context, cl_int* errcode_ret)
 {
 	CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_event)
-	Event* event = newObject<Event>(toType<Context>(context), CL_SUBMITTED, CommandType::USER_COMMAND);
+	Event* event = newOpenCLObject<Event>(toType<Context>(context), CL_SUBMITTED, CommandType::USER_COMMAND);
 	CHECK_ALLOCATION_ERROR_CODE(event, errcode_ret, cl_event)
 	return event->toBase();
 }

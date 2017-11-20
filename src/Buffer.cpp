@@ -76,7 +76,7 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 			return returnError<Buffer*>(CL_MISALIGNED_SUB_BUFFER_OFFSET, errcode_ret, __FILE__, __LINE__, "Sub-buffer has invalid alignment of!");
 	}
 
-	Buffer* subBuffer = newObject<Buffer>(this, flags);
+	Buffer* subBuffer = newOpenCLObject<Buffer>(this, flags);
 	CHECK_ALLOCATION_ERROR_CODE(subBuffer, errcode_ret, Buffer*)
 
 	//set default flags from parent
@@ -133,14 +133,17 @@ cl_int Buffer::enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t
 	access->bufferOffset = offset;
 
 	e->action.reset(access);
-
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(numEventsInWaitList, waitList);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing read buffer failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		e->release();
+
 	if(blockingRead)
 	{
 		return e->waitFor();
@@ -165,16 +168,19 @@ cl_int Buffer::enqueueWrite(CommandQueue* commandQueue, bool blockingWrite, size
 	BufferAccess* access = newObject<BufferAccess>(this, const_cast<void*>(ptr), size, true);
 	CHECK_ALLOCATION(access)
 	access->bufferOffset = offset;
-
 	e->action.reset(access);
-
-	if(event != nullptr)
-		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing write buffer failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		e->release();
+
 	if(blockingWrite)
 	{
 		return e->waitFor();
@@ -229,13 +235,17 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, c
 	access->hostSlicePitch = host_slice_pitch;
 	e->action.reset(access);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing read buffer rectangular failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		e->release();
+
 	if(blocking_read)
 	{
 		return e->waitFor();
@@ -272,13 +282,17 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write,
 	access->hostSlicePitch = host_slice_pitch;
 	e->action.reset(access);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing write buffer rectangular failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		e->release();
+
 	if(blocking_write)
 	{
 		return e->waitFor();
@@ -319,13 +333,17 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
 	action->destOffset = dst_offset;
 	e->action.reset(action);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing copy buffer failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
 
@@ -369,16 +387,19 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
 	memcpy(action->destOrigin.data(), dst_origin, 3 * sizeof(size_t));
 	action->destRowPitch = dst_row_pitch;
 	action->destSlicePitch = dst_slice_pitch;
-
 	e->action.reset(action);
-
-	if(event != nullptr)
-		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing copy buffer rectangular failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
 
@@ -404,13 +425,17 @@ cl_int Buffer::enqueueFill(CommandQueue* commandQueue, const void* pattern, size
 	action->bufferOffset = offset;
 	e->action.reset(action);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing fill buffer failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
 
@@ -452,13 +477,17 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
 	CHECK_ALLOCATION_ERROR_CODE(action, errcode_ret, void*)
 	e->action.reset(action);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError<void*>(status, errcode_ret, __FILE__, __LINE__, "Enqueuing map buffer failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		e->release();
+
 	if(blocking_map == CL_TRUE)
 	{
 		*errcode_ret = e->waitFor();
@@ -504,13 +533,16 @@ cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uin
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing unmap buffer failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
 
 	return CL_SUCCESS;
 }
@@ -588,7 +620,7 @@ Event* Buffer::createBufferActionEvent(CommandQueue* commandQueue, CommandType c
 		return returnError<Event*>(CL_INVALID_CONTEXT, errcode_ret, __FILE__, __LINE__, "Contexts of command queue and buffer do not match!");
 	CHECK_EVENT_WAIT_LIST_ERROR_CODE(event_wait_list, num_events_in_wait_list, errcode_ret, Event*)
 
-	Event* event = newObject<Event>(const_cast<Context*>(context()), CL_QUEUED, command_type);
+	Event* event = newOpenCLObject<Event>(const_cast<Context*>(context()), CL_QUEUED, command_type);
 	CHECK_ALLOCATION_ERROR_CODE(event, errcode_ret, Event*)
 	RETURN_OBJECT(event, errcode_ret)
 }
@@ -842,13 +874,13 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(cl_context context, cl_mem_flags flags, size_t
 	if(host_ptr != nullptr && !((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
 		return returnError<cl_mem>(CL_INVALID_HOST_PTR, errcode_ret, __FILE__, __LINE__, "Host pointer given, but not used according to flags!");
 
-	Buffer* buffer = newObject<Buffer>(toType<Context>(context), flags);
+	Buffer* buffer = newOpenCLObject<Buffer>(toType<Context>(context), flags);
 	CHECK_ALLOCATION_ERROR_CODE(buffer, errcode_ret, cl_mem)
 
 	buffer->deviceBuffer.reset(mailbox().allocateBuffer(static_cast<unsigned>(size)));
 	if(buffer->deviceBuffer.get() == nullptr)
 	{
-		delete buffer;
+		ignoreReturnValue(buffer->release(), __FILE__, __LINE__, "Already errored");
 		return returnError<cl_mem>(CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__, buildString("Failed to allocate enough device memory (%u)!", size));
 	}
 
@@ -856,7 +888,12 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(cl_context context, cl_mem_flags flags, size_t
 	{
 		//"OpenCL implementations are allowed to cache the buffer contents pointed to by host_ptr in device memory."
 		buffer->setUseHostPointer(host_ptr, size);
-		buffer->copyFromHostBuffer(0, size);
+		*errcode_ret = buffer->copyFromHostBuffer(0, size);
+		if(*errcode_ret != CL_SUCCESS)
+		{
+			ignoreReturnValue(buffer->release(), __FILE__, __LINE__, "Already errored");
+			return returnError<cl_mem>(*errcode_ret, errcode_ret, __FILE__, __LINE__, "Failed to copy host-memory into device-memory!");
+		}
 	}
 	else if(flags & CL_MEM_ALLOC_HOST_PTR)
 	{
@@ -868,7 +905,7 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(cl_context context, cl_mem_flags flags, size_t
 	{
 		if(host_ptr == nullptr)
 		{
-			delete buffer;
+			ignoreReturnValue(buffer->release(), __FILE__, __LINE__, "Already errored");
 			return returnError<cl_mem>(CL_INVALID_HOST_PTR, errcode_ret, __FILE__, __LINE__, "Cannot copy from NULL host-pointer!");
 		}
 		//"CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR"
@@ -1605,19 +1642,24 @@ cl_int VC4CL_FUNC(clEnqueueMigrateMemObjects)(cl_command_queue command_queue, cl
 	CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
 
 	//All buffers are always on the single device (the VideoCore IV GPU), so no migration is required
-	Event* e = newObject<Event>(commandQueue->context(), CL_QUEUED, CommandType::BUFFER_MIGRATE);
+	Event* e = newOpenCLObject<Event>(commandQueue->context(), CL_QUEUED, CommandType::BUFFER_MIGRATE);
 	CHECK_ALLOCATION(e)
 	//this command doesn't actually do anything, since buffers are always located in GPU memory and accessible from host-memory
 	EventAction* action = newObject<NoAction>(CL_SUCCESS);
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
-	if(event != nullptr)
-		*event = e->toBase();
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing migrate buffers failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
 

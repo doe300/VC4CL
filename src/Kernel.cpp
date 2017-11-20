@@ -407,7 +407,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 		}
 	}
 
-	Event* kernelEvent = newObject<Event>(program->context(), CL_QUEUED, CommandType::KERNEL_NDRANGE);
+	Event* kernelEvent = newOpenCLObject<Event>(program->context(), CL_QUEUED, CommandType::KERNEL_NDRANGE);
 	CHECK_ALLOCATION(kernelEvent)
 
 	KernelExecution* source = newObject<KernelExecution>(this);
@@ -422,16 +422,16 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 	kernelEvent->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int ret_val = commandQueue->enqueueEvent(kernelEvent);
 
-	if(ret_val == CL_SUCCESS)
-	{
-		if(event != nullptr)
-			//copy event to output
-			*event = kernelEvent->toBase();
-	}
-	else
+	if(ret_val != CL_SUCCESS)
 		ignoreReturnValue(kernelEvent->release(), __FILE__, __LINE__, "At this point, this method already failed");
 
-	return ret_val;
+	if(event != nullptr)
+		*event = kernelEvent->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return kernelEvent->release();
+
+	return CL_SUCCESS;
 }
 
 KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), numDimensions(0)
@@ -485,7 +485,7 @@ cl_kernel VC4CL_FUNC(clCreateKernel)(cl_program program, const char* kernel_name
 	if(info == nullptr)
 		return returnError<cl_kernel>(CL_INVALID_KERNEL_NAME, errcode_ret, __FILE__, __LINE__, buildString("Failed to retrieve info for kernel %s!", kernel_name));
 
-	Kernel* kernel = newObject<Kernel>(toType<Program>(program), *info);
+	Kernel* kernel = newOpenCLObject<Kernel>(toType<Program>(program), *info);
 	CHECK_ALLOCATION_ERROR_CODE(kernel, errcode_ret, cl_kernel)
 	RETURN_OBJECT(kernel->toBase(), errcode_ret);
 }
@@ -534,7 +534,7 @@ cl_int VC4CL_FUNC(clCreateKernelsInProgram)(cl_program program, cl_uint num_kern
 		//if kernels is NULL, kernels are created but not referenced -> they leak!!
 		if(kernels != nullptr)
 		{
-			Kernel* k = newObject<Kernel>(toType<Program>(program), info);
+			Kernel* k = newOpenCLObject<Kernel>(toType<Program>(program), info);
 			CHECK_ALLOCATION(k)
 			kernels[i] = k->toBase();
 		}

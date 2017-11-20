@@ -163,16 +163,19 @@ cl_int Image::enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, cons
 	CHECK_ALLOCATION(access)
 	access->hostRowPitch = rowPitch;
 	access->hostSlicePitch = slicePitch;
-
 	e->action.reset(access);
-
-	if(event != nullptr)
-		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing read image failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		e->release();
+
 	if(blockingRead == CL_TRUE)
 	{
 		return e->waitFor();
@@ -209,16 +212,19 @@ cl_int Image::enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, co
 	CHECK_ALLOCATION(access)
 	access->hostRowPitch = rowPitch;
 	access->hostSlicePitch = slicePitch;
-
 	e->action.reset(access);
-
-	if(event != nullptr)
-		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing write image failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		e->release();
+
 	if(blockingWrite)
 	{
 		return e->waitFor();
@@ -268,16 +274,19 @@ cl_int Image::enqueueCopyInto(CommandQueue* commandQueue, Image* destination, co
 
 	ImageCopy* access = newObject<ImageCopy>(this, destination, srcOrigin, dstOrigin, region);
 	CHECK_ALLOCATION(access)
-
 	e->action.reset(access);
-
-	if(event != nullptr)
-		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing copy image failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
 
@@ -298,16 +307,19 @@ cl_int Image::enqueueFill(CommandQueue* commandQueue, const void* color, const s
 
 	ImageFill* access = newObject<ImageFill>(this, color, origin, region);
 	CHECK_ALLOCATION(access)
-
 	e->action.reset(access);
-
-	if(event != nullptr)
-		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing filling image failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
 
@@ -334,16 +346,19 @@ cl_int Image::enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer
 
 	ImageCopyBuffer* access = newObject<ImageCopyBuffer>(this, buffer, copyIntoImage, origin, region, bufferOffset);
 	CHECK_ALLOCATION(access)
-
 	e->action.reset(access);
-
-	if(event != nullptr)
-		*event = e->toBase();
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing copying between image and buffer failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
 
@@ -393,13 +408,17 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
 	CHECK_ALLOCATION_ERROR_CODE(action, errcode_ret, void*)
 	e->action.reset(action);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(numEventsInWaitList, waitList);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError<void*>(status, errcode_ret, __FILE__, __LINE__, "Enqueuing map image failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		e->release();
+
 	if(blockingMap == CL_TRUE)
 	{
 		*errcode_ret = e->waitFor();
@@ -784,19 +803,19 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
 	if(host_ptr != nullptr && !((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
 		return returnError<cl_mem>(CL_INVALID_HOST_PTR, errcode_ret, __FILE__, __LINE__, "Host pointer given, but not used according to flags!");
 
-	Image* image = newObject<Image>(toType<Context>(context), flags, *image_format, *image_desc);
+	Image* image = newOpenCLObject<Image>(toType<Context>(context), flags, *image_format, *image_desc);
 	CHECK_ALLOCATION_ERROR_CODE(image, errcode_ret, cl_mem)
 
 	image->accessor.reset(TextureAccessor::createTextureAccessor(*image));
 	if(image->accessor == nullptr)
 	{
-		delete image;
+		ignoreReturnValue(image->release(), __FILE__, __LINE__, "Already errored");
 		return returnError<cl_mem>(CL_IMAGE_FORMAT_NOT_SUPPORTED, errcode_ret, __FILE__, __LINE__, "Failed to create a texture-accessor for the image-format!");
 	}
 	cl_int errcode = image->accessor->checkAndApplyPitches(image_desc->image_row_pitch, image_desc->image_slice_pitch);
 	if(errcode != CL_SUCCESS)
 	{
-		delete image;
+		ignoreReturnValue(image->release(), __FILE__, __LINE__, "Already errored");
 		return returnError<cl_mem>(errcode, errcode_ret, __FILE__, __LINE__, "Invalid image row or slice pitches!");
 	}
 
@@ -804,7 +823,7 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
 	size_t size = calculate_image_size(*image);
 	if(size == 0)
 	{
-		delete image;
+		ignoreReturnValue(image->release(), __FILE__, __LINE__, "Already errored");
 		return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Image has no size!");
 	}
 
@@ -814,7 +833,7 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
 		image->deviceBuffer.reset(mailbox().allocateBuffer(static_cast<unsigned>(size)));
 	if(image->deviceBuffer.get() == nullptr)
 	{
-		delete image;
+		ignoreReturnValue(image->release(), __FILE__, __LINE__, "Already errored");
 		return returnError<cl_mem>(CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__, buildString("Failed to allocate enough device memory (%u)!", size));
 	}
 
@@ -1452,7 +1471,7 @@ cl_sampler VC4CL_FUNC(clCreateSampler)(cl_context context, cl_bool normalized_co
 	if(normalized_coords != CL_TRUE && addressing_mode == CL_ADDRESS_REPEAT)
 		return returnError<cl_sampler>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Repeat addressing mode can only be used with normalized coordinates!");
 
-	Sampler* sampler = newObject<Sampler>(toType<Context>(context), normalized_coords == CL_TRUE, addressing_mode, filter_mode);
+	Sampler* sampler = newOpenCLObject<Sampler>(toType<Context>(context), normalized_coords == CL_TRUE, addressing_mode, filter_mode);
 	CHECK_ALLOCATION_ERROR_CODE(sampler, errcode_ret, cl_sampler)
 	RETURN_OBJECT(sampler->toBase(), errcode_ret)
 }

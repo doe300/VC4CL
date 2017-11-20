@@ -150,7 +150,7 @@ cl_command_queue VC4CL_FUNC(clCreateCommandQueue)(cl_context context, cl_device_
 	//"Enable or disable profiling of commands in the command-queue"
 	bool profiling = (properties & CL_QUEUE_PROFILING_ENABLE) == CL_QUEUE_PROFILING_ENABLE;
 
-	CommandQueue* queue = newObject<CommandQueue>(toType<Context>(context), out_of_order_execution, profiling);
+	CommandQueue* queue = newOpenCLObject<CommandQueue>(toType<Context>(context), out_of_order_execution, profiling);
 	CHECK_ALLOCATION_ERROR_CODE(queue, errcode_ret, cl_command_queue)
 	RETURN_OBJECT(queue->toBase(), errcode_ret)
 }

@@ -173,7 +173,7 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 	if(pfn_notify == nullptr && user_data != nullptr)
 		return returnError<cl_context>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "User data given, but no callback set!");
 
-	Context* context = newObject<Context>(toType<Device>(device), user_sync, &Platform::getVC4CLPlatform(), explicitProperties, pfn_notify, user_data);
+	Context* context = newOpenCLObject<Context>(toType<Device>(device), user_sync, &Platform::getVC4CLPlatform(), explicitProperties, pfn_notify, user_data);
 	CHECK_ALLOCATION_ERROR_CODE(context, errcode_ret, cl_context)
 	RETURN_OBJECT(context->toBase(), errcode_ret)
 }

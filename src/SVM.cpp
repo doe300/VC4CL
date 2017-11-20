@@ -234,7 +234,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMFreeARM)(cl_command_queue command_queue, cl_uint n
 	}
 
 	CommandQueue* queue = toType<CommandQueue>(command_queue);
-	Event* e = newObject<Event>(queue->context(), CL_QUEUED, CommandType::SVM_FREE);
+	Event* e = newOpenCLObject<Event>(queue->context(), CL_QUEUED, CommandType::SVM_FREE);
 	CHECK_ALLOCATION(e)
 	const auto func = [svmPointers, pfn_free_func, user_data](Event* ev) -> cl_int
 	{
@@ -249,13 +249,17 @@ cl_int VC4CL_FUNC(clEnqueueSVMFreeARM)(cl_command_queue command_queue, cl_uint n
 	CHECK_ALLOCATION(source)
 	e->action.reset(source);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = queue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing free SVM failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
 
@@ -319,19 +323,23 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemcpyARM)(cl_command_queue command_queue, cl_bool
 			return returnError(CL_INVALID_CONTEXT, __FILE__, __LINE__, "Contexts of event in wait-list and command-queue do not match");
 	}
 
-	Event* e = newObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_MEMCPY);
+	Event* e = newOpenCLObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_MEMCPY);
 	CHECK_ALLOCATION(e)
 	SVMMemcpy* action = newObject<SVMMemcpy>(src_ptr, dst_ptr, size);
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing memcpy SVM failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		e->release();
+
 	if(blocking_copy == CL_TRUE)
 	{
 		return e->waitFor();
@@ -401,19 +409,23 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemFillARM)(cl_command_queue command_queue, void* 
 			return returnError(CL_INVALID_CONTEXT, __FILE__, __LINE__, "Contexts of event in wait-list and command-queue do not match");
 	}
 
-	Event* e = newObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_MEMFILL);
+	Event* e = newOpenCLObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_MEMFILL);
 	CHECK_ALLOCATION(e)
 	SVMFill* action = newObject<SVMFill>(svm_ptr, pattern, pattern_size, size);
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing memfill SVM failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
 
@@ -471,19 +483,23 @@ cl_int VC4CL_FUNC(clEnqueueSVMMapARM)(cl_command_queue command_queue, cl_bool bl
 			return returnError(CL_INVALID_CONTEXT, __FILE__, __LINE__, "Contexts of event in wait-list and command-queue do not match");
 	}
 
-	Event* e = newObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_MAP);
+	Event* e = newOpenCLObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_MAP);
 	CHECK_ALLOCATION(e)
 	EventAction* action = newObject<NoAction>(CL_SUCCESS);
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing map SVM failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
 
@@ -539,18 +555,22 @@ cl_int VC4CL_FUNC(clEnqueueSVMUnmapARM)(cl_command_queue command_queue, void* sv
 			return returnError(CL_INVALID_CONTEXT, __FILE__, __LINE__, "Contexts of event in wait-list and command-queue do not match");
 	}
 
-	Event* e = newObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_UNMAP);
+	Event* e = newOpenCLObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::SVM_UNMAP);
 	CHECK_ALLOCATION(e)
 	EventAction* action = newObject<NoAction>(CL_SUCCESS);
 	CHECK_ALLOCATION(action)
 	e->action.reset(action);
 
-	if(event != nullptr)
-		*event = e->toBase();
-
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing unmap SVM failed!");
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		return e->release();
+
 	return CL_SUCCESS;
 }
