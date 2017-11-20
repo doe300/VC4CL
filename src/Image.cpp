@@ -170,16 +170,19 @@ cl_int Image::enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, cons
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing read image failed!");
 
+	if(blockingRead == CL_TRUE)
+	{
+		errcode = e->waitFor();
+		if(errcode != CL_SUCCESS)
+			return errcode;
+	}
+
 	if(event != nullptr)
 		*event = e->toBase();
 	else
 		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		e->release();
+		return e->release();
 
-	if(blockingRead == CL_TRUE)
-	{
-		return e->waitFor();
-	}
 	return CL_SUCCESS;
 }
 

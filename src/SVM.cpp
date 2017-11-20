@@ -334,16 +334,19 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemcpyARM)(cl_command_queue command_queue, cl_bool
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing memcpy SVM failed!");
 
+	if(blocking_copy == CL_TRUE)
+	{
+		status = e->waitFor();
+		if(status != CL_SUCCESS)
+			return status;
+	}
+
 	if(event != nullptr)
 		*event = e->toBase();
 	else
 		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		e->release();
+		return e->release();
 
-	if(blocking_copy == CL_TRUE)
-	{
-		return e->waitFor();
-	}
 	return CL_SUCCESS;
 }
 

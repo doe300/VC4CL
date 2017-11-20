@@ -138,16 +138,19 @@ cl_int Buffer::enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing read buffer failed!");
 
+	if(blockingRead)
+	{
+		errcode = e->waitFor();
+		if(errcode != CL_SUCCESS)
+			return errcode;
+	}
+
 	if(event != nullptr)
 		*event = e->toBase();
 	else
 		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		e->release();
+		return e->release();
 
-	if(blockingRead)
-	{
-		return e->waitFor();
-	}
 	return CL_SUCCESS;
 }
 
@@ -175,16 +178,19 @@ cl_int Buffer::enqueueWrite(CommandQueue* commandQueue, bool blockingWrite, size
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing write buffer failed!");
 
+	if(blockingWrite)
+	{
+		errcode = e->waitFor();
+		if(errcode != CL_SUCCESS)
+			return errcode;
+	}
+
 	if(event != nullptr)
 		*event = e->toBase();
 	else
 		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		e->release();
+		return e->release();
 
-	if(blockingWrite)
-	{
-		return e->waitFor();
-	}
 	return CL_SUCCESS;
 }
 
@@ -240,16 +246,19 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, c
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing read buffer rectangular failed!");
 
+	if(blocking_read)
+	{
+		errcode = e->waitFor();
+		if(errcode != CL_SUCCESS)
+			return errcode;
+	}
+
 	if(event != nullptr)
 		*event = e->toBase();
 	else
 		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		e->release();
+		return e->release();
 
-	if(blocking_read)
-	{
-		return e->waitFor();
-	}
 	return CL_SUCCESS;
 }
 
@@ -287,16 +296,19 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write,
 	if(status != CL_SUCCESS)
 		return returnError(status, __FILE__, __LINE__, "Enqueuing write buffer rectangular failed!");
 
+	if(blocking_write)
+	{
+		errcode = e->waitFor();
+		if(errcode != CL_SUCCESS)
+			return errcode;
+	}
+
 	if(event != nullptr)
 		*event = e->toBase();
 	else
 		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		e->release();
+		return e->release();
 
-	if(blocking_write)
-	{
-		return e->waitFor();
-	}
 	return CL_SUCCESS;
 }
 
@@ -482,18 +494,18 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
 	if(status != CL_SUCCESS)
 		return returnError<void*>(status, errcode_ret, __FILE__, __LINE__, "Enqueuing map buffer failed!");
 
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		e->release();
-
 	if(blocking_map == CL_TRUE)
 	{
 		*errcode_ret = e->waitFor();
 		if(*errcode_ret != CL_SUCCESS)
 			return nullptr;
 	}
+
+	if(event != nullptr)
+		*event = e->toBase();
+	else
+		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
+		e->release();
 
 	RETURN_OBJECT(reinterpret_cast<void*>(out_ptr), errcode_ret)
 }
