@@ -368,7 +368,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(cl_context context, cl_uint cou
 	}
 	sourceCode.push_back('\0');
 
-	Program* program = newObject<Program>(toType<Context>(context), sourceCode, false);
+	Program* program = newOpenCLObject<Program>(toType<Context>(context), sourceCode, false);
 	CHECK_ALLOCATION_ERROR_CODE(program, errcode_ret, cl_program)
 
 	RETURN_OBJECT(program->toBase(), errcode_ret)
@@ -402,7 +402,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* 
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "IL source has no length!");
 
 	const std::vector<char> buffer(static_cast<const char*>(il), static_cast<const char*>(il) + length);
-	Program* program = newObject<Program>(toType<Context>(context), buffer, false);
+	Program* program = newOpenCLObject<Program>(toType<Context>(context), buffer, false);
 	CHECK_ALLOCATION_ERROR_CODE(program, errcode_ret, cl_program)
 
 	RETURN_OBJECT(program->toBase(), errcode_ret)
@@ -487,7 +487,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBinary)(cl_context context, cl_uint num
 		return returnError<cl_program>(CL_INVALID_BINARY, errcode_ret, __FILE__, __LINE__, "Invalid binary data given, magic number does not match!");
 
 	const std::vector<char> buffer(binaries[0], binaries[0] + lengths[0]);
-	Program* program = newObject<Program>(toType<Context>(context), buffer, true);
+	Program* program = newOpenCLObject<Program>(toType<Context>(context), buffer, true);
 	CHECK_ALLOCATION_ERROR_CODE(program, errcode_ret, cl_program)
 
 	if(binary_status != nullptr)

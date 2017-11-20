@@ -15,12 +15,22 @@
 #include <cassert>
 #include <type_traits>
 
-struct _cl_platform_id
+struct _cl_object
 {
 	vc4cl_icd_dispatch
 	void* object;
 
-	explicit _cl_platform_id(void* object) : object(object)
+	explicit _cl_object(void* object) : object(object)
+	{
+
+	}
+};
+
+struct _cl_platform_id : public _cl_object
+{
+	constexpr static const char* TYPE_NAME = "cl_platform_id";
+
+	explicit _cl_platform_id(void* object) : _cl_object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_platform_id>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -31,12 +41,11 @@ struct _cl_platform_id
 	}
 };
 
-struct _cl_device_id
+struct _cl_device_id : public _cl_object
 {
-	vc4cl_icd_dispatch
-	void* object;
+	constexpr static const char* TYPE_NAME = "cl_device_id";
 
-	explicit _cl_device_id(void* object) : object(object)
+	explicit _cl_device_id(void* object) : _cl_object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_device_id>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -47,12 +56,11 @@ struct _cl_device_id
 	}
 };
 
-struct _cl_context
+struct _cl_context : public _cl_object
 {
-	vc4cl_icd_dispatch
-	void* object;
+	constexpr static const char* TYPE_NAME = "cl_context";
 
-	explicit _cl_context(void* object) : object(object)
+	explicit _cl_context(void* object) : _cl_object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_context>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -70,12 +78,11 @@ struct _cl_context
  *  Note that this should work as long as these objects are not being shared.
  *  Sharing of objects across multiple command-queues will require the application to perform appropriate synchronization.
  */
-struct _cl_command_queue
+struct _cl_command_queue : public _cl_object
 {
-	vc4cl_icd_dispatch
-	void* object;
+	constexpr static const char* TYPE_NAME = "cl_command_queue";
 
-	explicit _cl_command_queue(void* object) : object(object)
+	explicit _cl_command_queue(void* object) : _cl_object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_command_queue>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -91,12 +98,11 @@ struct _cl_command_queue
  *  A buffer object stores a one-dimensional collection of elements.
  *  Elements of a buffer object can be a scalar data type (such as an int, float), vector data type, or a user-defined structure.
  */
-struct _cl_mem
+struct _cl_mem : public _cl_object
 {
-	vc4cl_icd_dispatch
-	void* object;
+	constexpr static const char* TYPE_NAME = "cl_mem";
 
-	explicit _cl_mem(void* object) : object(object)
+	explicit _cl_mem(void* object) : _cl_object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_mem>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -122,12 +128,11 @@ struct _cl_mem
  *
  *  NOTE: A command is considered to be complete if its execution status is CL_COMPLETE or is a negative integer value.
  */
-struct _cl_event
+struct _cl_event : public _cl_object
 {
-	vc4cl_icd_dispatch
-	void* object;
+	constexpr static const char* TYPE_NAME = "cl_event";
 
-	explicit _cl_event(void* object) : object(object)
+	explicit _cl_event(void* object) : _cl_object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_event>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -151,12 +156,11 @@ struct _cl_event
  *  - The latest successfully built program executable, library or compiled binary, the list of devices for which the program executable, library or compiled binary is built, the build options used and a build log.
  *  - The number of kernel objects currently attached.
  */
-struct _cl_program
+struct _cl_program : public _cl_object
 {
-	vc4cl_icd_dispatch
-	void* object;
+	constexpr static const char* TYPE_NAME = "cl_program";
 
-	explicit _cl_program(void* object) : object(object)
+	explicit _cl_program(void* object) : _cl_object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_program>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -174,12 +178,11 @@ struct _cl_program
  *  A kernel is a function declared in a program. A kernel is identified by the __kernel qualifier applied to any function in a program.
  *  A kernel object encapsulates the specific __kernel function declared in a program and the argument values to be used when executing this __kernel function.
  */
-struct _cl_kernel
+struct _cl_kernel : public _cl_object
 {
-	vc4cl_icd_dispatch
-	void* object;
+	constexpr static const char* TYPE_NAME = "cl_kernel";
 
-	explicit _cl_kernel(void* object) : object(object)
+	explicit _cl_kernel(void* object) : _cl_object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_kernel>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -196,12 +199,11 @@ struct _cl_kernel
  *  A sampler object describes how to sample an image when the image is read in the kernel. The built-in functions to read from an image in a kernel take a sampler as an argument.
  *  The sampler arguments to the image read function can be sampler objects created using OpenCL functions and passed as argument values to the kernel or can be samplers declared inside a kernel.
  */
-struct _cl_sampler
+struct _cl_sampler : public _cl_object
 {
-	vc4cl_icd_dispatch
-	void* object;
+	constexpr static const char* TYPE_NAME = "cl_sampler";
 
-	explicit _cl_sampler(void* object) : object(object)
+	explicit _cl_sampler(void* object) : _cl_object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_sampler>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd
@@ -215,12 +217,11 @@ struct _cl_sampler
 /*
  * VC4CL performance counters (cl_vc4cl_performance_counters)
  */
-struct _cl_counter_vc4cl
+struct _cl_counter_vc4cl : public _cl_object
 {
-	vc4cl_icd_dispatch
-	void* object;
+	constexpr static const char* TYPE_NAME = "cl_counter_vc4cl";
 
-	explicit _cl_counter_vc4cl(void* object) : object(object)
+	explicit _cl_counter_vc4cl(void* object) : _cl_object(object)
 	{
 		static_assert(std::is_standard_layout<_cl_counter_vc4cl>::value, "This is required for the ICD-loader to correctly find the dispatcher");
 #if use_cl_khr_icd

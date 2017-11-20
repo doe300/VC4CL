@@ -58,7 +58,7 @@ cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(cl_device_id device
 	if(counter_index < 0)
 		return returnError<cl_counter_vc4cl>(CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__, "No more free counters!");
 
-	counters.at(counter_index).reset(newObject<PerformanceCounter>(counter_type, counter_index));
+	counters.at(counter_index).reset(newOpenCLObject<PerformanceCounter>(counter_type, counter_index));
 	CHECK_ALLOCATION_ERROR_CODE(counters[counter_index].get(), errcode_ret, cl_counter_vc4cl)
 	if(V3D::instance().setCounter(counter_index, static_cast<vc4cl::CounterType>(counter_type)) != 0)
 	{
