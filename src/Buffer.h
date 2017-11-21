@@ -63,12 +63,15 @@ namespace vc4cl
 
 		std::shared_ptr<DeviceBuffer> deviceBuffer;
 
+		void setHostSize();
+
 	protected:
 		bool useHostPtr;
 		bool allocHostPtr;
 		bool copyHostPtr;
 
 		void* hostPtr = nullptr;
+		//the actual size of the buffer, can be less than the device-buffer size (e.g. for sub-buffers)
 		size_t hostSize = 0;
 
 		std::vector<std::pair<BufferCallback, void*>> callbacks;

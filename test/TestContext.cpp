@@ -74,7 +74,8 @@ void TestContext::testGetContextInfo()
     
     state = VC4CL_FUNC(clGetContextInfo)(context, CL_CONTEXT_PROPERTIES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(info_size % (2 * sizeof(cl_context_properties)) == 0);
+    //2 entries per property + 1 terminating 0-entry (4 bytes each)
+    TEST_ASSERT_EQUALS(4, info_size % (2 * sizeof(cl_context_properties)));
     
     state = VC4CL_FUNC(clGetContextInfo)(context, 0xDEADBEAF, 1024, buffer, &info_size);
     TEST_ASSERT(state != CL_SUCCESS);

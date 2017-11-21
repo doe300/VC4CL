@@ -66,9 +66,9 @@ Since access to the memory (shared with the CPU), is always synchronized among a
 
 ### Sampler Objects
 * **clCreateSampler** - always returns *CL_INVALID_OPERATION*, since images and samplers are not supported
-* **clRetainSampler** - supported, but no-op
-* **clReleaseSampler** - supported, but no-op
-* **clGetSamplerInfo** - supported, always returns *CL_INVALID_SAMPLER*, since images and samplers are not supported
+* **clRetainSampler** - supported
+* **clReleaseSampler** - supported
+* **clGetSamplerInfo** - supported
 
 ### Program Objects
 * **clCreateProgramWithSource** - supported, supports OpenCL source as well as LLVM IR and SPIR-V as source code
@@ -132,3 +132,9 @@ See [Intermediate Language Programs](https://www.khronos.org/registry/OpenCL/spe
 
 ### Querying device temperature (cl_altera_device_temperature)
 See [extension specification](https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_device_temperature.txt) for details.
+
+### Tracking live objects (cl_altera_live_object_tracking)
+See [extension specification](https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_live_object_tracking.txt) for details.
+
+* **clTrackLiveObjectsAltera** - supported, but no-op, since objects are always tracked
+* **clReportLiveObjectsAltera** - supported

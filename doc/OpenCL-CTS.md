@@ -26,7 +26,7 @@ Run with work-size of 8
 | local_arg_def                       | PASSED ||
 | local_kernel_def                    | PASSED ||
 | local_kernel_scope                  | FAILED | local work-size exceeds maximum |
-| constant                            | FAILED ||
+| constant                            | PASSED ||
 | constant_source                     | FAILED | value mismatch |
 | readimage                           | skipped ||
 | readimage_int16                     | skipped ||
@@ -45,7 +45,7 @@ Run with work-size of 8
 | readimage3d                         | skipped ||
 | readimage3d_int16                   | skipped ||
 | readimage3d_fp32                    | skipped ||
-| bufferreadwriterect                 | FAILED | value mismatch |
+| bufferreadwriterect                 | FAILED | value mismatch, hangs in CPU on clean-up |
 | arrayreadwrite                      | PASSED ||
 | arraycopy                           | PASSED ||
 | imagearraycopy                      | skipped ||
@@ -117,7 +117,7 @@ Run with work-size of 8
 | get_device_info                     | PASSED ||
 | enqueue_task                        | PASSED ||
 | binary_get                          | PASSED ||
-| binary_create                       | FAILED | binaries do not match (kernel-info!) |
+| binary_create                       | FAILED | "Program binary is different when loaded from binary!" |
 | kernel_required_group_size          | PASSED ||
 | release_kernel_order                | PASSED ||
 | release_during_execute              | PASSED ||
@@ -126,10 +126,10 @@ Run with work-size of 8
 | load_two_kernels_in_one             | PASSED ||
 | load_two_kernels_manually           | PASSED ||
 | get_program_info_kernel_names       | PASSED ||
-| get_kernel_arg_info                 | FAILED | "Unable to get program info num kernels!", "Unable to get argument address qualifier!" |
+| get_kernel_arg_info                 | FAILED | "Unable to get program info num kernels!" (CL_INVALID_PROGRAM_EXECUTABLE), "Unable to get argument address qualifier!" |
 | create_kernels_in_program           | PASSED ||
 | get_kernel_info                     | PASSED ||
-| execute_kernel_local_sizes          | FAILED | value mismatch |
+| execute_kernel_local_sizes          | PASSED ||
 | set_kernel_arg_by_index             | PASSED |
 | set_kernel_arg_constant             | PASSED ||
 | set_kernel_arg_struct_array         | PASSED |
@@ -149,7 +149,7 @@ Run with work-size of 8
 | min_max_image_buffer_size           | skipped ||
 | min_max_parameter_size              | PASSED ||
 | min_max_samplers                    | skipped ||
-| min_max_constant_buffer_size        | FAILED | CL_OUT_OF_RESOURCES |
+| min_max_constant_buffer_size        | FAILED | CL_OUT_OF_RESOURCES (is there a maximum size the mailbox can allocate?) |
 | min_max_constant_args               | FAILED | compilation error (register-allocation, since kernel has 64 args) |
 | min_max_compute_units               | PASSED ||
 | min_max_address_bits                | PASSED ||
@@ -162,11 +162,11 @@ Run with work-size of 8
 | min_max_device_version              | PASSED ||
 | min_max_language_version            | PASSED ||
 | kernel_arg_changes                  | PASSED ||
-| kernel_arg_multi_setup_random       | FAILED | value mismatch |
+| kernel_arg_multi_setup_random       | PASSED ||
 | native_kernel                       | PASSED ||
 | create_context_from_type            | PASSED |
 | platform_extensions                 | PASSED ||
-| get_platform_ids                    | FAILED | CL_CONTEXT_PROPERTIES invalid value |
+| get_platform_ids                    | PASSED ||
 | bool_type                           | PASSED ||
 | repeated_setup_cleanup              | FAILED | result value mismatch |
 | retain_queue_single                 | PASSED ||
@@ -174,9 +174,9 @@ Run with work-size of 8
 | retain_mem_object_single            | PASSED ||
 | retain_mem_object_multiple          | PASSED ||
 | min_data_type_align_size_alignment  | PASSED ||
-| mem_object_destructor_callback      | FAILED | wrong order |
+| mem_object_destructor_callback      | FAILED | wrong order, somehow there is an offset of 1 to the correct order (1 and 3 instead of 0 and 2) |
 | null_buffer_arg                     | FAILED | compilation error (long in kernel code) |
-| get_buffer_info                     | FAILED | invalid mem object size |
+| get_buffer_info                     | PASSED ||
 | get_image2d_info                    | skipped ||
 | get_image3d_info                    | skipped ||
 | get_image1d_info                    | skipped ||

@@ -398,7 +398,7 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
 	if(useHostPtr && hostPtr != nullptr)
 	{
 		//"The host_ptr specified in clCreateImage is guaranteed to contain the latest bits [...]"
-		memcpy(hostPtr, deviceBuffer->hostPointer, std::min(hostSize, static_cast<size_t>(deviceBuffer->size)));
+		memcpy(hostPtr, deviceBuffer->hostPointer, hostSize);
 		//"The pointer value returned by clEnqueueMapImage will be derived from the host_ptr specified when the image object is created."
 		out_ptr = reinterpret_cast<uintptr_t>(hostPtr) + offset;
 	}
@@ -856,6 +856,8 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
 		//TODO not for image-buffers?
 		image->accessor->writePixelData(origin, region, host_ptr, image->imageRowPitch, image->imageSlicePitch);
 	}
+
+	image->setHostSize();
 
 	RETURN_OBJECT(image->toBase(), errcode_ret)
 }

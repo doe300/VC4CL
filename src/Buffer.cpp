@@ -70,8 +70,8 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 	{
 		if(region->size == 0)
 			return returnError<Buffer*>(CL_INVALID_BUFFER_SIZE, errcode_ret, __FILE__, __LINE__, "Sub buffer has no size!");
-		if(hostPtr != nullptr && region->origin + region->size > deviceBuffer->size)
-			return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Sub buffer maximum (%u) exceeds parent's (%u) size!", region->origin + region->size, deviceBuffer->size));
+		if(hostPtr != nullptr && region->origin + region->size > hostSize)
+			return returnError<Buffer*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Sub buffer maximum (%u) exceeds parent's (%u) size!", region->origin + region->size, hostSize));
 		if(region->origin % device_config::BUFFER_ALIGNMENT != 0)
 			return returnError<Buffer*>(CL_MISALIGNED_SUB_BUFFER_OFFSET, errcode_ret, __FILE__, __LINE__, "Sub-buffer has invalid alignment of!");
 	}
@@ -100,23 +100,23 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 		if(hostPtr != nullptr)
 		{
 			subBuffer->hostPtr = hostPtr + region->origin;
-			subBuffer->hostSize = region->size;
 		}
+		subBuffer->hostSize = region->size;
 		subBuffer->offset = region->origin;
 		if(deviceBuffer->memHandle != 0)
 		{
 			subBuffer->deviceBuffer = deviceBuffer;
-			//FIXME previous code had "subBuffer->deviceBuffer.size = region->size" What are the effects??
-			//removing this line allows read/write over the limits of the sub-buffer (but not the "main" buffer)
 		}
 	}
+	//TODO region allowed to be NULL??
+	subBuffer->setHostSize();
 
 	return subBuffer;
 }
 
 cl_int Buffer::enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t offset, size_t size, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
 {
-	if(size == 0 || offset + size > deviceBuffer->size || ptr == nullptr)
+	if(size == 0 || offset + size > hostSize || ptr == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid read size (%u)!", size));
 	if(!hostReadable)
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Can't read from non host-readable buffer!");
@@ -156,7 +156,7 @@ cl_int Buffer::enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t
 
 cl_int Buffer::enqueueWrite(CommandQueue* commandQueue, bool blockingWrite, size_t offset, size_t size, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
 {
-	if(size == 0 || offset + size > deviceBuffer->size || ptr == nullptr)
+	if(size == 0 || offset + size > hostSize || ptr == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid write size (%u)!", size));
 	if(!hostWriteable)
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot write to non-writeable buffer");
@@ -213,7 +213,7 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, c
 	const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
 	const size_t size = calculate_size(region);
 
-	if(size == 0 || buffer_offset + size > deviceBuffer->size)
+	if(size == 0 || buffer_offset + size > hostSize)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid read size (%u)!", size));
 	if(ptr == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Read destination pointer in NULL");
@@ -268,7 +268,7 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write,
 	const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
 	const size_t size = calculate_size(region);
 
-	if(size == 0 || buffer_offset + size > deviceBuffer->size || ptr == nullptr)
+	if(size == 0 || buffer_offset + size > hostSize || ptr == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid write size (%u)!", size));
 	if(!hostWriteable)
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot write to non-writeable buffer");
@@ -314,7 +314,7 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write,
 
 cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, size_t src_offset, size_t dst_offset, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
-	if(size == 0 || src_offset + size > deviceBuffer->size || dst_offset + size > destination->deviceBuffer->size)
+	if(size == 0 || src_offset + size > hostSize || dst_offset + size > destination->hostSize)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid copy size (%u)!", size));
 	if(this == destination)
 		return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to itself!");
@@ -366,7 +366,7 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
 	const size_t size = calculate_size(region);
 	const size_t dst_offset = calculate_offset(dst_origin, dst_row_pitch, dst_slice_pitch);
 
-	if(size == 0 || src_offset + size > deviceBuffer->size || dst_offset + size > destination->deviceBuffer->size)
+	if(size == 0 || src_offset + size > hostSize || dst_offset + size > destination->hostSize)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid copy size (%u)!", size));
 	if(destination == this)
 		return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to itself!");
@@ -417,7 +417,7 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
 
 cl_int Buffer::enqueueFill(CommandQueue* commandQueue, const void* pattern, size_t pattern_size, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
-	if(size == 0 || offset + size > deviceBuffer->size)
+	if(size == 0 || offset + size > hostSize)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid fill size (%u)", size));
 	if(pattern == nullptr || pattern_size == 0 || offset % pattern_size != 0)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid pattern %p or pattern-size %u", pattern, pattern_size));
@@ -456,8 +456,8 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
 	if(commandQueue->context() != context())
 		return returnError<void*>(CL_INVALID_CONTEXT, errcode_ret, __FILE__, __LINE__, "Contexts of command queue and buffer do not match!");
 
-	if(size == 0 || offset + size > deviceBuffer->size)
-		return returnError<void*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Maximum position (%u) exceeds buffer-size (%u)!", offset + size, deviceBuffer->size));
+	if(size == 0 || offset + size > hostSize)
+		return returnError<void*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Maximum position (%u) exceeds buffer-size (%u)!", offset + size, hostSize));
 
 	if(!hostReadable && (map_flags & CL_MAP_READ))
 		return returnError<void*>(CL_INVALID_OPERATION, errcode_ret, __FILE__, __LINE__, "Cannot read from not host-readable buffer!");
@@ -513,7 +513,7 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
 cl_int Buffer::setDestructorCallback(BufferCallback callback, void* userData)
 {
 	if(callback == nullptr)
-		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot set a NUL callback!");
+		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot set a NULL callback!");
 
 	callbacks.emplace_back(callback, userData);
 	return CL_SUCCESS;
@@ -569,7 +569,7 @@ cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* pa
 			return returnValue<cl_mem_flags>(getMemFlags(), param_value_size, param_value, param_value_size_ret);
 		case CL_MEM_SIZE:
 			//"Return actual size of the data store associated with memobj in bytes. "
-			return returnValue<size_t>(deviceBuffer->size, param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(hostSize, param_value_size, param_value, param_value_size_ret);
 		case CL_MEM_HOST_PTR:
 			if(useHostPtr)
 				return returnValue<void*>(hostPtr, param_value_size, param_value, param_value_size_ret);
@@ -648,14 +648,13 @@ cl_int Buffer::copyIntoHostBuffer(size_t offset, size_t size)
 		return CL_SUCCESS;
 	if(hostPtr == nullptr)
 		return CL_INVALID_VALUE;
-	if(offset + size > deviceBuffer->size)
+	if(offset + size > hostSize)
 		return CL_INVALID_VALUE;
 	if(hostPtr == deviceBuffer->hostPointer)
 		//e.g. allocate host-pointer
 		return CL_SUCCESS;
-	//TODO check for sub-buffer
 	uintptr_t dest = reinterpret_cast<uintptr_t>(hostPtr) + offset;
-	uintptr_t src = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset;
+	uintptr_t src = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset + this->offset;
 	memcpy(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), size);
 	return CL_SUCCESS;
 }
@@ -669,16 +668,21 @@ cl_int Buffer::copyFromHostBuffer(size_t offset, size_t size)
 		return CL_SUCCESS;
 	if(hostPtr == nullptr)
 		return CL_INVALID_VALUE;
-	if(offset + size > deviceBuffer->size)
+	if(offset + size > hostSize)
 		return CL_INVALID_VALUE;
 	if(hostPtr == deviceBuffer->hostPointer)
 		//e.g. allocate host-pointer
 		return CL_SUCCESS;
-	//TODO check for sub-buffer
-	uintptr_t dest = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset;
+	uintptr_t dest = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset + this->offset;
 	uintptr_t src = reinterpret_cast<uintptr_t>(hostPtr) + offset;
 	memcpy(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), size);
 	return CL_SUCCESS;
+}
+
+void Buffer::setHostSize()
+{
+	if(hostSize == 0)
+		hostSize = deviceBuffer->size;
 }
 
 BufferMapping::BufferMapping(Buffer* buffer, void* hostPtr, bool unmap) : buffer(buffer), hostPtr(hostPtr), unmap(unmap)
@@ -693,14 +697,14 @@ cl_int BufferMapping::operator ()(Event* event)
 	{
 		//"Reads or writes from the host using the pointer returned by clEnqueueMapBuffer or clEnqueueMapImage are considered to be complete."
 		//-> when un-mapping, we need to write possible changes back to the device buffer
-		status = buffer->copyFromHostBuffer(0, std::min(buffer->hostSize, static_cast<size_t>(buffer->deviceBuffer->size)));
+		status = buffer->copyFromHostBuffer(0, buffer->hostSize);
 		buffer->mappings.remove(hostPtr);
 	}
 	else
 	{
 		//"If the buffer object is created with CL_MEM_USE_HOST_PTR [...]"
 		//"The host_ptr specified in clCreateBuffer is guaranteed to contain the latest bits [...]"
-		status = buffer->copyIntoHostBuffer(0, std::min(buffer->hostSize, static_cast<size_t>(buffer->deviceBuffer->size)));
+		status = buffer->copyIntoHostBuffer(0, buffer->hostSize);
 		buffer->mappings.push_back(hostPtr);
 	}
 	return status;
@@ -923,6 +927,7 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(cl_context context, cl_mem_flags flags, size_t
 		//"CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR"
 		buffer->setCopyHostPointer(host_ptr, size);
 	}
+	buffer->setHostSize();
 
 	RETURN_OBJECT(buffer->toBase(), errcode_ret)
 }

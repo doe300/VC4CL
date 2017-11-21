@@ -19,12 +19,12 @@ Context::~Context()
 cl_int Context::getInfo(cl_context_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
 	size_t propertiesSize = 0;
-	std::array<cl_context_properties, 4> props;
+	std::array<cl_context_properties, 5> props;
 	//this makes sure, only the explicit set properties are returned
 	if((explicitProperties & ContextProperty::PLATFORM) == ContextProperty::PLATFORM)
 	{
 		props.at(propertiesSize) = CL_CONTEXT_PLATFORM;
-		props.at(propertiesSize + 1) = reinterpret_cast<cl_context_properties>(platform);
+		props.at(propertiesSize + 1) = reinterpret_cast<cl_context_properties>(platform->toBase());
 		propertiesSize += 2;
 	}
 	if((explicitProperties & ContextProperty::USER_SYNCHRONISATION) == ContextProperty::USER_SYNCHRONISATION)
@@ -32,6 +32,12 @@ cl_int Context::getInfo(cl_context_info param_name, size_t param_value_size, voi
 		props.at(propertiesSize) = CL_CONTEXT_INTEROP_USER_SYNC;
 		props.at(propertiesSize + 1) = userSync ? CL_TRUE : CL_FALSE;
 		propertiesSize += 2;
+	}
+	if(explicitProperties != ContextProperty::NONE)
+	{
+		//list needs to be terminated with 0
+		props.at(propertiesSize) = static_cast<cl_context_properties>(0);
+		propertiesSize += 1;
 	}
 
 	switch(param_name)
