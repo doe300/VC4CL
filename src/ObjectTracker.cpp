@@ -22,10 +22,18 @@ ObjectTracker::~ObjectTracker()
 #ifdef DEBUG_MODE
 	for(const auto& obj : liveObjects)
 	{
-		std::cout << "[VC4CL] Leaked object: " << obj->typeName << "\n";
+		std::cout << "[VC4CL] Leaked object with " << obj->referenceCount << " references: " << obj->typeName << "\n";
 	}
 	std::cout << std::endl;
 #endif
+
+	//the remaining objects reference one another
+	//since deleting one object may remove another, we cannot use the cleanup-function of the container's destructor
+	//also, we cannot simply delete all objects in order (some might not exist anymore)
+	while(!liveObjects.empty())
+	{
+		liveObjects.erase(liveObjects.begin());
+	}
 }
 
 void ObjectTracker::addObject(BaseObject* obj)

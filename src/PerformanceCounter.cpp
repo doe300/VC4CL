@@ -9,18 +9,26 @@
 #include "Device.h"
 #include "V3D.h"
 
-#include <array>
+#include <bitset>
 #include <memory>
 
 using namespace vc4cl;
 
+static std::bitset<16> usedCounters{0};
+
 PerformanceCounter::PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index) : type(type), index(index)
 {
+	if(!V3D::instance().setCounter(index, static_cast<vc4cl::CounterType>(type)))
+	{
+		//all error-cases care checked before
+		throw std::invalid_argument("Failed to set counter configuration!");
+	}
 }
 
 PerformanceCounter::~PerformanceCounter()
 {
 	V3D::instance().disableCounter(index);
+	usedCounters.reset(index);
 }
 
 cl_int PerformanceCounter::getValue(cl_uint* value) const
@@ -37,36 +45,27 @@ cl_int PerformanceCounter::reset()
 	return CL_SUCCESS;
 }
 
-static std::array<std::unique_ptr<PerformanceCounter>, 16> counters;
-
 cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(cl_device_id device, const cl_counter_type_vc4cl counter_type, cl_int* errcode_ret)
 {
 	CHECK_DEVICE_ERROR_CODE(toType<Device>(device), errcode_ret, cl_counter_vc4cl)
 
 	if(counter_type > 29)
 		return returnError<cl_counter_vc4cl>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Invalid counter-type %u!", counter_type));
-
-	cl_char counter_index = -1;
-	for(cl_char i = 0; i < counters.size(); ++i)
-	{
-		if(counters[i] == nullptr)
-		{
-			counter_index = i;
-			break;
-		}
-	}
-	if(counter_index < 0)
+	if(usedCounters.all())
 		return returnError<cl_counter_vc4cl>(CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__, "No more free counters!");
 
-	counters.at(counter_index).reset(newOpenCLObject<PerformanceCounter>(counter_type, counter_index));
-	CHECK_ALLOCATION_ERROR_CODE(counters[counter_index].get(), errcode_ret, cl_counter_vc4cl)
-	if(V3D::instance().setCounter(counter_index, static_cast<vc4cl::CounterType>(counter_type)) != 0)
+	//TODO is not thread-safe!
+	cl_uchar counterIndex = 0;
+	for(; counterIndex < usedCounters.size(); ++counterIndex)
 	{
-		counters.at(counter_index).reset();
-		return returnError<cl_counter_vc4cl>(CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__, "Failed to set counter configuration!");
+		if(!usedCounters.test(counterIndex))
+			break;
 	}
+	usedCounters.set(counterIndex);
 
-	RETURN_OBJECT(counters.at(counter_index)->toBase(), errcode_ret)
+	PerformanceCounter* counter = newOpenCLObject<PerformanceCounter>(counter_type, counterIndex);
+	CHECK_ALLOCATION_ERROR_CODE(counter, errcode_ret, cl_counter_vc4cl)
+	RETURN_OBJECT(counter->toBase(), errcode_ret)
 }
 
 cl_int VC4CL_FUNC(clGetPerformanceCounterValueVC4CL)(cl_counter_vc4cl counter, cl_uint* value)

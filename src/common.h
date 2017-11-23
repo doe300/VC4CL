@@ -158,8 +158,8 @@ namespace vc4cl
 		if((event_wait_list == nullptr) != (num_events_in_wait_list == 0)) \
 		return returnError<type>(CL_INVALID_EVENT_WAIT_LIST, errcode_ret, __FILE__, __LINE__, "Event list validity check failed!");
 
-#define CHECK_COUNTER(counter) CHECK_OBJECT(counter, CL_INVALID_PERFORMANCE_COUNTER)
-#define CHECK_COUNTER_ERROR_CODE(counter, errcode_ret, type) CHECK_OBJECT_ERROR_CODE(context, CL_INVALID_PERFORMANCE_COUNTER, errcode_ret, type)
+#define CHECK_COUNTER(counter) CHECK_OBJECT(counter, CL_INVALID_PERFORMANCE_COUNTER_VC4CL)
+#define CHECK_COUNTER_ERROR_CODE(counter, errcode_ret, type) CHECK_OBJECT_ERROR_CODE(context, CL_INVALID_PERFORMANCE_COUNTER_VC4CL, errcode_ret, type)
 
 	//
 	// OTHER HELPERS

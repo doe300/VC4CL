@@ -203,7 +203,7 @@ extern "C"
 #define CL_COUNTER_L2_CACHE_HITS_VC4CL 28
 #define CL_COUNTER_L2_CACHE_MISSES_VC4CL 29
 
-#define CL_INVALID_PERFORMANCE_COUNTER -112
+#define CL_INVALID_PERFORMANCE_COUNTER_VC4CL -112
 
 	typedef cl_uchar cl_counter_type_vc4cl;
 	typedef struct _cl_counter_vc4cl* cl_counter_vc4cl;
