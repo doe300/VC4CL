@@ -21,13 +21,18 @@ public:
     void testPerformanceValues(bool shouldBeZero);
     void testResetPerformanceCounters();
     void testReleasePerformanceCounters();
+    void testTrackLiveObjects();
+    void trackLiveObject(const std::string& name);
     
     void tear_down() override;
 private:
     cl_context context;
-    cl_counter_vc4cl write_stalls;
-    cl_counter_vc4cl read_stalls;
+    cl_counter_vc4cl counter1;
+    cl_counter_vc4cl counter2;
     Test::Output* output;
+
+    uint8_t numLiveContexts;
+    uint8_t numLiveCounters;
 };
 
 #endif /* TESTEXTENSION_H */
