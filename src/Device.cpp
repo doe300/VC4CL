@@ -151,7 +151,8 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			//"Max size in bytes of the arguments that can be passed to a kernel. The minimum value is 1024 (256 for EMBEDDED PROFILE)."
 			return returnValue<size_t>(kernel_config::MAX_PARAMETER_COUNT * 4 /* 32-bit integers */, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
-			//"The minimum value is the size (in bits) of the largest OpenCL built-in data type supported by the device."
+			//OpenCL 1.0: "Describes the alignment in bits of the base address of any allocated memory object."
+			//OpenCL 1.2: "The minimum value is the size (in bits) of the largest OpenCL built-in data type supported by the device."
 			//XXX what exactly is this?? Need to be 4KB, since we align all buffers to 4KB (for now) ??
 			return returnValue<cl_uint>(8 * sizeof(cl_int16), param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
@@ -268,7 +269,7 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			//but how to synchronize index, etc. ??
 			return returnValue<size_t>(0, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:
-			//"Is CL_TRUE if the device�s preference is for the user to be responsible for synchronization,
+			//"Is CL_TRUE if the device's preference is for the user to be responsible for synchronization,
 			// when sharing memory objects between OpenCL and other APIs [...]"
 			//we do not offer any synchronization technique (for memory)
 			return returnValue<cl_bool>(CL_TRUE, param_value_size, param_value, param_value_size_ret);

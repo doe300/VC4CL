@@ -71,31 +71,46 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 	//clear previous set parameter value
 	args[arg_index] = KernelArgument();
 
-	if(info.params[arg_index].getPointer() == CL_FALSE)
+	const ParamInfo& paramInfo = info.params[arg_index];
+	if(paramInfo.getPointer() == CL_FALSE)
 	{
 		//literal (scalar or vector) argument
-		if(arg_size != info.params[arg_index].getSize())
+		if(arg_size != paramInfo.getSize())
 		{
-			return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__, buildString("Invalid arg size: %u, must be %d", arg_size, info.params[arg_index].getSize()));
+			return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__, buildString("Invalid arg size: %u, must be %d", arg_size, paramInfo.getSize()));
 		}
-		const size_t elementSize = arg_size / info.params[arg_index].getElements();
-		for(cl_uchar i = 0; i < info.params[arg_index].getElements(); ++i)
+		const size_t elementSize = arg_size / paramInfo.getElements();
+		for(cl_uchar i = 0; i < paramInfo.getElements(); ++i)
 		{
 			//arguments are all 32-bit, since UNIFORMS are always 32-bit
-			cl_uint tmp = 0;
 			if(elementSize == 1 /* [u]char-types */)
 			{
 				//expand 8-bit to 32-bit
-				tmp = 0xFF & static_cast<const cl_uchar*>(arg_value)[i];
-				args[arg_index].addScalar(tmp);
+				if(!paramInfo.getFloatingType() && paramInfo.getSigned())
+				{
+					cl_int tmp = static_cast<const cl_char*>(arg_value)[i];
+					args[arg_index].addScalar(tmp);
+				}
+				else
+				{
+					cl_uint tmp = 0xFF & static_cast<const cl_uchar*>(arg_value)[i];
+					args[arg_index].addScalar(tmp);
+				}
 			}
 			else if(elementSize == 2 /* [u]short-types */)
 			{
 				//expand 16-bit to 32-bit
-				tmp = 0xFFFF & static_cast<const cl_ushort*>(arg_value)[i];
-				args[arg_index].addScalar(tmp);
+				if(!paramInfo.getFloatingType() && paramInfo.getSigned())
+				{
+					cl_int tmp = static_cast<const cl_short*>(arg_value)[i];
+					args[arg_index].addScalar(tmp);
+				}
+				else
+				{
+					cl_uint tmp = 0xFFFF & static_cast<const cl_ushort*>(arg_value)[i];
+					args[arg_index].addScalar(tmp);
+				}
 			}
-			//TODO are signed short/char values handled correctly???
 			else if(elementSize > 4)
 			{
 				//not supported
@@ -139,7 +154,6 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 				if(toType<Buffer>(buffer)->context() != program->context())
 					return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, buildString("Contexts of buffer and program do not match: %p != %p", toType<Buffer>(buffer)->context(), program->context()));
 				if(info.params[arg_index].getOutput() && !toType<Buffer>(buffer)->writeable)
-					//TODO some OpenCL-CTS test-cases fail here! (e.g. buffer_map_read_short), also TestExecutions
 					return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-writeable buffer as output parameter!");
 				if(info.params[arg_index].getInput() && !toType<Buffer>(buffer)->readable)
 					return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-readable buffer as input parameter!");

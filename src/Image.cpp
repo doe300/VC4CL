@@ -775,8 +775,8 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
 			return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Memory flags of image and buffer do not match!");
 		if((bufferFlags & CL_MEM_READ_ONLY) && ((flags & CL_MEM_WRITE_ONLY) || (flags & CL_MEM_READ_WRITE)))
 			return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Memory flags of image and buffer do not match!");
-		//TODO "CL_INVALID_VALUE if [...] flags specifies CL_MEM_USE_HOST_PTR or CL_MEM_ALLOC_HOST_PTR or CL_MEM_COPY_HOST_PTR."
-		//only if buffer != nullptr or generally?
+		if((bufferFlags & CL_MEM_USE_HOST_PTR) || (bufferFlags & CL_MEM_ALLOC_HOST_PTR) || (bufferFlags & CL_MEM_COPY_HOST_PTR))
+			return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Cannot use/copy/allocate host pointer for image, when source buffer is set!");
 		if(((bufferFlags & CL_MEM_HOST_WRITE_ONLY) && (flags & CL_MEM_HOST_READ_ONLY)) || ((bufferFlags & CL_MEM_HOST_READ_ONLY) && (flags & CL_MEM_HOST_WRITE_ONLY)) ||
 				((bufferFlags & CL_MEM_HOST_NO_ACCESS) && ((flags & CL_MEM_HOST_READ_ONLY) || (flags & CL_MEM_HOST_WRITE_ONLY))))
 			return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Host access flags of image and buffer do not match!");

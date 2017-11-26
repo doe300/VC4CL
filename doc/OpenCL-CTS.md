@@ -59,7 +59,7 @@ Run with work-size of 8
 | vload_global                        | PASSED ||
 | vload_local                         | FAILED | result value mismatch |
 | vload_constant                      | PASSED ||
-| vload_private                       | FAILED | compilation error |
+| vload_private                       | FAILED | compilation error (compiles successfully on host machine?!) |
 | vstore_global                       | FAILED | result value mismatch (only gentype3 tests) |
 | vstore_local                        | FAILED | result value mismatch (only gentype2 tests, alignment?) |
 | vstore_private                      | FAILED | compilation error (number of bytes written are not correct for (u)char), value mismatch for (u)short |
@@ -130,11 +130,11 @@ Run with work-size of 8
 | create_kernels_in_program           | PASSED ||
 | get_kernel_info                     | PASSED ||
 | execute_kernel_local_sizes          | PASSED ||
-| set_kernel_arg_by_index             | PASSED |
+| set_kernel_arg_by_index             | PASSED ||
 | set_kernel_arg_constant             | PASSED ||
-| set_kernel_arg_struct_array         | PASSED |
-| kernel_global_constant              | PASSED |
-| min_max_thread_dimensions           | PASSED |
+| set_kernel_arg_struct_array         | PASSED ||
+| kernel_global_constant              | PASSED ||
+| min_max_thread_dimensions           | PASSED ||
 | min_max_work_items_sizes            | PASSED ||
 | min_max_work_group_size             | PASSED ||
 | min_max_read_image_args             | skipped ||
@@ -630,18 +630,18 @@ FAILED (value mismatch: unexpected zero/nan, where nan/zero is expected)
 | integer_clamp                   | FAILED | value mismatch (only short and uint test-cases) |
 | integer_mad_sat                 | FAILED | value mismatch |
 | integer_mad_hi                  | FAILED | value mismatch |
-| integer_min                     | FAILED | value mismatch |
-| integer_max                     | FAILED | value mismatch |
-| integer_upsample                | FAILED | value mismatch (only for short test-cases) |
+| integer_min                     | FAILED | value mismatch (only for short, uint) |
+| integer_max                     | FAILED | value mismatch (only for short, uint) |
+| integer_upsample                | PASSED ||
 | integer_abs                     | PASSED ||
 | integer_abs_diff                | FAILED | value mismatch |
-| integer_add_sat                 | FAILED | value mismatch (only for short, int, uint test-cases; for int/uint only for saturation exceeded) |
+| integer_add_sat                 | FAILED | value mismatch (only for short, uint only for saturation exceeded) |
 | integer_sub_sat                 | FAILED | value mismatch (only for short, int, uint test-cases; for int/uint only for saturation exceeded) |
 | integer_addAssign               | FAILED | value mismatch (for gentype3, test-sample 8) |
 | integer_subtractAssign
 | integer_multiplyAssign          | FAILED | value mismatch (for gentype3, test-sample 8) |
 | integer_divideAssign            | FAILED | value mismatch (often for small numbers (0-2), actual result is negative) |
-| integer_moduloAssign
+| integer_moduloAssign            | FAILED | value mismatch (char, short, ushort, int and uint test-cases) when high-order bit set (negative number) |
 | integer_andAssign               | PASSED ||
 | integer_orAssign                | PASSED ||
 | integer_exclusiveOrAssign       | FAILED | value mismatch (for gentype3, test-sample 8) |
@@ -658,7 +658,7 @@ FAILED (value mismatch: unexpected zero/nan, where nan/zero is expected)
 | ulong_logic                     | skipped ||
 | ulong_shift                     | skipped ||
 | ulong_compare                   | skipped ||
-| int_math                        | FAILED | CL_OUT_OF_RESOURCES |
+| int_math                        | error | "+" passed, "double free or corruption" in "-" test |
 | int_logic
 | int_shift
 | int_compare
@@ -691,15 +691,15 @@ FAILED (value mismatch: unexpected zero/nan, where nan/zero is expected)
 | quick_ulong_logic                  | skipped ||
 | quick_ulong_shift                  | skipped ||
 | quick_ulong_compare                | skipped ||
-| quick_int_math                     | FAILED | CL_OUT_OF_RESOURCES *runs VERY long* |
-| quick_int_logic                    | FAILED | result mismatch, CL_OUT_OF_RESOURCES |
-| quick_int_shift                    | FAILED | result value mismatch + CL_OUT_OF_RESOURCES |
-| quick_int_compare                  | FAILED | result value mismatch + CL_OUT_OF_RESOURCES |
-| quick_uint_math
-| quick_uint_logic
-| quick_uint_shift
-| quick_uint_compare
-| quick_short_math
+| quick_int_math                     | FAILED | passes "+", "-", "\*", fails in "/" and "%" for edge-cases (combinations of numerators 0, INT_MAX, INT_MIN, -1 and denominators INT_MAX, INT_MIN, -1) |
+| quick_int_logic                    | PASSED ||
+| quick_int_shift                    | FAILED | passes ">>", "<<" by vector, verification errors in ">>", "<<" by scalars |
+| quick_int_compare                  | FAILED | verification errors in "?:", "<", ">" (overflow?), passes "<=", ">=", "==" and "!=" |
+| quick_uint_math                    | FAILED | passes "+", "-", "\*", fails in "/" and "%" for edge-cases (combinations of numerators 0, INT_MAX, INT_MIN, -1 and denominators INT_MAX, INT_MIN, -1) |
+| quick_uint_logic                   | PASSED ||
+| quick_uint_shift                   | FAILED | passes ">>", "<<" by vector, verification errors in ">>", "<<" by scalars |
+| quick_uint_compare                 | FAILED | verification errors in "?:", "<", ">", "<=", ">=", passes "==", "!=" |
+| quick_short_math                   | FAILED | passes "+", "-", "\*", fails in "/" and "%" |
 | quick_short_logic
 | quick_short_shift
 | quick_short_compare
@@ -711,10 +711,10 @@ FAILED (value mismatch: unexpected zero/nan, where nan/zero is expected)
 | quick_char_logic
 | quick_char_shift
 | quick_char_compare
-| quick_uchar_math
-| quick_uchar_logic
-| quick_uchar_shift
-| quick_uchar_compare               | FAILED | result mismatch (?:), CL_OUT_OF_RESOURCES (>) |
+| quick_uchar_math                  | FAILED | passes "+", "-", "\*", "/", "fails in "%" |
+| quick_uchar_logic                 | PASSED ||
+| quick_uchar_shift                 | FAILED | passes ">>", "<<" by vector, verification errors in ">>", "<<" by scalars |
+| quick_uchar_compare               | FAILED | verification errors in "?:", passes "<", ">", "<=", ">=", "==", "!=" |
 | vector_scalar                     | FAILED | result value mismatch |
 
 

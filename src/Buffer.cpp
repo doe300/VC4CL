@@ -108,7 +108,6 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 			subBuffer->deviceBuffer = deviceBuffer;
 		}
 	}
-	//TODO region allowed to be NULL??
 	subBuffer->setHostSize();
 
 	return subBuffer;

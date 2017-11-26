@@ -69,6 +69,12 @@ namespace vc4cl
 		BITFIELD_ENTRY(Output, bool, 57, Bit)
 		//whether this parameter is a pointer to data
 		BITFIELD_ENTRY(Pointer, bool, 60, Bit)
+		//whether the parameter type is a floating-point type (e.g. float, half, double)
+		BITFIELD_ENTRY(FloatingType, bool, 61, Bit)
+		//whether this parameter is known to be signed
+		BITFIELD_ENTRY(Signed, bool, 62, Bit)
+		//whether this parameter is known to be unsigned
+		BITFIELD_ENTRY(Unsigned, bool, 63, Bit)
 
 		//the parameter name
 		std::string name;
