@@ -85,6 +85,23 @@ static void printV3DInfo()
 	//TODO performance counters ??
 }
 
+static void printMaximumAllocation()
+{
+	Mailbox& mb = mailbox();
+	uint32_t maxSize = mb.getTotalGPUMemory();
+
+	std::cout << "Testing maximum single allocation size:" << std::endl;
+	for(uint32_t trySize = maxSize; trySize > 1; trySize >>= 1)
+	{
+		std::unique_ptr<DeviceBuffer> buffer(mb.allocateBuffer(trySize));
+		if(buffer != nullptr)
+		{
+			std::cout << "Maximum single allocation: " << buffer->size << " bytes (" << (buffer->size/1024)/1024 << " MB)" << std::endl;
+			break;
+		}
+	}
+}
+
 int main(int argc, char** argv)
 {
 	std::cout << "V3D Info:" << std::endl;
@@ -93,4 +110,5 @@ int main(int argc, char** argv)
 
 	printMailboxInfo();
 	printV3DInfo();
+	printMaximumAllocation();
 }
