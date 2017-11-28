@@ -97,7 +97,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 					args[arg_index].addScalar(tmp);
 				}
 			}
-			else if(elementSize == 2 /* [u]short-types */)
+			else if(elementSize == 2 /* [u]short-types, also half */)
 			{
 				//expand 16-bit to 32-bit
 				if(!paramInfo.getFloatingType() && paramInfo.getSigned())
@@ -116,7 +116,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 				//not supported
 				return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__, buildString("Invalid arg size: %u", arg_size));
 			}
-			else
+			else /* [u]int, float */
 			{
 				args[arg_index].addScalar(static_cast<const cl_uint*>(arg_value)[i]);
 			}
