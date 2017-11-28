@@ -18,14 +18,14 @@ option(CROSS_COMPILE "Cross compile for Raspbian" OFF)
 
 if(CROSS_COMPILE)
 	if(NOT CROSS_COMPILER_PATH)
-		set(CROSS_COMPILER_PATH "/opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64")
+		set(CROSS_COMPILER_PATH "/opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64")
 	endif()
 	message(STATUS "Cross compiling for Raspbian with compiler: ${CROSS_COMPILER_PATH}")
 	#Set Cross compiler
 	SET(CMAKE_SYSTEM_NAME 		"Linux")
 	SET(CMAKE_C_COMPILER   		"${CROSS_COMPILER_PATH}/bin/arm-linux-gnueabihf-gcc")
 	SET(CMAKE_CXX_COMPILER 		"${CROSS_COMPILER_PATH}/bin/arm-linux-gnueabihf-g++")
-	SET(CMAKE_FIND_ROOT_PATH  	"${CROSS_COMPILER_PATH} ${CROSS_COMPILER_PATH}/arm-linux-gnueabihf")
+	SET(CMAKE_FIND_ROOT_PATH  	"${CROSS_COMPILER_PATH}/arm-linux-gnueabihf")
 endif()
 
 project (VC4CL VERSION 0.4)
@@ -129,6 +129,11 @@ if (BUILD_TESTING)
 			STEP_TARGETS 		build
 	  		EXCLUDE_FROM_ALL	TRUE
 	  		TIMEOUT 			30		#Timeout for downloads, in seconds
+  		        CMAKE_ARGS
+    		          -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    		          -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+  		          -DCMAKE_FIND_ROOT_PATH=${CMAKE_FIND_ROOT_PATH}
+
 		)
 	endif()
 	add_subdirectory(test build/test)
