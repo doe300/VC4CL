@@ -18,7 +18,7 @@ option(CROSS_COMPILE "Cross compile for Raspbian" OFF)
 
 if(CROSS_COMPILE)
 	if(NOT CROSS_COMPILER_PATH)
-		set(CROSS_COMPILER_PATH "/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64")
+		set(CROSS_COMPILER_PATH "/opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64")
 	endif()
 	message(STATUS "Cross compiling for Raspbian with compiler: ${CROSS_COMPILER_PATH}")
 	#Set Cross compiler
