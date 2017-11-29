@@ -10,6 +10,7 @@
 #include "Bitfield.h"
 #include "Context.h"
 
+#include <unordered_map>
 #include <vector>
 
 namespace vc4cl
@@ -134,7 +135,7 @@ namespace vc4cl
 		~Program() override;
 
 
-		CHECK_RETURN cl_int compile(const std::string& options, BuildCallback callback, void* userData);
+		CHECK_RETURN cl_int compile(const std::string& options, const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders, BuildCallback callback, void* userData);
 		CHECK_RETURN cl_int link(const std::string& options, BuildCallback callback, void* userData);
 		CHECK_RETURN cl_int getInfo(cl_program_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 		CHECK_RETURN cl_int getBuildInfo(cl_program_build_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);

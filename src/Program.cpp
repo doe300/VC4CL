@@ -50,7 +50,7 @@ Program::~Program()
 }
 
 #if HAS_COMPILER
-static cl_int compile_program(Program* program, const std::string& options)
+static cl_int compile_program(Program* program, const std::string& options, const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders)
 {
 	std::istringstream sourceCode;
 	sourceCode.str(std::string(program->sourceCode.data(), program->sourceCode.size()));
@@ -64,6 +64,7 @@ static cl_int compile_program(Program* program, const std::string& options)
 	//XXX total VPM size or only user size?
 	config.availableVPMSize = V3D::instance().getSystemInfo(SystemInfo::VPM_MEMORY_SIZE);
 
+	program->buildInfo.options = options;
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Compiling source with: "<< program->buildInfo.options << std::endl;
 #endif
@@ -71,10 +72,20 @@ static cl_int compile_program(Program* program, const std::string& options)
 	std::wstringstream logStream;
 	try
 	{
-		std::stringstream binaryCode;
 		vc4c::setLogger(logStream, false, vc4c::LogLevel::WARNING);
-		program->buildInfo.options = options;
-		std::size_t numBytes = vc4c::Compiler::compile(sourceCode, binaryCode, config, options);
+		//create temporary files for embedded headers and include their paths
+		std::vector<vc4c::TemporaryFile> tempHeaderFiles;
+		std::string tempHeaderIncludes;
+		for(const auto& pair : embeddedHeaders)
+		{
+			//TODO sub-folders
+			tempHeaderFiles.emplace_back(std::string("/tmp/") + pair.first, pair.second->sourceCode);
+		}
+		if(!tempHeaderFiles.empty())
+			tempHeaderIncludes = " -I /tmp/ ";
+
+		std::stringstream binaryCode;
+		std::size_t numBytes = vc4c::Compiler::compile(sourceCode, binaryCode, config, tempHeaderIncludes + options);
 		program->buildInfo.status = CL_SUCCESS;
 		program->binaryCode.resize(numBytes, '\0');
 
@@ -116,7 +127,7 @@ static cl_int compile_program(Program* program, const std::string& options)
 }
 #endif
 
-cl_int Program::compile(const std::string& options, BuildCallback callback, void* userData)
+cl_int Program::compile(const std::string& options, const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders, BuildCallback callback, void* userData)
 {
 	if(sourceCode.empty())
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "There is no source code to compile!");
@@ -125,7 +136,7 @@ cl_int Program::compile(const std::string& options, BuildCallback callback, void
 	moduleInfo.kernelInfos.clear();
 #if HAS_COMPILER
 	buildInfo.status = CL_BUILD_IN_PROGRESS;
-	cl_int state = compile_program(this, options);
+	cl_int state = compile_program(this, options, embeddedHeaders);
 	if(callback != nullptr)
 		(callback)(toBase(), userData);
 #else
@@ -695,8 +706,19 @@ cl_int VC4CL_FUNC(clCompileProgram)(cl_program program, cl_uint num_devices, con
 	if(pfn_notify == nullptr && user_data != nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "User data was set, but callback wasn't!");
 
+	std::unordered_map<std::string, object_wrapper<Program>> embeddedHeaders;
+	for(cl_uint i = 0; i < num_input_headers; ++i)
+	{
+		CHECK_PROGRAM(toType<Program>(input_headers[i]))
+		if(toType<Program>(input_headers[i])->sourceCode.empty())
+			return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Program for embedded header '%s' has no source code!", header_include_names[i]));
+		//"If multiple entries in header_include_names refer to the same header name, the first one encountered will be used."
+		if(embeddedHeaders.find(header_include_names[i]) == embeddedHeaders.end())
+			embeddedHeaders.emplace(std::string(header_include_names[i]), object_wrapper<Program>(toType<Program>(input_headers[i])));
+	}
+
 	const std::string opts(options == nullptr ? "" : options);
-	return toType<Program>(program)->compile( opts, pfn_notify, user_data);
+	return toType<Program>(program)->compile( opts, embeddedHeaders, pfn_notify, user_data);
 }
 
 /*!
