@@ -136,6 +136,7 @@ namespace vc4cl
 		CommandQueue* getCommandQueue();
 		CHECK_RETURN cl_int prepareToQueue(CommandQueue* queue);
 		void setEventWaitList(cl_uint numEvents, const cl_event* events);
+		CHECK_RETURN cl_int setAsResultOrRelease(cl_int condition, cl_event* event);
 
 		const CommandType type;
 		std::unique_ptr<EventAction> action;

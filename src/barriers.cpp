@@ -57,13 +57,7 @@ cl_int VC4CL_FUNC(clEnqueueMarkerWithWaitList)(cl_command_queue command_queue, c
 	e->action.reset(action);
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	errcode = toType<CommandQueue>(command_queue)->enqueueEvent(e);
-	if(errcode == CL_SUCCESS && event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-	
-	return errcode;
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 //OpenCL 1.1 API function, deprecated in OpenCL 1.2
@@ -115,13 +109,7 @@ cl_int VC4CL_FUNC(clEnqueueBarrierWithWaitList)(cl_command_queue command_queue, 
 	e->action.reset(action);
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	errcode = toType<CommandQueue>(command_queue)->enqueueEvent(e);
-	if(errcode == CL_SUCCESS && event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-	
-	return errcode;
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 //OpenCL 1.1 API function, deprecated in OpenCL 1.2

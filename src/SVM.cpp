@@ -251,16 +251,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMFreeARM)(cl_command_queue command_queue, cl_uint n
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = queue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing free SVM failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(status, event);
 }
 
 /*!
@@ -331,23 +322,11 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemcpyARM)(cl_command_queue command_queue, cl_bool
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing memcpy SVM failed!");
 
-	if(blocking_copy == CL_TRUE)
-	{
+	if(status == CL_SUCCESS && blocking_copy == CL_TRUE)
 		status = e->waitFor();
-		if(status != CL_SUCCESS)
-			return status;
-	}
 
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(status, event);
 }
 
 /*!
@@ -420,16 +399,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMMemFillARM)(cl_command_queue command_queue, void* 
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing memfill SVM failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(status, event);
 }
 
 /*!
@@ -494,16 +464,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMMapARM)(cl_command_queue command_queue, cl_bool bl
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing map SVM failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(status, event);
 }
 
 /*!
@@ -566,14 +527,5 @@ cl_int VC4CL_FUNC(clEnqueueSVMUnmapARM)(cl_command_queue command_queue, void* sv
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing unmap SVM failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(status, event);
 }

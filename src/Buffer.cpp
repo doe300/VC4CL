@@ -133,24 +133,12 @@ cl_int Buffer::enqueueRead(CommandQueue* commandQueue, bool blockingRead, size_t
 
 	e->action.reset(access);
 	e->setEventWaitList(numEventsInWaitList, waitList);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing read buffer failed!");
+	errcode = commandQueue->enqueueEvent(e);
 
-	if(blockingRead)
-	{
+	if(errcode == CL_SUCCESS && blockingRead)
 		errcode = e->waitFor();
-		if(errcode != CL_SUCCESS)
-			return errcode;
-	}
 
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 cl_int Buffer::enqueueWrite(CommandQueue* commandQueue, bool blockingWrite, size_t offset, size_t size, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
@@ -173,24 +161,12 @@ cl_int Buffer::enqueueWrite(CommandQueue* commandQueue, bool blockingWrite, size
 	e->action.reset(access);
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing write buffer failed!");
+	errcode = commandQueue->enqueueEvent(e);
 
-	if(blockingWrite)
-	{
+	if(errcode == CL_SUCCESS && blockingWrite)
 		errcode = e->waitFor();
-		if(errcode != CL_SUCCESS)
-			return errcode;
-	}
 
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 static size_t calculate_offset(const size_t* origin, size_t row_pitch, size_t slice_pitch)
@@ -199,18 +175,19 @@ static size_t calculate_offset(const size_t* origin, size_t row_pitch, size_t sl
 	return origin[2] * slice_pitch + origin[1] * row_pitch + origin[0];
 }
 
-static size_t calculate_size(const size_t* region)
+/*
+ * NOTE: The value returned here is wrong for rectangular access, but can server as quick in-bounds check
+ */
+static size_t calculate_size_bounds(const size_t* region)
 {
 	return region[0] /* width (in bytes) */ * region[1] /* height (in rows) */ * region[2] /* depth (in slices) */;
-	//TODO this is wrong, needs to 1) heed the pitches and 2) ONLY copy the region specified
-	//see: https://github.com/pocl/pocl/blob/master/lib/CL/devices/basic/basic.c in "pocl_basic_read_rect"
 }
 
 cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, const size_t* buffer_origin, const size_t* host_origin, const size_t* region, size_t buffer_row_pitch, size_t buffer_slice_pitch, size_t host_row_pitch, size_t host_slice_pitch, void* ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
 	//only used for range-checks
 	const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
-	const size_t size = calculate_size(region);
+	const size_t size = calculate_size_bounds(region);
 
 	if(size == 0 || buffer_offset + size > hostSize)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid read size (%u)!", size));
@@ -241,31 +218,19 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, c
 	e->action.reset(access);
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing read buffer rectangular failed!");
+	errcode = commandQueue->enqueueEvent(e);
 
-	if(blocking_read)
-	{
+	if(errcode == CL_SUCCESS && blocking_read)
 		errcode = e->waitFor();
-		if(errcode != CL_SUCCESS)
-			return errcode;
-	}
 
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write, const size_t* buffer_origin, const size_t* host_origin, const size_t* region, size_t buffer_row_pitch, size_t buffer_slice_pitch, size_t host_row_pitch, size_t host_slice_pitch, const void* ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
 	//only used for range-checks
 	const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
-	const size_t size = calculate_size(region);
+	const size_t size = calculate_size_bounds(region);
 
 	if(size == 0 || buffer_offset + size > hostSize || ptr == nullptr)
 		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid write size (%u)!", size));
@@ -291,24 +256,12 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write,
 	e->action.reset(access);
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing write buffer rectangular failed!");
+	errcode = commandQueue->enqueueEvent(e);
 
-	if(blocking_write)
-	{
+	if(errcode == CL_SUCCESS && blocking_write)
 		errcode = e->waitFor();
-		if(errcode != CL_SUCCESS)
-			return errcode;
-	}
 
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, size_t src_offset, size_t dst_offset, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
@@ -345,24 +298,15 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
 	e->action.reset(action);
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing copy buffer failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	errcode = commandQueue->enqueueEvent(e);
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destination, const size_t* src_origin, const size_t* dst_origin, const size_t* region, size_t src_row_pitch, size_t src_slice_pitch, size_t dst_row_pitch, size_t dst_slice_pitch, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
 	//only used for range-checks
 	const size_t src_offset = calculate_offset(src_origin, src_row_pitch, src_slice_pitch);
-	const size_t size = calculate_size(region);
+	const size_t size = calculate_size_bounds(region);
 	const size_t dst_offset = calculate_offset(dst_origin, dst_row_pitch, dst_slice_pitch);
 
 	if(size == 0 || src_offset + size > hostSize || dst_offset + size > destination->hostSize)
@@ -401,17 +345,8 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
 	e->action.reset(action);
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing copy buffer rectangular failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	errcode = commandQueue->enqueueEvent(e);
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 cl_int Buffer::enqueueFill(CommandQueue* commandQueue, const void* pattern, size_t pattern_size, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
@@ -437,17 +372,8 @@ cl_int Buffer::enqueueFill(CommandQueue* commandQueue, const void* pattern, size
 	e->action.reset(action);
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing fill buffer failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	errcode = commandQueue->enqueueEvent(e);
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_flags map_flags, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event, cl_int* errcode_ret)
@@ -490,22 +416,13 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
+
+	if(status == CL_SUCCESS && blocking_map)
+		status = e->waitFor();
+
+	status = e->setAsResultOrRelease(status, event);
 	if(status != CL_SUCCESS)
-		return returnError<void*>(status, errcode_ret, __FILE__, __LINE__, "Enqueuing map buffer failed!");
-
-	if(blocking_map == CL_TRUE)
-	{
-		*errcode_ret = e->waitFor();
-		if(*errcode_ret != CL_SUCCESS)
-			return nullptr;
-	}
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		e->release();
-
+		return returnError<void*>(status, errcode_ret, __FILE__, __LINE__, "Error releasing the event object!");
 	RETURN_OBJECT(reinterpret_cast<void*>(out_ptr), errcode_ret)
 }
 
@@ -546,16 +463,7 @@ cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uin
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing unmap buffer failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(status, event);
 }
 
 cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
@@ -1667,16 +1575,7 @@ cl_int VC4CL_FUNC(clEnqueueMigrateMemObjects)(cl_command_queue command_queue, cl
 
 	e->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing migrate buffers failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(status, event);
 }
 
 /*!

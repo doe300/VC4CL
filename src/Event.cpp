@@ -182,6 +182,23 @@ void Event::setEventWaitList(cl_uint numEvents, const cl_event* events)
 	}
 }
 
+cl_int Event::setAsResultOrRelease(cl_int condition, cl_event* event)
+{
+	if(condition == CL_SUCCESS && event != nullptr)
+	{
+		*event = toBase();
+		return CL_SUCCESS;
+	}
+	//if the condition was an error, need to release the event too, but return the original error
+	if(condition != CL_SUCCESS)
+	{
+		ignoreReturnValue(release(), __FILE__, __LINE__, "Already an error set to be returned");
+		return returnError(condition, __FILE__, __LINE__, buildString("Aborting due to previous error: %d", condition));
+	}
+	//need to release once if the event is not used by the caller, since otherwise it cannot be completely freed
+	return release();
+}
+
 void Event::setTime(cl_ulong& field)
 {
 	const auto now = std::chrono::high_resolution_clock::now();

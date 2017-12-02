@@ -166,24 +166,12 @@ cl_int Image::enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, cons
 	e->action.reset(access);
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing read image failed!");
+	errcode = commandQueue->enqueueEvent(e);
 
-	if(blockingRead == CL_TRUE)
-	{
+	if(errcode == CL_SUCCESS && blockingRead == CL_TRUE)
 		errcode = e->waitFor();
-		if(errcode != CL_SUCCESS)
-			return errcode;
-	}
 
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 cl_int Image::enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, const size_t* origin, const size_t* region, size_t row_pitch, size_t slice_pitch, const void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
@@ -218,21 +206,12 @@ cl_int Image::enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, co
 	e->action.reset(access);
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing write image failed!");
+	errcode = commandQueue->enqueueEvent(e);
 
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		e->release();
+	if(errcode == CL_SUCCESS && blockingWrite == CL_TRUE)
+		errcode = e->waitFor();
 
-	if(blockingWrite)
-	{
-		return e->waitFor();
-	}
-	return CL_SUCCESS;
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 cl_int Image::enqueueCopyInto(CommandQueue* commandQueue, Image* destination, const size_t* srcOrigin, const size_t* dstOrigin, const size_t* region, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
@@ -280,17 +259,8 @@ cl_int Image::enqueueCopyInto(CommandQueue* commandQueue, Image* destination, co
 	e->action.reset(access);
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing copy image failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	errcode = commandQueue->enqueueEvent(e);
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 cl_int Image::enqueueFill(CommandQueue* commandQueue, const void* color, const size_t* origin, const size_t* region, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
@@ -313,17 +283,8 @@ cl_int Image::enqueueFill(CommandQueue* commandQueue, const void* color, const s
 	e->action.reset(access);
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing filling image failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	errcode = commandQueue->enqueueEvent(e);
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 cl_int Image::enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer, const size_t* origin, const size_t* region, const size_t bufferOffset, bool copyIntoImage, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
@@ -352,17 +313,8 @@ cl_int Image::enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer
 	e->action.reset(access);
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError(status, __FILE__, __LINE__, "Enqueuing copying between image and buffer failed!");
-
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return e->release();
-
-	return CL_SUCCESS;
+	errcode = commandQueue->enqueueEvent(e);
+	return e->setAsResultOrRelease(errcode, event);
 }
 
 void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_flags mapFlags, const size_t* origin, const size_t* region, size_t* rowPitchOutput, size_t* slicePitchOutput, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event, cl_int* errcode_ret)
@@ -412,22 +364,14 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
 	e->action.reset(action);
 
 	e->setEventWaitList(numEventsInWaitList, waitList);
-	cl_int status = commandQueue->enqueueEvent(e);
-	if(status != CL_SUCCESS)
-		return returnError<void*>(status, errcode_ret, __FILE__, __LINE__, "Enqueuing map image failed!");
+	errcode = commandQueue->enqueueEvent(e);
 
-	if(event != nullptr)
-		*event = e->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		e->release();
+	if(errcode == CL_SUCCESS && blockingMap == CL_TRUE)
+		errcode = e->waitFor();
 
-	if(blockingMap == CL_TRUE)
-	{
-		*errcode_ret = e->waitFor();
-		if(*errcode_ret != CL_SUCCESS)
-			return nullptr;
-	}
+	errcode = e->setAsResultOrRelease(errcode, event);
+	if(errcode != CL_SUCCESS)
+		return returnError<void*>(errcode, errcode_ret, __FILE__, __LINE__, "Error releasing the event object!");
 
 	RETURN_OBJECT(reinterpret_cast<void*>(out_ptr), errcode_ret)
 }

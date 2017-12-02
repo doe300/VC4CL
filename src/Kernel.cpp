@@ -435,17 +435,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 
 	kernelEvent->setEventWaitList(num_events_in_wait_list, event_wait_list);
 	cl_int ret_val = commandQueue->enqueueEvent(kernelEvent);
-
-	if(ret_val != CL_SUCCESS)
-		ignoreReturnValue(kernelEvent->release(), __FILE__, __LINE__, "At this point, this method already failed");
-
-	if(event != nullptr)
-		*event = kernelEvent->toBase();
-	else
-		//need to release once, when the event is not by the caller, since otherwise it cannot be freed
-		return kernelEvent->release();
-
-	return CL_SUCCESS;
+	return kernelEvent->setAsResultOrRelease(ret_val, event);
 }
 
 KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), numDimensions(0)
