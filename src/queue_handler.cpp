@@ -97,18 +97,17 @@ static void runEventQueue()
 			else
 				event->updateStatus(returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "No event source specified!"));
 
-			//TODO error-handling (via context-pfn_notify) on errors!
+			//TODO error-handling (via context-pfn_notify) on errors? Neither PoCL nor beignet seem to use context's pfn_notify
 			cl_int status = event->release();
 			if(status != CL_SUCCESS)
 				event->updateStatus(status, false);
-			//TODO release event once more?? to destroy it?
 			eventProcessed.notify_all();
 		}
 		else
 		{
 			std::unique_lock<std::mutex> lock(eventMutex);
-			//FIXME sometimes locks infinite (race condition on event set after the check above but before the wait()?)
-			//for now, simply wait for a maximum amount of time
+			//sometimes locks infinite (race condition on event set after the check above but before the wait()?)
+			//-> for now, simply wait for a maximum amount of time and check again
 			eventAvailable.wait_for(lock, WAIT_DURATION);
 			eventProcessed.notify_all();
 		}

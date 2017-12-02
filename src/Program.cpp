@@ -37,7 +37,7 @@ size_t KernelInfo::getExplicitUniformCount() const
 	return count;
 }
 
-Program::Program(Context* context, const std::vector<char>& code, const bool isBinary) : HasContext(context)
+Program::Program(Context* context, const std::vector<char>& code, const bool isBinary) : HasContext(context), creationType(isBinary ? CreationType::BINARY : CreationType::SOURCE)
 {
 	if(isBinary)
 		binaryCode = code;
@@ -214,20 +214,19 @@ cl_int Program::getInfo(cl_program_info param_name, size_t param_value_size, voi
 		case CL_PROGRAM_NUM_DEVICES:
 			return returnValue<cl_uint>(1, param_value_size, param_value, param_value_size_ret);
 		case CL_PROGRAM_DEVICES:
-		{
 			return returnValue<cl_device_id>(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), param_value_size, param_value, param_value_size_ret);
-		}
 		case CL_PROGRAM_IL_KHR:
 			//"Returns the program IL for programs created with clCreateProgramWithILKHR"
-			//TODO only return source, if created with clCreateProgramWithILKHR
+			if(creationType != CreationType::INTERMEDIATE_LANGUAGE)
+				//XXX "[...] the memory pointed to by param_value will be unchanged and param_value_size_ret will be set to zero."
+				return returnValue("", param_value_size, param_value, param_value_size_ret);
+			return returnValue(sourceCode.data(), sizeof(char), sourceCode.size(), param_value_size, param_value, param_value_size_ret);
 		case CL_PROGRAM_SOURCE:
-			if(sourceCode.empty())
+			if(sourceCode.empty() || creationType != CreationType::SOURCE)
 				return returnString("", param_value_size, param_value, param_value_size_ret);
 			return returnValue(sourceCode.data(), sizeof(char), sourceCode.size(), param_value_size, param_value, param_value_size_ret);
 		case CL_PROGRAM_BINARY_SIZES:
-		{
 			return returnValue<size_t>(binaryCode.size(), param_value_size, param_value, param_value_size_ret);
-		}
 		case CL_PROGRAM_BINARIES:
 			//"param_value points to an array of n pointers allocated by the caller, where n is the number of devices associated with program. "
 			if(binaryCode.empty())
@@ -392,7 +391,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(cl_context context, cl_uint cou
  *
  *  \param context must be a valid OpenCL context
  *
- *  \param il is a pointer to a length-byte block of memory containing intermediate langage.
+ *  \param il is a pointer to a length-byte block of memory containing intermediate language.
  *
  *  \param length is the length of the block of memory pointed to by il.
  *
@@ -415,6 +414,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* 
 	const std::vector<char> buffer(static_cast<const char*>(il), static_cast<const char*>(il) + length);
 	Program* program = newOpenCLObject<Program>(toType<Context>(context), buffer, false);
 	CHECK_ALLOCATION_ERROR_CODE(program, errcode_ret, cl_program)
+	program->creationType = CreationType::INTERMEDIATE_LANGUAGE;
 
 	RETURN_OBJECT(program->toBase(), errcode_ret)
 }

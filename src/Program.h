@@ -42,6 +42,16 @@ namespace vc4cl
 		LOCAL = 4
 	};
 
+	enum class CreationType
+	{
+		//program was created from OpenCL C source-code
+		SOURCE,
+		//program was created from SPIR/SPIR-V IL
+		INTERMEDIATE_LANGUAGE,
+		//program was created from pre-compiled binary
+		BINARY
+	};
+
 	/*
 	 * NOTE: ParamInfo KernelInfo and ModuleInfo need to map exactly to the corresponding types in the VC4C project!
 	 */
@@ -146,6 +156,8 @@ namespace vc4cl
 		std::vector<char> binaryCode;
 		//the global-data segment
 		std::vector<char> globalData;
+		//the way the program was created
+		CreationType creationType;
 
 		BuildInfo buildInfo;
 

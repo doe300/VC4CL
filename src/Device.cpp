@@ -302,7 +302,7 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			// OpenCL 1.2 Extension specification, page 154:
 			//"The intermediate languages that can be supported by clCreateProgramWithILKHR for this device.
 			// Set to a space separated list of IL version strings of the form <IL_Prefix>_<Major_version>.<Minor_version>. "SPIR-V" is a required IL prefix [...]"
-			return returnString(SPIR_V_VERSION, param_value_size, param_value, param_value_size_ret);
+			return returnString(SPIRV_VERSION " " SPIR_VERSION, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_CORE_TEMPERATURE_ALTERA:
 		{
 			//cl_altera_device_temperature - https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_device_temperature.txt

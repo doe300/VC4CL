@@ -20,7 +20,10 @@ extern "C"
 	 *
 	 * Supports SPIR-V programs for OpenCL 2.1!!
 	 */
-#define SPIR_V_VERSION "SPIR-V 1.2"
+	//SPIR-V 1.2 is the currently latest SPIR-V version
+#define SPIRV_VERSION "SPIR-V_1.2"
+	//SPIRV-LLVM and "standard" CLang (4.0) support SPIR 1.2 (for OpenCL 1.2)
+#define SPIR_VERSION "SPIR_1.2"
 	//somehow, except in the OpenCL 2.0 extension specification, this extension, constant and the function added ("clCreateProgramWithILKHR") are nowhere to be found
 	//maybe due to the fact, that they are included in core OpenCL 2.1? -> anyway, define them with the values of the corresponding core-features in OpenCL 2.0
 #ifndef CL_DEVICE_IL_VERSION	//Only defined for OpenCL 2.1+
