@@ -1,0 +1,37 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: nomaddo/cross-rpi
+    steps:
+      - checkout
+      - run:
+          name: download header
+          command: git clone https://github.com/doe300/VC4CLStdLib.git VC4CLStdLib
+      - run:
+          name: get libVC4CC.so url
+          command: curl "https://circleci.com/api/v1.1/project/github/nomaddo/VC4C/latest/artifacts?circle-token=${CIRCLECI_API_TOKEN}=master&filter=successful" --output /tmp/dump
+      - run:
+          name: get libVC4CC.so
+          command: wget -O libVC4CC.so $(python tools/get_url.py "/tmp/dump")
+      - run:
+          name: configure
+          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DCMAKE_FIND_DEBUG_MODE=1  -DOpenCL_INCLUDE_DIR=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DOpenCL_LIBRARY=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DCMAKE_INSTALL_PREFIX=/usr -DVC4CL_STDLIB_HEADER_SOURCE=./VC4CLStdLib/include/VC4CLStdLib.h -DVC4CC_LIBRARY=libVC4CC.so
+      - run:
+          name: build
+          command: make -j2
+      - run:
+          name: deb-packing
+          command: cpack -G DEB
+      - store_artifacts:
+          path: build/libVC4CC.so.0.4
+          distination: libVC4CC.so.0.4
+      - store_artifacts:
+          path: build/VC4C
+          path: VC4C
+      - store_artifacts:
+          path: build/test/TestVC4C
+          distination: TestVC4C
+      - store_artifacts:
+          path: vc4c-0.4-Linux.deb
+          distination: vc4c-0.4-Linux.deb
