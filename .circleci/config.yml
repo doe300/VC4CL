@@ -10,7 +10,7 @@ jobs:
           command: git clone https://github.com/doe300/VC4CLStdLib.git VC4CLStdLib
       - run:
           name: get libVC4CC.so url
-          command: curl "https://circleci.com/api/v1.1/project/github/nomaddo/VC4C/latest/artifacts?circle-token=${CIRCLECI_API_TOKEN}=master&filter=successful" --output /tmp/dump
+          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/latest/artifacts?circle-token=${CIRCLECI_API_TOKEN}=master&filter=successful" --output /tmp/dump
       - run:
           name: get libVC4CC.so
           command: wget -O libVC4CC.so $(python tools/get_url.py "/tmp/dump")
