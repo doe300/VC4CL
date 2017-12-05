@@ -80,7 +80,7 @@ if(INCLUDE_COMPILER)
 		message(STATUS "VC4C compiler header found at: ${VC4C_HEADER_PATH}")
 		add_definitions(-DCOMPILER_HEADER="${VC4C_HEADER_PATH}")
 		add_definitions(-DHAS_COMPILER=1)
-	
+
 	else()
 		message(STATUS "No VC4C compiler header found!")
 		add_definitions(-DHAS_COMPILER=0)
@@ -93,7 +93,7 @@ if(BUILD_ICD)
 	add_definitions(-Dcl_khr_icd=1)
 	add_definitions(-Duse_cl_khr_icd=1)
 	message(STATUS "Building with ICD support")
-	
+
 	if(NOT CROSS_COMPILE)
 		# accoding to pocl, pkg-config doesn't work with cross-compiling
 		pkg_search_module(OCL_ICD REQUIRED ocl-icd>=1.3)
@@ -105,7 +105,7 @@ endif()
 if(IMAGE_SUPPORT)
 	add_definitions(-DIMAGE_SUPPORT=1)
 	message(STATUS "Building with experimental image support")
-endif() 
+endif()
 
 # Enable register poking for kernels
 if(REGISTER_POKE_KERNELS)
@@ -149,7 +149,7 @@ add_custom_target(uninstall_vc4cl "${CMAKE_COMMAND}" -P "cmake_uninstall.cmake")
 
 add_custom_command(
   OUTPUT ${PROJECT_BINARY_DIR}/VC4CL.icd
-  COMMAND echo "${CMAKE_INSTALL_PREFIX}/lib/libVC4CL.so.1.2" > ${PROJECT_BINARY_DIR}/VC4CL.icd
+  COMMAND echo "${CMAKE_INSTALL_PREFIX}/lib/libVC4CL.so" > ${PROJECT_BINARY_DIR}/VC4CL.icd
   )
 
 add_custom_target(generate_icd DEPENDS VC4CL.icd)
@@ -164,7 +164,7 @@ if (BUILD_DEB_PACKAGE)
 	set(CPACK_PACKAGE_NAME "vc4cl")
 	set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 	set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
-	set(CPACK_DEBIAN_PACKAGE_DEPENDS "opencl-c-headers, ocl-icd(>=1.3)")
+	set(CPACK_DEBIAN_PACKAGE_DEPENDS "opencl-c-headers, ocl-icd-opencl-dev, vc4c, clang-3.9")
 	set(CPACK_PACKAGE_VENDOR "doe300")
 	set(CPACK_PACKAGE_CONTACT "doe300@example.com")
 	set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenCL Runtime for Videocore 4 (raspberrypi only)")
