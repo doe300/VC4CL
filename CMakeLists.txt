@@ -15,6 +15,8 @@ option(REGISTER_POKE_KERNELS "Use the faster way of register to run kernels" ON)
 option(BUILD_DEBUG "Build with debugging symbols. Otherwise build for performance" OFF)
 # Option to enable/disable cross compilation
 option(CROSS_COMPILE "Cross compile for Raspbian" OFF)
+# Option whether to create deb package
+option(BUILD_DEB_PACKAGE "Enables creating .deb package" ON)
 
 if(CROSS_COMPILE)
 	if(NOT CROSS_COMPILER_PATH)
@@ -78,7 +80,7 @@ if(INCLUDE_COMPILER)
 		message(STATUS "VC4C compiler header found at: ${VC4C_HEADER_PATH}")
 		add_definitions(-DCOMPILER_HEADER="${VC4C_HEADER_PATH}")
 		add_definitions(-DHAS_COMPILER=1)
-	
+
 	else()
 		message(STATUS "No VC4C compiler header found!")
 		add_definitions(-DHAS_COMPILER=0)
@@ -91,7 +93,7 @@ if(BUILD_ICD)
 	add_definitions(-Dcl_khr_icd=1)
 	add_definitions(-Duse_cl_khr_icd=1)
 	message(STATUS "Building with ICD support")
-	
+
 	if(NOT CROSS_COMPILE)
 		# accoding to pocl, pkg-config doesn't work with cross-compiling
 		pkg_search_module(OCL_ICD REQUIRED ocl-icd>=1.3)
@@ -103,7 +105,7 @@ endif()
 if(IMAGE_SUPPORT)
 	add_definitions(-DIMAGE_SUPPORT=1)
 	message(STATUS "Building with experimental image support")
-endif() 
+endif()
 
 # Enable register poking for kernels
 if(REGISTER_POKE_KERNELS)
@@ -144,3 +146,28 @@ endif (BUILD_TESTING)
 ##
 # Adds custom uninstall command
 add_custom_target(uninstall_vc4cl "${CMAKE_COMMAND}" -P "cmake_uninstall.cmake")
+
+add_custom_command(
+  OUTPUT ${PROJECT_BINARY_DIR}/VC4CL.icd
+  COMMAND echo "${CMAKE_INSTALL_PREFIX}/lib/libVC4CL.so" > ${PROJECT_BINARY_DIR}/VC4CL.icd
+  )
+
+add_custom_target(generate_icd DEPENDS VC4CL.icd)
+add_dependencies(VC4CL generate_icd)
+install(FILES VC4CL.icd DESTINATION "/etc/OpenCL/vendors")
+
+if (BUILD_DEB_PACKAGE)
+	message(STATUS "build deb package...")
+
+	set(CPACK_GENERATOR "DEB")
+	set(CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+	set(CPACK_PACKAGE_NAME "vc4cl")
+	set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+	set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
+	set(CPACK_DEBIAN_PACKAGE_DEPENDS "opencl-c-headers, ocl-icd-opencl-dev, vc4c, clang-3.9")
+	set(CPACK_PACKAGE_VENDOR "doe300")
+	set(CPACK_PACKAGE_CONTACT "doe300@example.com")
+	set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenCL Runtime for Videocore 4 (raspberrypi only)")
+        set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/doe300/VC4CL")
+	include(CPack)
+endif (BUILD_DEB_PACKAGE)
