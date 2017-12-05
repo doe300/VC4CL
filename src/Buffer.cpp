@@ -624,6 +624,8 @@ BufferAccess::BufferAccess(Buffer* buffer, void* hostPtr, std::size_t numBytes, 
 
 cl_int BufferAccess::operator()(Event* event)
 {
+	if(hostPtr == buffer->deviceBuffer->hostPointer && bufferOffset == hostOffset)
+		return CL_SUCCESS;
 	if(writeToBuffer)
 		memcpy(static_cast<char*>(buffer->deviceBuffer->hostPointer) + bufferOffset, static_cast<char*>(hostPtr) + hostOffset, numBytes);
 	else

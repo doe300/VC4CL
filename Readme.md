@@ -35,7 +35,7 @@ The following configuration options are available in CMake:
 - `BUILD_TESTING` toggles building of test program (when configured, can be built with `make TestVC4CL`)
 - `BUILD_DEBUG` toggles building debug or release program
 - `CROSS_COMPILE` toggles whether to cross-compile for the Raspberry Pi, requires the [Raspberry Pi cross-compiler](https://github.com/raspberrypi/tools) to be installed
-- `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler, defaults to `/opt/rasperrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64` (e.g. for the cross compiler cloned into the directory `/opt/raspberrypi/tools/`)
+- `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler, defaults to `/opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64` (e.g. for the cross compiler cloned into the directory `/opt/raspberrypi/tools/`)
 - `INCLUDE_COMPILER` whether to include the [VC4C](https://github.com/doe300/VC4C) compiler
 - `VC4C_HEADER_PATH` sets the path to the VC4C include headers, defaults to `../VC4C/include/VC4C.h` or `lib/vc4c/include/VC4C.h`
 - `VC4CC_LIBRARY` sets the path to the VC4C compiler library, defaults to `../VC4C/build/libVC4CC.xxx` or `lib/vc4c/build/libVC4CC.xxx`
