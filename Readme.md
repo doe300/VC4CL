@@ -36,12 +36,13 @@ The following configuration options are available in CMake:
 - `BUILD_DEBUG` toggles building debug or release program
 - `CROSS_COMPILE` toggles whether to cross-compile for the Raspberry Pi, requires the [Raspberry Pi cross-compiler](https://github.com/raspberrypi/tools) to be installed
 - `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler, defaults to `/opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64` (e.g. for the cross compiler cloned into the directory `/opt/raspberrypi/tools/`)
-- `INCLUDE_COMPILER` whether to include the [VC4C](https://github.com/doe300/VC4C) compiler
+- `INCLUDE_COMPILER` whether to include the [VC4C](https://github.com/doe300/VC4C) compiler. For the compiler to be actually included, the VC4C header and library needs to be found too
 - `VC4C_HEADER_PATH` sets the path to the VC4C include headers, defaults to `../VC4C/include/VC4C.h` or `lib/vc4c/include/VC4C.h`
 - `VC4CC_LIBRARY` sets the path to the VC4C compiler library, defaults to `../VC4C/build/libVC4CC.xxx` or `lib/vc4c/build/libVC4CC.xxx`
 - `BUILD_ICD` toggles whether to build with support for the Khronos ICD loader, requires the ICD loader to be installed system-wide
 - `IMAGE_SUPPORT` toggles whether to enable the very experimental image-support
 - `REGISTER_POKE_KERNELS` toggles the use of register-poking to start kernels (if disabled, uses the mailbox system-calls). Enabling this increases performance up to 10%, but may crash the system, if any other application accesses the GPU at the same time!
+- `BUILD_DEB_PACKAGE` toggles whether to create the necessary configuration to build `vc4cl-xxx.deb` package for installation on Raspbian. The actual packaging is started with `cpack -G DEB`
 
 ## Khronos ICD Loader
 The Khronos ICD Loaders allows multiple OpenCL implementation to be used in parallel (e.g. VC4CL and [pocl](https://github.com/pocl/pocl)), but requires a bit of manual configuration:

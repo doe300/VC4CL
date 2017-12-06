@@ -4,6 +4,8 @@ CMakeCache.txt
 Makefile
 cmake_install.cmake
 cmake_uninstall.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
 
 #Eclipse
 .cproject
@@ -21,3 +23,4 @@ nbproject/
 lib/
 testResult.log
 testing/
+/VC4CL.icd

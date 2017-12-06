@@ -36,9 +36,9 @@ static unsigned AS_GPU_ADDRESS(const unsigned* ptr, DeviceBuffer* buffer)
 	return static_cast<unsigned>(buffer->qpuPointer + ((tmp) - reinterpret_cast<char*>(buffer->hostPointer)));
 }
 
-static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data_size)
+static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data_size, size_t stackFrameSizeInWords)
 {
-	size_t raw_size = code_size + sizeof(unsigned) * num_uniforms + global_data_size;
+	size_t raw_size = code_size + sizeof(unsigned) * num_uniforms + global_data_size + V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT) * stackFrameSizeInWords * sizeof(uint64_t) /* word-size */;
 	//round up to next multiple of alignment
 	return (raw_size / PAGE_ALIGNMENT + 1) * PAGE_ALIGNMENT;
 }
@@ -144,7 +144,7 @@ cl_int executeKernel(Event* event)
 	//
 	// ALLOCATE BUFFER
 	//
-	size_t buffer_size = get_size(kernel->info.getLength() * 8, num_qpus * numIterations * (NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()), kernel->program->globalData.size());
+	size_t buffer_size = get_size(kernel->info.getLength() * sizeof(uint64_t), num_qpus * numIterations * (NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()), kernel->program->globalData.size(), kernel->program->moduleInfo.getStackFrameSize());
 
 	std::unique_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(static_cast<unsigned>(buffer_size)));
 	if(buffer.get() == nullptr)
@@ -179,6 +179,15 @@ cl_int executeKernel(Event* event)
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Copied " << data_length << " bytes of global data to device buffer" << std::endl;
 #endif
+
+	//Reserve space for stack-frames and fill it with zeros (e.g. for cl_khr_initialize_memory extension)
+	uint32_t maxQPUS = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
+	uint32_t stackFrameSize = kernel->program->moduleInfo.getStackFrameSize() * sizeof(uint64_t);
+#ifdef DEBUG_MODE
+	std::cout << "[VC4CL] Reserving space for " << maxQPUS << " stack-frames of " << stackFrameSize << " bytes each" << std::endl;
+#endif
+	memset(p, '\0', maxQPUS * stackFrameSize);
+	p += (maxQPUS * stackFrameSize) / sizeof(unsigned);
 
 	// Copy QPU program into GPU memory
 	const unsigned* qpu_code = p;
