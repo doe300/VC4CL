@@ -6,14 +6,20 @@ jobs:
     steps:
       - checkout
       - run:
-          name: get libVC4CC.so url
+          name: get vc4c url
           command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/latest/artifacts?branch=master&filter=successful" --output /tmp/dump
       - run:
-          name: get libVC4CC.so
-          command: wget -O libVC4CC.so $(python tools/get_url.py "/tmp/dump")
+          name: get vc4cl-stdlib package
+          command: wget -O /tmp/vc4cl-stdlib.deb $(python .circleci/get_url.py "vc4cl-stdlib-" "/tmp/dump")
+      - run:
+          name: get vc4c package
+          command: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
+      - run:
+          name: unpack dependencies
+          command: dpkg-deb -x /tmp/vc4cl-stdlib.deb /opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/ && dpkg-deb -x /tmp/vc4c.deb /opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/
       - run:
           name: configure
-          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DOpenCL_INCLUDE_DIR=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DOpenCL_LIBRARY=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DCMAKE_INSTALL_PREFIX=/usr -DVC4CC_LIBRARY=libVC4CC.so
+          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DOpenCL_INCLUDE_DIR=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DOpenCL_LIBRARY=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include
       - run:
           name: build
           command: make -j2
