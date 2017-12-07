@@ -6,17 +6,14 @@ jobs:
     steps:
       - checkout
       - run:
-          name: download header
-          command: git clone https://github.com/doe300/VC4CLStdLib.git VC4CLStdLib
-      - run:
           name: get libVC4CC.so url
-          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/latest/artifacts?circle-token=${CIRCLECI_API_TOKEN}=master&filter=successful" --output /tmp/dump
+          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/latest/artifacts?branch=master&filter=successful" --output /tmp/dump
       - run:
           name: get libVC4CC.so
           command: wget -O libVC4CC.so $(python tools/get_url.py "/tmp/dump")
       - run:
           name: configure
-          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DCMAKE_FIND_DEBUG_MODE=1  -DOpenCL_INCLUDE_DIR=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DOpenCL_LIBRARY=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DCMAKE_INSTALL_PREFIX=/usr -DVC4CL_STDLIB_HEADER_SOURCE=./VC4CLStdLib/include/VC4CLStdLib.h -DVC4CC_LIBRARY=libVC4CC.so
+          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DOpenCL_INCLUDE_DIR=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DOpenCL_LIBRARY=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DCMAKE_INSTALL_PREFIX=/usr -DVC4CC_LIBRARY=libVC4CC.so
       - run:
           name: build
           command: make -j2
@@ -24,14 +21,11 @@ jobs:
           name: deb-packing
           command: cpack -G DEB
       - store_artifacts:
-          path: build/libVC4CC.so.0.4
-          distination: libVC4CC.so.0.4
+          path: build/libVC4CL.so.0.4
+          distination: libVC4CL.so.0.4
       - store_artifacts:
-          path: build/VC4C
-          path: VC4C
+          path: build/test/TestVC4CL
+          distination: TestVC4CL
       - store_artifacts:
-          path: build/test/TestVC4C
-          distination: TestVC4C
-      - store_artifacts:
-          path: vc4c-0.4-Linux.deb
-          distination: vc4c-0.4-Linux.deb
+          path: vc4cl-0.4-Linux.deb
+          distination: vc4cl-0.4-Linux.deb
