@@ -17,17 +17,20 @@ namespace vc4cl
 	{
 		NONE = 0,
 		USER_SYNCHRONISATION = 1,
-		PLATFORM = 2
+		PLATFORM = 2,
+		//provided by cl_khr_initialize_memory
+		INITIALIZE_MEMORY = 4,
 	};
 
 	class Context : public Object<_cl_context, CL_INVALID_CONTEXT>
 	{
 	public:
-		Context(const Device* device, bool userSync, const Platform* platform, ContextProperty explicitProperties, ContextCallback callback = nullptr, void* userData = nullptr);
+		Context(const Device* device, bool userSync, cl_context_properties memoryToZeroOut, const Platform* platform, ContextProperty explicitProperties, ContextCallback callback = nullptr, void* userData = nullptr);
 		~Context() override;
 		CHECK_RETURN cl_int getInfo(cl_context_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 
 		void fireCallback(const std::string& errorInfo, const void* privateInfo, size_t cb);
+		bool initializeMemoryToZero(cl_context_properties memoryType) const;
 
 		const Device* device;
 
@@ -36,6 +39,7 @@ namespace vc4cl
 		const bool userSync;
 		const Platform* platform;
 		const ContextProperty explicitProperties;
+		const cl_context_properties memoryToInitialize;
 
 		//callback
 		const ContextCallback callback;

@@ -5,10 +5,12 @@
  */
 #include "Context.h"
 
+#include "extensions.h"
+
 using namespace vc4cl;
 
-Context::Context(const Device* device, const bool userSync, const Platform* platform, const ContextProperty explicitProperties, const ContextCallback callback, void* userData) :
-		device(device), userSync(userSync), platform(platform), explicitProperties(explicitProperties), callback(callback), userData(userData)
+Context::Context(const Device* device, const bool userSync, cl_context_properties memoryToZeroOut, const Platform* platform, const ContextProperty explicitProperties, const ContextCallback callback, void* userData) :
+		device(device), userSync(userSync), platform(platform), explicitProperties(explicitProperties), memoryToInitialize(memoryToZeroOut), callback(callback), userData(userData)
 {
 }
 
@@ -19,7 +21,7 @@ Context::~Context()
 cl_int Context::getInfo(cl_context_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
 	size_t propertiesSize = 0;
-	std::array<cl_context_properties, 5> props;
+	std::array<cl_context_properties, 7> props;
 	//this makes sure, only the explicit set properties are returned
 	if((explicitProperties & ContextProperty::PLATFORM) == ContextProperty::PLATFORM)
 	{
@@ -31,6 +33,12 @@ cl_int Context::getInfo(cl_context_info param_name, size_t param_value_size, voi
 	{
 		props.at(propertiesSize) = CL_CONTEXT_INTEROP_USER_SYNC;
 		props.at(propertiesSize + 1) = userSync ? CL_TRUE : CL_FALSE;
+		propertiesSize += 2;
+	}
+	if((explicitProperties & ContextProperty::INITIALIZE_MEMORY) == ContextProperty::INITIALIZE_MEMORY)
+	{
+		props.at(propertiesSize) = CL_CONTEXT_MEMORY_INITIALIZE_KHR;
+		props.at(propertiesSize + 1) = memoryToInitialize;
 		propertiesSize += 2;
 	}
 	if(explicitProperties != ContextProperty::NONE)
@@ -67,6 +75,11 @@ void Context::fireCallback(const std::string& errorInfo, const void* privateInfo
 	}
 }
 
+bool Context::initializeMemoryToZero(cl_context_properties memoryType) const
+{
+	return (explicitProperties & ContextProperty::INITIALIZE_MEMORY) != 0 && (memoryToInitialize & memoryType) != 0;
+}
+
 HasContext::HasContext(Context* context) : c(context)
 {
 }
@@ -87,10 +100,13 @@ Context* HasContext::context()
 
 /*!
  * Table 4.5
- * CL_CONTEXT_PLATFORM				cl_platform_id		Specifies the platform to use.
- * CL_CONTEXT_INTEROP_USER_SYNC		cl_bool				Specifies whether the user is responsible for synchronization between OpenCL and other APIs.
- * 														Please refer to the specific sections in the OpenCL 1.2 extension specification that describe sharing
- * 														with other APIs for restrictions on using this flag. If CL_CONTEXT_INTEROP_USER_SYNC is not specified, a default of CL_FALSE is assumed.
+ * CL_CONTEXT_PLATFORM				cl_platform_id					Specifies the platform to use.
+ * CL_CONTEXT_INTEROP_USER_SYNC		cl_bool							Specifies whether the user is responsible for synchronization between OpenCL and other APIs.
+ * 																	Please refer to the specific sections in the OpenCL 1.2 extension specification that describe sharing
+ * 																	with other APIs for restrictions on using this flag. If CL_CONTEXT_INTEROP_USER_SYNC is not specified, a default of CL_FALSE is assumed.
+ * CL_CONTEXT_MEMORY_INITIALIZE_KHR cl_context_memory_initialize_khrDescribes which memory types for the context must be initialized. This is a bit-field, where the following values are currently supported:
+ * 																	CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR - Initialize local memory to zeros.
+ * 																	CL_CONTEXT_MEMORY_INITIALIZE_PRIVATE_KHR - Initialize private memory to zeros.
  */
 
 /*!
@@ -136,6 +152,7 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 	ContextProperty explicitProperties = ContextProperty::NONE;
 	cl_platform_id platform = Platform::getVC4CLPlatform().toBase();
 	bool user_sync = false;
+	cl_context_properties memoryToInitialize = 0;
 
 	if(properties != nullptr)
 	{
@@ -154,6 +171,13 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 				explicitProperties = static_cast<ContextProperty>(explicitProperties | ContextProperty::USER_SYNCHRONISATION);
 				++ptr;
 				user_sync = *ptr == CL_TRUE;
+				++ptr;
+			}
+			else if(*ptr == CL_CONTEXT_MEMORY_INITIALIZE_KHR)
+			{
+				explicitProperties = static_cast<ContextProperty>(explicitProperties | ContextProperty::INITIALIZE_MEMORY);
+				++ptr;
+				memoryToInitialize = *ptr;
 				++ptr;
 			}
 			else
@@ -179,7 +203,7 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 	if(pfn_notify == nullptr && user_data != nullptr)
 		return returnError<cl_context>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "User data given, but no callback set!");
 
-	Context* context = newOpenCLObject<Context>(toType<Device>(device), user_sync, &Platform::getVC4CLPlatform(), explicitProperties, pfn_notify, user_data);
+	Context* context = newOpenCLObject<Context>(toType<Device>(device), user_sync, memoryToInitialize, &Platform::getVC4CLPlatform(), explicitProperties, pfn_notify, user_data);
 	CHECK_ALLOCATION_ERROR_CODE(context, errcode_ret, cl_context)
 	RETURN_OBJECT(context->toBase(), errcode_ret)
 }

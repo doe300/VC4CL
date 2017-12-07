@@ -186,7 +186,8 @@ cl_int executeKernel(Event* event)
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Reserving space for " << maxQPUS << " stack-frames of " << stackFrameSize << " bytes each" << std::endl;
 #endif
-	memset(p, '\0', maxQPUS * stackFrameSize);
+	if(kernel->program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_PRIVATE_KHR))
+		memset(p, '\0', maxQPUS * stackFrameSize);
 	p += (maxQPUS * stackFrameSize) / sizeof(unsigned);
 
 	// Copy QPU program into GPU memory

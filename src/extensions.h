@@ -43,6 +43,25 @@ extern "C"
 	cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* il, size_t length, cl_int* errcode_ret);
 
 	/*
+	 * Khronos local and private memory initialization (cl_khr_initialize_memory)
+	 * OpenCL 1.2 extension specification, section 9.15
+	 *
+	 * Enables additional context-properties to initialize local and private memory with zeroes.
+	 *
+	 * NOTE: Local memory is automatically initialized to zero, if the local allocation has no initial value.
+	 */
+#ifndef CL_CONTEXT_MEMORY_INITIALIZE_KHR
+#define CL_CONTEXT_MEMORY_INITIALIZE_KHR 0x2030
+#endif
+
+#ifndef CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR
+#define CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR 0x1	//XXX correct value?
+#endif
+#ifndef CL_CONTEXT_MEMORY_INITIALIZE_PRIVATE_KHR
+#define CL_CONTEXT_MEMORY_INITIALIZE_PRIVATE_KHR 0x2 //XXX correct value?
+#endif
+
+	/*
 	 * Altera device temperature (cl_altera_device_temperature)
 	 * https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_device_temperature.txt
 	 *
