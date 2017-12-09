@@ -28,6 +28,7 @@ static void printGlobalData(std::istream& in, std::ostream& out, unsigned numByt
 		snprintf(buffer.data(), buffer.size(), "0x%08x 0x%08x", static_cast<uint32_t>(data & 0xFFFFFFFFLL), static_cast<uint32_t>((data & 0xFFFFFFFF00000000LL) >> 32));
 		out << std::string(buffer.data()) << std::endl;
 	}
+	out << std::endl;
 }
 
 #if HAS_COMPILER
@@ -35,6 +36,7 @@ static void printInstructions(std::istream& in, std::ostream& out, unsigned numI
 {
 	out << "//Instructions segment with " << numInstructions << " instructions:" << std::endl;
 	vc4c::disassembleCodeOnly(in, out, numInstructions, vc4c::OutputMode::HEX);
+	out << std::endl;
 }
 #endif
 
@@ -50,45 +52,48 @@ static void printUniforms(std::istream& in, std::ostream& out, unsigned globalDa
 		for(uint16_t i = 0; i < numIterations; ++i)
 		{
 			out << "//Iteration " << i << ":" << std::endl;
+			//is already read in while-loop
+			out << val << "\t\t//Work-dimensions" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Work-dimensions" << std::endl;
+			out << val << "\t\tLocal sizes (" << (val & 0xFF) << ", " << ((val >> 8) & 0xFF) << ", " << ((val >> 16) & 0xFF) << ")" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\tLocal sizes (" << (val & 0xFF) << ", " << ((val >> 8) & 0xFF) << ", " << ((val >> 16) & 0xFF) << ")" << std::endl;
+			out << val << "\t\tLocal IDs (" << (val & 0xFF) << ", " << ((val >> 8) & 0xFF) << ", " << ((val >> 16) & 0xFF) << ")" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\tLocal IDs (" << (val & 0xFF) << ", " << ((val >> 8) & 0xFF) << ", " << ((val >> 16) & 0xFF) << ")" << std::endl;
+			out << val << "\t\t//Num groups X" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Num groups X" << std::endl;
+			out << val << "\t\t//Num groups Y" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Num groups Y" << std::endl;
+			out << val << "\t\t//Num groups Z" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Num groups Z" << std::endl;
+			out << val << "\t\t//Group ID X" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Group ID X" << std::endl;
+			out << val << "\t\t//Group ID Y" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Group ID Y" << std::endl;
+			out << val << "\t\t//Group ID Z" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Group ID Z" << std::endl;
+			out << val << "\t\t//Global offset X" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Global offset X" << std::endl;
+			out << val << "\t\t//Global offset Y" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Global offset Y" << std::endl;
+			out << val << "\t\t//Global offset Z" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Global offset Z" << std::endl;
-			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << std::hex << val << std::dec << "\t//Global data pointer" << std::endl;
+			out << "0x" << std::hex << val << std::dec << "\t//Global data pointer" << std::endl;
 			if(val != globalDataPointer)
-				out << "ERROR: Global data pointer deviates from base-pointer" << std::hex << globalDataPointer << std::dec << "!" << std::endl;
-			for(uint16_t u = NUM_HIDDEN_PARAMETERS - 1; u < uniformsPerIteration; ++u)
+				out << "ERROR: Global data pointer deviates from base-pointer 0x" << std::hex << globalDataPointer << std::dec << "!" << std::endl;
+			out << "//Kernel parameters (" << (uniformsPerIteration - NUM_HIDDEN_PARAMETERS) << " UNIFORMs):" << std::endl;
+			for(uint16_t u = NUM_HIDDEN_PARAMETERS; u < uniformsPerIteration; ++u)
 			{
 				in.read(reinterpret_cast<char*>(&val), sizeof(val));
-				out << std::hex << val << "\t(" << std::dec << val << ")" << std::endl;
+				out << "0x" << std::hex << val << " (" << std::dec << val << ")" << std::endl;
 			}
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
 			out << val << "\t//Work-group repeat flag (" << (val > 0 ? "repeat" : "end") << ")" << std::endl;
 		}
 		++qpuIndex;
+		out << std::endl;
 	}
 	out << "//Read UNIFORMs for " << qpuIndex << "QPUs" << std::endl;
+	out << std::endl;
 }
 
 int main(int argc, char** argv)

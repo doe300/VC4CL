@@ -241,17 +241,17 @@ cl_int executeKernel(Event* event)
 		//add additional pointers for the dump-analyzer
 		//qpu base-pointer (global-data pointer) | qpu code-pointer | qpu UNIFORM-pointer | num uniforms per iteration | num iterations
 		unsigned tmp = buffer->qpuPointer;
-		f.write(&tmp, sizeof(unsigned));
+		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
 		tmp = AS_GPU_ADDRESS(qpu_code, buffer.get());
-		f.write(&tmp, sizeof(unsigned));
+		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
 		tmp = AS_GPU_ADDRESS(qpu_uniform, buffer.get());
-		f.write(&tmp, sizeof(unsigned));
+		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
 		uint16_t tmp16 = NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount();
-		f.write(&tmp16, sizeof(uint16_t));
+		f.write(reinterpret_cast<char*>(&tmp16), sizeof(uint16_t));
 		tmp16 = numIterations;
-		f.write(&tmp16, sizeof(uint16_t));
+		f.write(reinterpret_cast<char*>(&tmp16), sizeof(uint16_t));
 		//write buffer contents
-		f.write(buffer->hostPointer, buffer_size);
+		f.write(reinterpret_cast<char*>(buffer->hostPointer), buffer_size);
 		f.close();
 	}
 #endif
