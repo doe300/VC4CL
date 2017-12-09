@@ -99,7 +99,7 @@ Buffer* Buffer::createSubBuffer(cl_mem_flags flags, cl_buffer_create_type buffer
 	{
 		if(hostPtr != nullptr)
 		{
-			subBuffer->hostPtr = hostPtr + region->origin;
+			subBuffer->hostPtr = reinterpret_cast<uint8_t*>(hostPtr) + region->origin;
 		}
 		subBuffer->hostSize = region->size;
 		subBuffer->offset = region->origin;

@@ -4,6 +4,12 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
+
+#ifndef CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#endif
+
+
 #include "icd_loader.h"
 
 #include "common.h"

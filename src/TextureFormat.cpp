@@ -202,6 +202,8 @@ void* TFormatAccessor::calculatePixelOffset(void* basePointer, const std::array<
 	//for even 4K-tile rows, the sub-tiles are ordered down-left, up-left, up-right, down-right
 	//for uneven 4K-tile rows, the sub-tiles are ordered up-right, down-right, down-left, up-left
 	//for even 4K-tile rows, they are sorted left-to-right, for uneven rows right-to-left
+	assert(!"Not implemented");
+	return nullptr;
 }
 
 LTFormatAccessor::LTFormatAccessor(Image& image) : TextureAccessor(image)
