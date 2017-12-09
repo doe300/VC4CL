@@ -15,6 +15,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <thread>
 
 using namespace vc4cl;
@@ -192,9 +193,9 @@ cl_int executeKernel(Event* event)
 
 	// Copy QPU program into GPU memory
 	const unsigned* qpu_code = p;
-	void* code_start = kernel->program->binaryCode.data() + (kernel->info.getOffset() * 8);
-	memcpy(p, code_start, kernel->info.getLength() * 8);
-	p += kernel->info.getLength() * 8 / sizeof(unsigned);
+	void* code_start = kernel->program->binaryCode.data() + (kernel->info.getOffset() * sizeof(uint64_t));
+	memcpy(p, code_start, kernel->info.getLength() * sizeof(uint64_t));
+	p += kernel->info.getLength() * sizeof(uint64_t) / sizeof(unsigned);
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Copied " << kernel->info.getLength() * sizeof(int64_t) << " bytes of kernel code to device buffer" << std::endl;
 #endif
@@ -232,6 +233,29 @@ cl_int executeKernel(Event* event)
 		*p++ = AS_GPU_ADDRESS(qpu_code, buffer.get());
 	}
 	
+#ifdef DEBUG_MODE
+	{
+		static const std::string dumpFile("/tmp/vc4cl-dump.bin");
+		std::cout << "[VC4CL] Dumping kernel buffer to " << dumpFile << std::endl;
+		std::ofstream f(dumpFile, std::ios_base::out|std::ios_base::trunc|std::ios_base::binary);
+		//add additional pointers for the dump-analyzer
+		//qpu base-pointer (global-data pointer) | qpu code-pointer | qpu UNIFORM-pointer | num uniforms per iteration | num iterations
+		unsigned tmp = buffer->qpuPointer;
+		f.write(&tmp, sizeof(unsigned));
+		tmp = AS_GPU_ADDRESS(qpu_code, buffer.get());
+		f.write(&tmp, sizeof(unsigned));
+		tmp = AS_GPU_ADDRESS(qpu_uniform, buffer.get());
+		f.write(&tmp, sizeof(unsigned));
+		uint16_t tmp16 = NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount();
+		f.write(&tmp16, sizeof(uint16_t));
+		tmp16 = numIterations;
+		f.write(&tmp16, sizeof(uint16_t));
+		//write buffer contents
+		f.write(buffer->hostPointer, buffer_size);
+		f.close();
+	}
+#endif
+
 	//
 	// EXECUTION
 	//
