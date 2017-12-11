@@ -88,11 +88,15 @@ static void printUniforms(std::istream& in, std::ostream& out, unsigned globalDa
 			}
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
 			out << val << "\t//Work-group repeat flag (" << (val > 0 ? "repeat" : "end") << ")" << std::endl;
+
+			//read work-dimensions for next iteration
+			if(i + 1 < numIterations)
+				in.read(reinterpret_cast<char*>(&val), sizeof(val));
 		}
 		++qpuIndex;
 		out << std::endl;
 	}
-	out << "//Read UNIFORMs for " << qpuIndex << "QPUs" << std::endl;
+	out << "//Read UNIFORMs for " << qpuIndex << " QPUs" << std::endl;
 	out << std::endl;
 }
 
