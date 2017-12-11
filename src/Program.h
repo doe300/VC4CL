@@ -153,9 +153,9 @@ namespace vc4cl
 		//the program's source, OpenCL C-code or LLVM IR / SPIR-V
 		std::vector<char> sourceCode;
 		//the machine-code, VC4C binary
-		std::vector<char> binaryCode;
+		std::vector<uint64_t> binaryCode;
 		//the global-data segment
-		std::vector<char> globalData;
+		std::vector<uint64_t> globalData;
 		//the way the program was created
 		CreationType creationType;
 

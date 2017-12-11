@@ -40,7 +40,10 @@ size_t KernelInfo::getExplicitUniformCount() const
 Program::Program(Context* context, const std::vector<char>& code, const bool isBinary) : HasContext(context), creationType(isBinary ? CreationType::BINARY : CreationType::SOURCE)
 {
 	if(isBinary)
-		binaryCode = code;
+	{
+		binaryCode.resize(code.size() / sizeof(uint64_t), '\0');
+		memcpy(binaryCode.data(), code.data(), code.size());
+	}
 	else
 		sourceCode = code;
 }
@@ -87,7 +90,7 @@ static cl_int compile_program(Program* program, const std::string& options, cons
 		std::stringstream binaryCode;
 		std::size_t numBytes = vc4c::Compiler::compile(sourceCode, binaryCode, config, tempHeaderIncludes + options);
 		program->buildInfo.status = CL_SUCCESS;
-		program->binaryCode.resize(numBytes, '\0');
+		program->binaryCode.resize(numBytes / sizeof(uint64_t), '\0');
 
 		memcpy(program->binaryCode.data(), binaryCode.str().data(), numBytes);
 
@@ -183,9 +186,8 @@ cl_int Program::link(const std::string& options, BuildCallback callback, void* u
 
 	if(moduleInfo.getGlobalDataSize() > 0)
 	{
-		cl_uchar* globalsPtr = reinterpret_cast<cl_uchar*>(reinterpret_cast<cl_ulong*>(binaryCode.data()) + moduleInfo.getGlobalDataOffset());
+		uint64_t* globalsPtr = &binaryCode[moduleInfo.getGlobalDataOffset()];
 		globalData.reserve(moduleInfo.getGlobalDataSize());
-
 		std::copy(globalsPtr, globalsPtr + moduleInfo.getGlobalDataSize(), std::back_inserter(globalData));
 	}
 
@@ -226,7 +228,7 @@ cl_int Program::getInfo(cl_program_info param_name, size_t param_value_size, voi
 				return returnString("", param_value_size, param_value, param_value_size_ret);
 			return returnValue(sourceCode.data(), sizeof(char), sourceCode.size(), param_value_size, param_value, param_value_size_ret);
 		case CL_PROGRAM_BINARY_SIZES:
-			return returnValue<size_t>(binaryCode.size(), param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(binaryCode.size() * sizeof(uint64_t), param_value_size, param_value, param_value_size_ret);
 		case CL_PROGRAM_BINARIES:
 			//"param_value points to an array of n pointers allocated by the caller, where n is the number of devices associated with program. "
 			if(binaryCode.empty())

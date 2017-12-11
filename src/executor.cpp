@@ -145,7 +145,7 @@ cl_int executeKernel(Event* event)
 	//
 	// ALLOCATE BUFFER
 	//
-	size_t buffer_size = get_size(kernel->info.getLength() * sizeof(uint64_t), num_qpus * numIterations * (NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()), kernel->program->globalData.size(), kernel->program->moduleInfo.getStackFrameSize());
+	size_t buffer_size = get_size(kernel->info.getLength() * sizeof(uint64_t), num_qpus * numIterations * (NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()), kernel->program->globalData.size() * sizeof(uint64_t), kernel->program->moduleInfo.getStackFrameSize());
 
 	std::unique_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(static_cast<unsigned>(buffer_size)));
 	if(buffer.get() == nullptr)
@@ -174,7 +174,7 @@ cl_int executeKernel(Event* event)
 	//Copy global data into GPU memory
 	const unsigned global_data = AS_GPU_ADDRESS(p, buffer.get());
 	void* data_start = kernel->program->globalData.data();
-	const unsigned data_length = static_cast<unsigned>(kernel->program->globalData.size());
+	const unsigned data_length = static_cast<unsigned>(kernel->program->globalData.size() * sizeof(uint64_t));
 	memcpy(p, data_start, data_length);
 	p += data_length / sizeof(unsigned);
 #ifdef DEBUG_MODE
@@ -193,11 +193,11 @@ cl_int executeKernel(Event* event)
 
 	// Copy QPU program into GPU memory
 	const unsigned* qpu_code = p;
-	void* code_start = kernel->program->binaryCode.data() + (kernel->info.getOffset() * sizeof(uint64_t));
+	void* code_start = &kernel->program->binaryCode[kernel->info.getOffset()];
 	memcpy(p, code_start, kernel->info.getLength() * sizeof(uint64_t));
 	p += kernel->info.getLength() * sizeof(uint64_t) / sizeof(unsigned);
 #ifdef DEBUG_MODE
-	std::cout << "[VC4CL] Copied " << kernel->info.getLength() * sizeof(int64_t) << " bytes of kernel code to device buffer" << std::endl;
+	std::cout << "[VC4CL] Copied " << kernel->info.getLength() * sizeof(uint64_t) << " bytes of kernel code to device buffer" << std::endl;
 #endif
 
 	std::array<std::array<unsigned*, MAX_ITERATIONS>, 16> uniformPointers;
