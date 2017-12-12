@@ -101,11 +101,11 @@ namespace vc4cl
 		explicit KernelInfo(uint64_t val = 0) noexcept : Bitfield(val) { }
 
 		//the offset of the instruction belonging to the kernel, in instructions (8 byte)
-		BITFIELD_ENTRY(Offset, uint16_t, 0, Short)
+		BITFIELD_ENTRY(Offset, uint32_t, 0, Quattuorvigintuple)
 		//the number of 64-bit instructions in the kernel
-		BITFIELD_ENTRY(Length, uint16_t, 16, Short)
-		BITFIELD_ENTRY(NameLength, uint16_t, 32, Short)
-		BITFIELD_ENTRY(ParamCount, uint16_t, 48, Short)
+		BITFIELD_ENTRY(Length, uint32_t, 24, Duovigintuple)
+		BITFIELD_ENTRY(NameLength, uint16_t, 46, Decuple)
+		BITFIELD_ENTRY(ParamCount, uint8_t, 56, Byte)
 
 		//the kernel-name
 		std::string name;
@@ -125,13 +125,13 @@ namespace vc4cl
 		explicit ModuleInfo(uint64_t val = 0) noexcept : Bitfield(val) { }
 
 		//number of kernel-infos in this module
-		BITFIELD_ENTRY(InfoCount, uint16_t, 0, Short)
+		BITFIELD_ENTRY(InfoCount, uint16_t, 0, Decuple)
 		//offset of global-data in multiples of 64-bit
-		BITFIELD_ENTRY(GlobalDataOffset, uint16_t, 16, Short)
+		BITFIELD_ENTRY(GlobalDataOffset, uint16_t, 10, Short)
 		//size of the global data segment in multiples of 64-bit
-		BITFIELD_ENTRY(GlobalDataSize, uint16_t, 32, Short)
+		BITFIELD_ENTRY(GlobalDataSize, uint32_t, 26, Vigintuple)
 		//size of a single stack-frame, appended to the global-data segment. In multiples of 64-bit
-		BITFIELD_ENTRY(StackFrameSize, uint16_t, 48, Short)
+		BITFIELD_ENTRY(StackFrameSize, uint16_t, 46, Short)
 
 		std::vector<KernelInfo> kernelInfos;
 	};

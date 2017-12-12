@@ -29,6 +29,9 @@ namespace  vc4cl
 		static constexpr uint16_t MASK_Tredecuple = { 0x1FFF };
 		static constexpr uint16_t MASK_Short { 0xFFFF };
 		static constexpr uint16_t MASK_SignedShort { 0xFFFF };
+		static constexpr uint32_t MASK_Vigintuple { 0xFFFFF };
+		static constexpr uint32_t MASK_Quattuorvigintuple { 0xFFFFFF };
+		static constexpr uint32_t MASK_Duovigintuple { 0x3FFFFF };
 		static constexpr uint32_t MASK_Int { 0xFFFFFFFF };
 		static constexpr uint32_t MASK_SignedInt { 0xFFFFFFFF };
 
