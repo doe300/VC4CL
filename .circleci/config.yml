@@ -19,7 +19,7 @@ jobs:
           command: dpkg-deb -x /tmp/vc4cl-stdlib.deb /opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/ && dpkg-deb -x /tmp/vc4c.deb /opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/
       - run:
           name: configure
-          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DOpenCL_INCLUDE_DIR=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DOpenCL_LIBRARY=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include
+          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=OFF -DOpenCL_INCLUDE_DIR=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DOpenCL_LIBRARY=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include
       - run:
           name: build
           command: make -j2
