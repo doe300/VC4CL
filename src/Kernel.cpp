@@ -37,6 +37,13 @@ void KernelArgument::addScalar(const int32_t s)
 	scalarValues.push_back(v);
 }
 
+void KernelArgument::addScalar(DevicePointer ptr)
+{
+	ScalarValue v;
+	v.setUnsigned(static_cast<uint32_t>(ptr));
+	scalarValues.push_back(v);
+}
+
 std::string KernelArgument::to_string() const
 {
 	std::string res;
@@ -133,13 +140,13 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 		// in which case a NULL value will be used as the value for the argument declared as a pointer"
 		//"If the argument is declared to be a pointer of a built-in scalar or vector type [...] the memory object specified as argument value must be a buffer object (or NULL)"
 		// -> no pointers to non-buffer objects are allowed! -> good, no extra checking required
-		uint32_t pointer_arg = reinterpret_cast<uintptr_t>(nullptr);
+		DevicePointer pointer_arg(reinterpret_cast<uintptr_t>(nullptr));
 		if(arg_value != nullptr && *static_cast<const void* const *>(arg_value) != nullptr)
 		{
 			if(isSVMPointer)
 			{
 				//SVM pointers are passed as direct GPU pointers (and are checked before), so the usual check for valid Buffer does not apply here
-				pointer_arg = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(arg_value));
+				pointer_arg = DevicePointer(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(arg_value)));
 			}
 			else
 			{

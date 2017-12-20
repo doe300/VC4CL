@@ -16,6 +16,8 @@
 
 namespace vc4cl
 {
+	struct DevicePointer;
+
 	struct KernelArgument
 	{
 		struct ScalarValue : private Bitfield<uint32_t>
@@ -29,6 +31,7 @@ namespace vc4cl
 		void addScalar(float f);
 		void addScalar(uint32_t u);
 		void addScalar(int32_t s);
+		void addScalar(DevicePointer ptr);
 
 		std::string to_string() const;
 	};

@@ -172,7 +172,6 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			//cl_khr_fp16 specifies:
 			//"Describes half precision floating-point capability of the OpenCL device. [...] The required minimum half precision
 			// floating-point capability as implemented by this extension is CL_FP_ROUND_TO_ZERO or CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN."
-			//XXX Same relaxation as for CL_DEVICE_SINGLE_FP_CONFIG on EMBEDDED PROFILE?
 			//not supported
 			return returnValue<cl_device_fp_config>(0, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:

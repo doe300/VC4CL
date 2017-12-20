@@ -37,6 +37,7 @@
 #include "common.h"
 
 #include <chrono>
+#include <iostream>
 #include <utility>
 #include <vector>
 
@@ -45,6 +46,25 @@
 namespace vc4cl
 {
 	class Mailbox;
+
+	struct DevicePointer
+	{
+	public:
+		constexpr explicit DevicePointer(uint32_t ptr) : pointer(ptr) { }
+
+		constexpr explicit operator uint32_t() const
+		{
+			return pointer;
+		}
+
+		friend std::ostream& operator<<(std::ostream& s, const DevicePointer& ptr)
+		{
+			return s << ptr.pointer;
+		}
+
+	private:
+		uint32_t pointer;
+	};
 
 	/*
 	 * Container for the various pointers required for a GPU buffer object
@@ -57,7 +77,7 @@ namespace vc4cl
 		//Identifier of the buffer allocated, think of it as a file-handle
 		const uint32_t memHandle;
 		//Buffer address from VideoCore QPU (GPU) view (the pointer which is passed to the kernel)
-		const uint32_t qpuPointer;
+		const DevicePointer qpuPointer;
 		//Buffer address for ARM (host) view (the pointer to use on the host-side to fill/read the buffer)
 		void* const hostPointer;
 		//size of the buffer, in bytes
@@ -70,7 +90,7 @@ namespace vc4cl
 		DeviceBuffer& operator=(const DeviceBuffer&) = delete;
 		DeviceBuffer& operator=(DeviceBuffer&&) = delete;
 	private:
-		DeviceBuffer(uint32_t handle, uint32_t devPtr, void* hostPtr, uint32_t size);
+		DeviceBuffer(uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size);
 
 		friend class Mailbox;
 	};
@@ -160,7 +180,7 @@ namespace vc4cl
 		CHECK_RETURN bool enableQPU(bool enable) const;
 
 		unsigned memAlloc(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags) const;
-		unsigned memLock(unsigned handle) const;
+		DevicePointer memLock(unsigned handle) const;
 
 		CHECK_RETURN bool memUnlock(unsigned handle) const;
 		CHECK_RETURN bool memFree(unsigned handle) const;

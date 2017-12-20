@@ -30,11 +30,10 @@ static const size_t MAX_ITERATIONS = 8;
 //get_work_dim, get_local_size, get_local_id, get_num_groups (x, y, z), get_group_id (x, y, z), get_global_offset (x, y, z), global-data, repeat-iteration flag
 static const unsigned NUM_HIDDEN_PARAMETERS = 14;
 
-//#define AS_GPU_ADDRESS(x) (uintptr_t) buffer.qpuPointer + ((reinterpret_cast<const void*>(x)) - buffer.hostPointer)
 static unsigned AS_GPU_ADDRESS(const unsigned* ptr, DeviceBuffer* buffer)
 {
 	const char* tmp = *reinterpret_cast<const char**>(&ptr);
-	return static_cast<unsigned>(buffer->qpuPointer + ((tmp) - reinterpret_cast<char*>(buffer->hostPointer)));
+	return static_cast<unsigned>(static_cast<uint32_t>(buffer->qpuPointer) + ((tmp) - reinterpret_cast<char*>(buffer->hostPointer)));
 }
 
 static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data_size, size_t stackFrameSizeInWords)
@@ -98,7 +97,13 @@ static bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> controlA
 	return V3D::instance().executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
 #else
 	if(!flushBuffer)
-		//for some reason, successive mailbox-calls without delays freeze the system (does the kernel get too swamped??)
+		/*
+		 * For some reason, successive mailbox-calls without delays freeze the system (does the kernel get too swamped??)
+		 * A delay of 1ms has the same effect as no delay, 10ms slow down the execution, but work
+		 *
+		 * clpeak's global-bandwidth test runs ok without delay
+		 * clpeaks's compute-sp test hangs/freezes with/without delay
+		 */
 		//TODO test with less delay? hangs? works? better performance?
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	return mailbox().executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
@@ -240,7 +245,7 @@ cl_int executeKernel(Event* event)
 		std::ofstream f(dumpFile, std::ios_base::out|std::ios_base::trunc|std::ios_base::binary);
 		//add additional pointers for the dump-analyzer
 		//qpu base-pointer (global-data pointer) | qpu code-pointer | qpu UNIFORM-pointer | num uniforms per iteration | num iterations
-		unsigned tmp = buffer->qpuPointer;
+		unsigned tmp = static_cast<unsigned>(buffer->qpuPointer);
 		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
 		tmp = AS_GPU_ADDRESS(qpu_code, buffer.get());
 		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
