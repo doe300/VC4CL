@@ -26,9 +26,6 @@ jobs:
       - run:
           name: deb-packing
           command: cpack -G DEB
-      - run:
-          name: list-dependencies
-          command: ldd build/libVC4CL.so.0.4
       - store_artifacts:
           path: build/libVC4CL.so.0.4
           distination: libVC4CL.so.0.4
