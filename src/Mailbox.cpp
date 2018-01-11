@@ -80,8 +80,10 @@ static int mbox_open()
 
 Mailbox::Mailbox() : fd(mbox_open())
 {
-	if(!enableQPU(true))
-		throw std::runtime_error("Failed to enable QPUs!");
+	//This fails if the OpenGL driver is also enabled, simply skipping the check seems to work (see #16)
+	enableQPU(true);
+//	if(!enableQPU(true))
+//		throw std::runtime_error("Failed to enable QPUs!");
 }
 
 Mailbox::~Mailbox()
