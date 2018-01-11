@@ -111,6 +111,7 @@ namespace vc4cl
 	/*
 	 * For all tags and their meaning / parameters, see:
 	 * https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface
+	 * https://github.com/raspberrypi/linux/blob/rpi-4.9.y/include/soc/bcm2835/raspberrypi-firmware.h
 	 *
 	 */
 	enum MailboxTag : unsigned

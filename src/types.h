@@ -22,8 +22,17 @@ struct _cl_object
 
 	explicit _cl_object(void* object) : object(object)
 	{
-
+		static_assert(!std::is_copy_constructible<_cl_object>::value, "VC4CL objects can't be copied!");
+		static_assert(!std::is_move_constructible<_cl_object>::value, "VC4CL objects can't be moved!");
+		static_assert(!std::is_copy_assignable<_cl_object>::value, "VC4CL objects can't be copied!");
+		static_assert(!std::is_move_assignable<_cl_object>::value, "VC4CL objects can't be moved!");
 	}
+
+	_cl_object(const _cl_object&) = delete;
+	_cl_object(_cl_object&&) = delete;
+
+	_cl_object& operator=(const _cl_object&) = delete;
+	_cl_object& operator=(_cl_object&&) = delete;
 };
 
 struct _cl_platform_id : public _cl_object

@@ -80,10 +80,8 @@ static int mbox_open()
 
 Mailbox::Mailbox() : fd(mbox_open())
 {
-	//This fails if the OpenGL driver is also enabled, simply skipping the check seems to work (see #16)
-	enableQPU(true);
-//	if(!enableQPU(true))
-//		throw std::runtime_error("Failed to enable QPUs!");
+	if(!enableQPU(true))
+		throw std::runtime_error("Failed to enable QPUs!");
 }
 
 Mailbox::~Mailbox()
@@ -289,7 +287,13 @@ bool Mailbox::enableQPU(bool enable) const
 
 	if(mailboxCall(p.data()) < 0)
 		return false;
-	return p[5] == 0;
+	/*
+	 * If the mailbox is already running/being used, 0x80000000 is returned (see #16).
+	 * This seems to be also true for shutting down the mailbox,
+	 * which hints to some kind of reference-counter within the VC4 hard-/firmware
+	 * only returning 0 for the first open/last close and 0x80000000 otherwise.
+	 */
+	return p[5] == 0 || p[5] == 0x80000000;
 }
 
 unsigned Mailbox::memAlloc(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags) const
