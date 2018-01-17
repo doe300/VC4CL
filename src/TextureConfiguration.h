@@ -132,6 +132,7 @@ namespace vc4cl
 		/*
 		 * "Cache Swizzle"
 		 */
+		//TODO is the cache swizzle the value used in https://github.com/anholt/mesa/blob/master/src/gallium/drivers/vc4/vc4_formats.c#L73 to re-order the channels?
 		BITFIELD_ENTRY(CacheSwizzle, uint8_t, 10, Tuple)
 		/*
 		 * "Cube Map Mode"

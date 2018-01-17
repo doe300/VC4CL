@@ -14,10 +14,14 @@ using namespace vc4cl;
 
 /*
  * EMBEDDED_PROFILE requires following data-types (for channel-type CL_RGBA) to be supported (OpenCL 1.2, page 357):
+ *
+ * "For 1D, 2D, optional 3D images,1D and 2D image array objects, the minimum list of supported image formats (for reading and writing) is:"
  * CL_UNORM_INT8, CL_UNORM_INT16,
  * CL_SIGNED_INT8, CL_SIGNED_INT16, CL_SIGNED_INT32,
  * CL_UNSIGNED_INT8, CL_UNSIGNED_INT16, CL_UNSIGNED_INT32,
  * CL_HALF_FLOAT, CL_FLOAT
+ *
+ * XXX -> we don't have to support image1d_buffer?
  */
 static const std::unordered_map<cl_image_format, TextureType, vc4cl::hash_cl_image_format, equal_cl_image_format> supportedFormats = {
 	//Required by the OpenCL 1.2 specification
@@ -35,6 +39,7 @@ static const std::unordered_map<cl_image_format, TextureType, vc4cl::hash_cl_ima
 	//XXX additional supported formats
 	{cl_image_format{CL_YUYV_INTEL, CL_UNORM_INT8}, YUYV422R}
 };
+
 
 static const std::unordered_map<cl_channel_order, ChannelOrder> channelOrders = {
 		{CL_R, CHANNEL_RED},
