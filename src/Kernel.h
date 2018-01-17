@@ -27,6 +27,12 @@ namespace vc4cl
 			BITFIELD_ENTRY(Signed, int32_t, 0, Int)
 		};
 		std::vector<ScalarValue> scalarValues;
+		/*
+		 * Only valid for __local pointers, this specifies the buffer-size to allocate.
+		 *
+		 * NOTE: __local parameters are not passed a buffer, but the buffer-size to automatically allocate and deallocate again after the kernel-execution.
+		 */
+		unsigned sizeToAllocate;
 
 		void addScalar(float f);
 		void addScalar(uint32_t u);

@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <map>
 #include <thread>
 
 using namespace vc4cl;
@@ -141,6 +142,27 @@ cl_int executeKernel(Event* event)
 		--numIterations;
 	}
 
+	/*
+	 * Allocate buffers for __local parameters
+	 *
+	 * The buffers are automatically cleaned up with leaving this function
+	 * and thus after the kernel has finished executing.
+	 */
+	std::map<unsigned, std::unique_ptr<DeviceBuffer>> localBuffers;
+	for(unsigned i = 0; i < kernel->args.size(); ++i)
+	{
+		const KernelArgument& arg = kernel->args.at(i);
+		if(arg.sizeToAllocate > 0)
+		{
+			localBuffers.emplace(i, std::unique_ptr<DeviceBuffer>(mailbox().allocateBuffer(arg.sizeToAllocate)));
+			if(kernel->program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR))
+			{
+				//we need to initialize the local memory to zero
+				memset(localBuffers.at(i)->hostPointer, '\0', arg.sizeToAllocate);
+			}
+		}
+	}
+
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Running kernel '" << kernel->info.name << "' with " << kernel->info.getLength() << " instructions..." << std::endl;
 	std::cout << "[VC4CL] Local sizes: " << args.localSizes[0] << " " << args.localSizes[1] << " " << args.localSizes[2] << " -> " << num_qpus << " QPUs\n" << std::endl;
@@ -215,11 +237,18 @@ cl_int executeKernel(Event* event)
 			p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration);
 			for(unsigned u = 0; u < kernel->info.params.size(); ++u)
 			{
+				KernelArgument& arg = kernel->args.at(u);
+				if(localBuffers.find(u) != localBuffers.end())
+				{
+					//there exists a temporary buffer for the __local parameter, so set its address as kernel argument
+					arg.scalarValues.clear();
+					arg.addScalar(localBuffers.at(u)->qpuPointer);
+				}
 #ifdef DEBUG_MODE
-				std::cout << "[VC4CL] Setting parameter " << (NUM_HIDDEN_PARAMETERS - 1) + u << " to " << kernel->args[u].to_string() << std::endl;
+				std::cout << "[VC4CL] Setting parameter " << (NUM_HIDDEN_PARAMETERS - 1) + u << " to " << arg.to_string() << std::endl;
 #endif
 				for(cl_uchar i = 0; i < kernel->info.params[u].getElements(); ++i)
-					*p++ = kernel->args[u].scalarValues.at(i).getUnsigned();
+					*p++ = arg.scalarValues.at(i).getUnsigned();
 			}
 			//"Kernel Loop Optimization" to repeat kernel for several work-groups
 			//needs to be non-zero for all but the last iteration and zero for the last iteration

@@ -167,9 +167,22 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 				pointer_arg = toType<Buffer>(buffer)->deviceBuffer->qpuPointer;
 			}
 		}
-		//"If the argument is declared with the __local qualifier, the arg_value entry must be NULL."
-		//"For arguments declared with the __local qualifier, the size specified will be the size in bytes of the buffer that must be allocated for the __local argument"
-		//TODO how to check if argument is local? And set size of buffer to be allocated + somewhere need to allocate the extra buffer
+		/*
+		 * For __local pointer parameters, the memory-area is not passed as cl_mem,
+		 * but it is allocated/deallocated by the implementation with the size given in arg_size.
+		 */
+		if(paramInfo.getAddressSpace() == AddressSpace::LOCAL)
+		{
+			//"If the argument is declared with the __local qualifier, the arg_value entry must be NULL."
+			if(arg_value != nullptr)
+				return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "The argument value for __local pointers needs to be NULL!");
+			//"For arguments declared with the __local qualifier, the size specified will be the size in bytes of the buffer that must be allocated for the __local argument"
+			if(arg_size == 0)
+				return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "The argument size for __local pointers must not be zero!");
+			if(arg_size > std::numeric_limits<unsigned>::max() || arg_size > mailbox().getTotalGPUMemory())
+				return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "The argument size for __local pointers exceeds the supported maximum!");
+			args[arg_index].sizeToAllocate = static_cast<unsigned>(arg_size);
+		}
 		args[arg_index].addScalar(pointer_arg);
 #ifdef DEBUG_MODE
 		std::cout << "[VC4CL] Setting kernel-argument " << arg_index << " to " << pointer_arg << std::endl;
