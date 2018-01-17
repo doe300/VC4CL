@@ -26,6 +26,7 @@ extern "C"
 #define SPIR_VERSION "SPIR_1.2"
 	//somehow, except in the OpenCL 2.0 extension specification, this extension, constant and the function added ("clCreateProgramWithILKHR") are nowhere to be found
 	//maybe due to the fact, that they are included in core OpenCL 2.1? -> anyway, define them with the values of the corresponding core-features in OpenCL 2.0
+	//with PR https://github.com/KhronosGroup/OpenCL-Headers/pull/24 they are added to the official OpenCL headers repository with the same values
 #ifndef CL_DEVICE_IL_VERSION	//Only defined for OpenCL 2.1+
 #define CL_DEVICE_IL_VERSION 0x105B
 #endif

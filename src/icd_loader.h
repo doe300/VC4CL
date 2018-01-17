@@ -127,6 +127,11 @@ extern "C"
     cl_int VC4CL_FUNC(clIcdGetPlatformIDsKHR)(cl_uint num_entries, cl_platform_id *platforms, cl_uint *num_platforms);
     void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platform, const char *funcname);
 
+#ifdef CL_VERSION_2_0
+    cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithProperties)(cl_context context, cl_device_id device, const cl_queue_properties* properties, cl_int* errcode_ret);
+    cl_sampler VC4CL_FUNC(clCreateSamplerWithProperties)(cl_context context, const cl_sampler_properties* sampler_properties, cl_int* errcode_ret);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

@@ -99,7 +99,7 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 	reinterpret_cast<void*>(&VC4CL_clRetainEvent), /* clRetainEvent */
 	reinterpret_cast<void*>(&VC4CL_clReleaseEvent), /* clReleaseEvent */
 	reinterpret_cast<void*>(&VC4CL_clGetEventProfilingInfo), /* clGetEventProfilingInfo */
-	reinterpret_cast<void*>(	&VC4CL_clFlush), /* clFlush */
+	reinterpret_cast<void*>(&VC4CL_clFlush), /* clFlush */
 	reinterpret_cast<void*>(&VC4CL_clFinish), /* clFinish */
 	reinterpret_cast<void*>(&VC4CL_clEnqueueReadBuffer), /* clEnqueueReadBuffer */
 	reinterpret_cast<void*>(&VC4CL_clEnqueueWriteBuffer), /* clEnqueueWriteBuffer */
@@ -200,7 +200,11 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 	nullptr, /* clCreateEventFromEGLSyncKHR */
 
 	/* OpenCL 2.0 */
+#ifdef CL_VERSION_2_0
+	reinterpret_cast<void*>(&VC4CL_clCreateCommandQueueWithProperties), /* clCreateCommandQueueWithProperties */
+#else
 	nullptr, /* clCreateCommandQueueWithProperties */
+#endif
 	nullptr, /* clCreatePipe */
 	nullptr, /* clGetPipeInfo */
 	reinterpret_cast<void*>(&VC4CL_clSVMAllocARM), /* clSVMAlloc */
@@ -210,7 +214,11 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMMemFillARM), /* clEnqueueSVMMemFill */
 	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMMapARM), /* clEnqueueSVMMap */
 	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMUnmapARM), /* clEnqueueSVMUnmap */
+#ifdef CL_VERSION_2_0
+	reinterpret_cast<void*>(&VC4CL_clCreateSamplerWithProperties), /* clCreateSamplerWithProperties */
+#else
 	nullptr, /* clCreateSamplerWithProperties */
+#endif
 	reinterpret_cast<void*>(&VC4CL_clSetKernelArgSVMPointerARM), /* clSetKernelArgSVMPointer */
 	reinterpret_cast<void*>(&VC4CL_clSetKernelExecInfoARM), /* clSetKernelExecInfo */
 
@@ -219,7 +227,7 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 
 	/* OpenCL 2.1 */
 	nullptr, /* clCloneKernel */
-	nullptr, /* clCreateProgramWithIL */
+	reinterpret_cast<void*>(&VC4CL_clCreateProgramWithILKHR), /* clCreateProgramWithIL */
 	nullptr, /* clEnqueueSVMMigrateMem */
 	nullptr, /* clGetDeviceAndHostTimer */
 	nullptr, /* clGetHostTimer */

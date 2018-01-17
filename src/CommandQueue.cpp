@@ -115,7 +115,7 @@ bool CommandQueue::isProfilingEnabled() const
 }
 
 /*!
- * OpenCL 1.3 specification, pages 62+:
+ * OpenCL 1.2 specification, pages 62+:
  *  Creates a command-queue on a specific device.
  *
  *  \param context must be a valid OpenCL context.
@@ -154,6 +154,56 @@ cl_command_queue VC4CL_FUNC(clCreateCommandQueue)(cl_context context, cl_device_
 	CHECK_ALLOCATION_ERROR_CODE(queue, errcode_ret, cl_command_queue)
 	RETURN_OBJECT(queue->toBase(), errcode_ret)
 }
+
+#ifdef CL_VERSION_2_0
+/*!
+ * OpenCL 2.2 specification, pages 81+:
+ *
+ *  Creates a host or device command-queue on a specific device.
+ *
+ *  \param context must be a valid OpenCL context.
+ *
+ *  \param device must be a device or sub-device associated with context.  It can either be in the list of devices and sub-devices specified when context is created using clCreateContext or
+ *  be a root device with the same device type as specified when context is created using clCreateContextFromType.
+ *
+ *  \param properties specifies a list of properties for the command-queue and their corresponding values. Each property name is immediately followed by the corresponding desired value. The list is terminated with 0.
+ *  The list of supported properties is described in the table below. If a supported property and its value is not specified in properties, its default value will be used.
+ *  properties can be NULL in which case the default values for supported command-queue properties will be used.
+ *
+ *  \param errcode_ret will return an appropriate error code.  If errcode_ret is NULL, no error code is returned.
+ *
+ *  \return clCreateCommandQueueWithProperties returns a valid non-zero command-queue and errcode_ret is set to CL_SUCCESS if the command-queue is created successfully.
+ *  Otherwise, it returns a NULL value with one of the following error values returned in errcode_ret:
+ *  - CL_INVALID_CONTEXT if context is not a valid context.
+ *  - CL_INVALID_DEVICE if device is not a valid device or is not associated with context.
+ *  - CL_INVALID_VALUE if values specified in properties are not valid.
+ *  - CL_INVALID_QUEUE_PROPERTIES if values specified in properties are valid but are not supported by the device.
+ *  - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the device.
+ *  - CL_OUT_OF_HOST_MEMORY if there is a failure to allocate resources required by the OpenCL implementation on the host.
+ */
+cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithProperties)(cl_context context, cl_device_id device, const cl_queue_properties* properties, cl_int* errcode_ret)
+{
+	cl_command_queue_properties props = 0;
+	if(properties != nullptr)
+	{
+		const cl_queue_properties* prop = properties;
+		while(*prop != 0)
+		{
+			if(*prop == CL_QUEUE_PROPERTIES)
+			{
+				++prop;
+				props = *prop;
+				++prop;
+			}
+			else
+				//any other property is not supported
+				return returnError<cl_command_queue>(CL_INVALID_QUEUE_PROPERTIES, errcode_ret, __FILE__, __LINE__, "Unsupported command-queue properties");
+		}
+	}
+
+	return VC4CL_FUNC(clCreateCommandQueue)(context, device, props, errcode_ret);
+}
+#endif
 
 /*!
  * OpenCL 1.2 specification, pages 63+:

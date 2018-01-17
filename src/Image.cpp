@@ -1430,6 +1430,66 @@ cl_sampler VC4CL_FUNC(clCreateSampler)(cl_context context, cl_bool normalized_co
 	RETURN_OBJECT(sampler->toBase(), errcode_ret)
 }
 
+#ifdef CL_VERSION_2_0
+/*!
+ * OpenCL 2.2 specification, pages 143+:
+ *
+ *  Creates a sampler object.
+ *
+ *  \param context must be a valid OpenCL context.
+ *
+ *  \param sampler_properties specifies a list of sampler property names and their corresponding values. Each sampler property name is immediately followed by the corresponding desired value.
+ *  The list is terminated with 0. The list of supported properties is described in table 5.15. If a supported property and its value is not specified in sampler_properties, its default value will be used.
+ *  sampler_properties can be NULL in which case the default values for supported sampler properties will be used.
+ *
+ *  \param errcode_ret will return an appropriate error code. If errcode_ret is NULL, no error code is returned.
+ *
+ *  \return clCreateSamplerWithProperties returns a valid non-zero sampler object and errcode_ret is set to CL_SUCCESS if the sampler object is created successfully.
+ *  Otherwise, it returns a NULL value with one of the following error values returned in errcode_ret:
+ *  - CL_INVALID_CONTEXT if _context_is not a valid context.
+ *  - CL_INVALID_VALUE if the property name in sampler_properties is not a supported property name, if the value specified for a supported property name is not valid, or if the same property name is specified more than once.
+ *  - CL_INVALID_OPERATION if images are not supported by any device associated with context (i.e. CL_DEVICE_IMAGE_SUPPORT specified in table 4.3 is CL_FALSE).
+ *  - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the device.
+ *  - CL_OUT_OF_HOST_MEMORY if there is a failure to allocate resources required by the OpenCL implementation on the host.
+ */
+cl_sampler VC4CL_FUNC(clCreateSamplerWithProperties)(cl_context context, const cl_sampler_properties* sampler_properties, cl_int* errcode_ret)
+{
+	cl_bool normalized_coords = CL_TRUE;
+	cl_addressing_mode addressing_mode = CL_ADDRESS_CLAMP;
+	cl_filter_mode filter_mode = CL_FILTER_NEAREST;
+
+	if(sampler_properties != nullptr)
+	{
+		const cl_sampler_properties* prop = sampler_properties;
+		while(*prop != 0)
+		{
+			if(*prop == CL_SAMPLER_NORMALIZED_COORDS)
+			{
+				++prop;
+				normalized_coords = static_cast<cl_bool>(*prop);
+				++prop;
+			}
+			else if(*prop == CL_SAMPLER_ADDRESSING_MODE)
+			{
+				++prop;
+				addressing_mode = static_cast<cl_addressing_mode>(*prop);
+				++prop;
+			}
+			else if(*prop == CL_SAMPLER_FILTER_MODE)
+			{
+				++prop;
+				filter_mode = static_cast<cl_filter_mode>(*prop);
+				++prop;
+			}
+			else
+				return returnError<cl_sampler>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Unsupported sampler property");
+		}
+	}
+
+	return VC4CL_FUNC(clCreateSampler)(context, normalized_coords, addressing_mode, filter_mode, errcode_ret);
+}
+#endif
+
 /*!
  * OpenCL 1.2 specification, page 130:
  *
