@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <fstream>
 
+#include "cpptest-main.h"
+
 #include "TestPlatform.h"
 #include "TestDevice.h"
 #include "TestContext.h"
@@ -48,46 +50,26 @@ int main(int argc, char** argv)
     
     //run tests
 
-    TestSystem testSytem;
-    testSytem.run(output);
-
-    TestPlatform testPlatform;
-    testPlatform.run(output);
-    
-    TestDevice testDevice;
-    testDevice.run(output);
-    
-    TestContext testContext;
-    testContext.run(output);
-    
-    TestCommandQueue testQueue;
-    testQueue.run(output);
-    
-    TestBuffer testBuffer;
-    testBuffer.run(output);
-    
-    TestImage testImage;
-    testImage.run(output);
+    Test::registerSuite(Test::newInstance<TestSystem>, "system", "Test retrieval of system information");
+    Test::registerSuite(Test::newInstance<TestPlatform>, "platform", "Test querying of platform information");
+    Test::registerSuite(Test::newInstance<TestDevice>, "device", "Test querying of device information");
+    Test::registerSuite(Test::newInstance<TestContext>, "context", "Test creating and querying contexts");
+    Test::registerSuite(Test::newInstance<TestCommandQueue>, "queue", "Test creating and querying command queues");
+    Test::registerSuite(Test::newInstance<TestBuffer>, "buffer", "Test creating, querying and accessing buffers");
+    Test::registerSuite(Test::newInstance<TestImage>, "images", "Test creating, querying and accessing images");
     
 #if HAS_COMPILER
-    TestProgram testProgram;
-    testProgram.run(output);
-    
-    TestKernel testKernel;
-    testKernel.run(output);
+    Test::registerSuite(Test::newInstance<TestProgram>, "programs", "Test building and querying programs");
+    Test::registerSuite(Test::newInstance<TestKernel>, "kernels", "Test creating, querying and executing kernels");
 #endif
     
-    TestEvent testEvent;
-    testEvent.run(output);
-    
-    TestExtension testExtension(&output);
-    testExtension.run(output);
+    Test::registerSuite(Test::newInstance<TestEvent>, "events", "Test creating, querying and scheduling events");
+    Test::registerSuite([&output]() -> Test::Suite* { return new TestExtension(&output);}, "extensions", "Tests supported OpenCL extensions");
 
 #if HAS_COMPILER
-    TestExecutions testExecutions;
-    testExecutions.run(output);
+    Test::registerSuite(Test::newInstance<TestExecutions>, "executions", "Tests the executions and results of a few selected kernels");
 #endif
 
-    return 0;
+    return Test::runSuites(argc, argv);
 }
 

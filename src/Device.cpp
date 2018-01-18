@@ -149,15 +149,18 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			return returnValue<cl_uint>(kernel_config::MAX_PARAMETER_COUNT, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MAX_PARAMETER_SIZE:
 			//"Max size in bytes of the arguments that can be passed to a kernel. The minimum value is 1024 (256 for EMBEDDED PROFILE)."
-			return returnValue<size_t>(kernel_config::MAX_PARAMETER_COUNT * 4 /* 32-bit integers */, param_value_size, param_value, param_value_size_ret);
+			//TODO this is not correct, e.g. for literal vector parameters, which only use a single register/parameter (but more than 4 byte each)
+			return returnValue<size_t>(kernel_config::MAX_PARAMETER_COUNT * sizeof(uint32_t) /* 32-bit integers */, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
 			//OpenCL 1.0: "Describes the alignment in bits of the base address of any allocated memory object."
 			//OpenCL 1.2: "The minimum value is the size (in bits) of the largest OpenCL built-in data type supported by the device."
-			//XXX what exactly is this?? Need to be 4KB, since we align all buffers to 4KB (for now) ??
+			//OpenCL 2.0: "Alignment requirement (in bits) for sub-buffer offsets. The minimum value is the size (in bits) of the largest OpenCL built-in data type supported by the device
+			// (long16 in FULL profile, long16 or int16 in EMBEDDED profile)"
 			return returnValue<cl_uint>(8 * sizeof(cl_int16), param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
 			//"The smallest alignment in bytes which can be used for any data type."
-			//"The minimum value is the size (in bytes) of the largest OpenCL builtin datatype supported by the device (int16 in EMBEDDED profile)."
+			//"The minimum value is the size (in bytes) of the largest OpenCL built-in data type supported by the device (int16 in EMBEDDED profile)."
+			//-> deprecated in OpenCL 1.2
 			return returnValue<cl_uint>(sizeof(cl_int16), param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_SINGLE_FP_CONFIG:
 			//"Describes single precision floating-point capability of the device.  This is a bit-field[...]

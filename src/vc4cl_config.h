@@ -40,7 +40,7 @@ namespace vc4cl
 				// supports additional functions to query all currently live OpenCL objects
 				"cl_altera_live_object_tracking",
 				//supports OpenCL 2.x SVM for OpenCL < 2.0
-				//TODO is this actually true? If so, only for 32-bit architectures
+				//This is actually not true, we share the physical but not the virtual memory!
 				//"cl_arm_shared_virtual_memory",
 #if use_cl_khr_icd
 				//supports being used by the Khronos ICD loader
@@ -99,7 +99,7 @@ namespace vc4cl
 				//adds a pair of atomic_inc/atomic_dec functions for a 32-bit counter-type, alias to standard atomic_inc/atomic_dec
 				"cl_ext_atomic_counters_32",
 				//allows local/private memory to be initialized with zeroes before kernel execution
-				"cl_khr_initialize_memory" //XXX device or platform extension?
+				"cl_khr_initialize_memory"
 		};
 
 		/*
@@ -130,9 +130,8 @@ namespace vc4cl
 		/*
 		 * Parameter configuration
 		 */
-		//the number of UNIFORMS seems to be unlimited, see official documentation, page 91, table 67
-		//but since we load all parameters at start-up, we can only hold 64 (with 64 registers)
-		//TODO this is not correct, e.g. for literal vector parameters, which only use a single register (but several parameter values)
+		//the number of UNIFORMS seems to be unlimited, see official documentation, page 91, table 67.
+		//But since we load all parameters at start-up, we can only hold 64 (with 64 registers)
 		static constexpr cl_uint MAX_PARAMETER_COUNT = 64;
 		//the maximum size of images(per dimension)
 		//minimum is 2048 (width, height, buffer-size) or 256 (array-size)

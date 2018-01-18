@@ -23,10 +23,12 @@ TestImage::TestImage() : context(nullptr), queue(nullptr)
 	TEST_ADD(TestImage::testHostsideTFormat);
 	TEST_ADD(TestImage::testHostsideLTFormat);
 	TEST_ADD(TestImage::testHostsideRasterFormat);
+#if HAS_COMPILER
 	TEST_ADD(TestImage::testDeviceTFormatRead);
 	TEST_ADD(TestImage::testDeviceLTFormatRead);
 	TEST_ADD(TestImage::testDeviceRasterFormatRead);
 	TEST_ADD(TestImage::testDeviceImageWrite);
+#endif
 #endif
 }
 
@@ -127,7 +129,7 @@ void TestImage::testImageTypes()
 	cl_int status = CL_SUCCESS;
 	cl_mem image = VC4CL_FUNC(clCreateImage2D)(context, 0, &format, 2048, 2048, 2048 /* too small */, nullptr, &status);
 	TEST_ASSERT_EQUALS(nullptr, image);
-	TEST_ASSERT_EQUALS(CL_INVALID_VALUE, status);
+	TEST_ASSERT_EQUALS(CL_INVALID_IMAGE_DESCRIPTOR, status);
 
 	image = VC4CL_FUNC(clCreateImage2D)(context, 0, &format, 2048, 2048, 0, nullptr, &status);
 	TEST_ASSERT(image != nullptr);
@@ -144,7 +146,7 @@ void TestImage::testHostsideTFormat()
 {
 	cl_image_format format{CL_RGBA, CL_HALF_FLOAT};
 	cl_int status = CL_SUCCESS;
-	cl_mem image = VC4CL_FUNC(clCreateImage2D)(context, 0, &format, 2048, 2048, 2048, nullptr, &status);
+	cl_mem image = VC4CL_FUNC(clCreateImage2D)(context, 0, &format, 2048, 2048, 0, nullptr, &status);
 	TEST_ASSERT(image != nullptr);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, status);
 	TEST_ASSERT(dynamic_cast<TFormatAccessor*>(toType<Image>(image)->accessor.get()) != nullptr);

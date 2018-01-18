@@ -16,6 +16,8 @@ using namespace vc4cl;
 
 extern cl_int executeKernel(Event* event);
 
+static_assert(sizeof(KernelArgument::ScalarValue) == sizeof(uint32_t), "ScalarValue has wrong size!");
+
 void KernelArgument::addScalar(const float f)
 {
 	ScalarValue v;
