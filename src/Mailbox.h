@@ -38,6 +38,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <string.h>
 #include <utility>
 #include <vector>
 
@@ -95,23 +96,62 @@ namespace vc4cl
 		friend class Mailbox;
 	};
 
+	//taken from https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface
+	//additional documentation from: https://github.com/raspberrypi/userland/blob/master/vcfw/rtos/common/rtos_common_mem.h
 	enum MemoryFlag
 	{
-		//taken from https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface
-		DISCARDABLE = 1 << 0, /* can be resized to 0 at any time. Use for cached data */
-		NORMAL = 0 << 2, /* normal allocating alias. Don't use from ARM */
-		DIRECT = 1 << 2, /* 0x4 alias uncached */
-		COHERENT = 2 << 2, /* 0x8 alias. Non-allocating in L2 but coherent */
-		L1_NONALLOCATING = (DIRECT | COHERENT), /* Allocating in L2 */
-		ZERO = 1 << 4,  /* initialise buffer to all zeros */
-		NO_INIT = 1 << 5, /* don't initialise (default is initialise to all ones */
-		HINT_PERMALOCK = 1 << 6 /* Likely to be locked for long periods of time. */
+		/*
+		 * If a handle is discardable, the memory manager may resize it to size 0 at any time when it is not locked or retained.
+		 */
+		DISCARDABLE = 1 << 0,
+		/*
+		 * Block must be kept within bottom 256M region of the relocatable heap.
+		 * Specifying this flag means that an allocation will fail if the block cannot be allocated within that region, and the block will not be moved out of that range.
+		 *
+		 * (This is to support memory blocks used by the codec cache, which must have same top 4 bits; see HW-3058)
+		 */
+		MEM_FLAG_LOW_256M = 1 << 1,
+		/*
+		 * If a handle is allocating (or normal), its block of memory will be accessed in an allocating fashion through the cache.
+		 *
+		 * normal allocating alias. Don't use from ARM
+		 */
+		NORMAL = 0 << 2,
+		/*
+		 * If a handle is direct, its block of memory will be accessed directly, bypassing the cache.
+		 */
+		DIRECT = 1 << 2,
+		/*
+		 * If a handle is coherent, its block of memory will be accessed in a non-allocating fashion through the cache.
+		 */
+		COHERENT = 2 << 2,
+		/*
+		 * If a handle is L1-nonallocating, its block of memory will be accessed by the VPU in a fashion which is allocating in L2, but only coherent in L1.
+		 */
+		L1_NONALLOCATING = (DIRECT | COHERENT),
+		/*
+		 * If a handle is zero'd, its contents are initialized to 0
+		 */
+		ZERO = 1 << 4,
+		/*
+		 * If a handle is uninitialized, it will not be reset to a defined value (either zero, or all 1's) on allocation.
+		 *
+		 * don't initialize (default is initialize to all ones)
+		 */
+		NO_INIT = 1 << 5,
+		/*
+		 * Likely to be locked for long periods of time.
+		 */
+		HINT_PERMALOCK = 1 << 6
 	};
 
 	/*
 	 * For all tags and their meaning / parameters, see:
-	 * https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface
+	 * https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface (incomplete list)
 	 * https://github.com/raspberrypi/linux/blob/rpi-4.9.y/include/soc/bcm2835/raspberrypi-firmware.h
+	 *
+	 * The user-space access via ioctl goes through:
+	 * https://github.com/raspberrypi/linux/blob/rpi-4.9.y/drivers/char/broadcom/vcio.c
 	 *
 	 */
 	enum MailboxTag : unsigned
@@ -147,8 +187,89 @@ namespace vc4cl
 		 LOCK_MEMORY = 0x0003000D,
 		 UNLOCK_MEMORY = 0x0003000E,
 		 RELEASE_MEMORY = 0x0003000F,
-		 EXECUTE_CODE = 0x00030010
+		 EXECUTE_CODE = 0x00030010,
+		 EXECUTE_QPU = 0x00030011,
+		 ENABLE_QPU = 0x00030012
 	};
+
+	/*
+	 * 0: Buffer size
+	 * 1: request/response code
+	 * 2: request tag
+	 * 3: content size
+	 * 4: request/response data size
+	 * ...: request/response data
+	 * x: end tag (0)
+	 *
+	 */
+	template<MailboxTag Tag, unsigned RequestSize, unsigned MaxResponseSize>
+	struct MailboxMessage
+	{
+		static constexpr unsigned requestSize = RequestSize;
+		static constexpr unsigned maximumResponseSize = MaxResponseSize;
+		static constexpr unsigned contentSize = requestSize > maximumResponseSize ? requestSize : maximumResponseSize;
+		static constexpr unsigned messageSize = contentSize + 6;
+		static constexpr MailboxTag tag = Tag;
+
+		std::array<unsigned, messageSize> buffer;
+
+		explicit MailboxMessage(std::array<unsigned, requestSize> request)
+		{
+			static_assert(RequestSize > 0, "For empty requests, use the default constructor!");
+			buffer[0] = static_cast<unsigned>(buffer.size() * sizeof(unsigned));
+			buffer[1] = 0; //this is a request
+			buffer[2] = static_cast<unsigned>(tag);
+			buffer[3] = static_cast<unsigned>(contentSize * sizeof(unsigned));
+			buffer[4] = static_cast<unsigned>(requestSize * sizeof(unsigned));
+			memcpy(&buffer[5], request.data(), request.size() * sizeof(unsigned));
+		}
+
+		explicit MailboxMessage()
+		{
+			static_assert(RequestSize == 0, "For non-empty requests, use the parameterized constructor!");
+			buffer[0] = static_cast<unsigned>(buffer.size() * sizeof(unsigned));
+			buffer[1] = 0; //this is a request
+			buffer[2] = static_cast<unsigned>(tag);
+			buffer[3] = static_cast<unsigned>(contentSize * sizeof(unsigned));
+			buffer[4] = static_cast<unsigned>(requestSize * sizeof(unsigned));
+		}
+
+		inline unsigned getResponseValue() const
+		{
+			return buffer[1];
+		}
+
+		inline bool isResponse() const
+		{
+			return buffer[1] == 0x80000000 || buffer[1] == 0x80000001;
+		}
+
+		inline bool isSuccessful() const
+		{
+			return buffer[1] == 0x80000000;
+		}
+
+		inline unsigned getResponseSize() const
+		{
+			//first bit set indicates response
+			return buffer[4] & 0x7FFFFFFF;
+		}
+
+		inline unsigned* getContent()
+		{
+			return &buffer[5];
+		}
+
+		inline unsigned getContent(unsigned index) const
+		{
+			return buffer.at(5 + index);
+		}
+	};
+
+	template<MailboxTag Tag>
+	using SimpleQueryMessage = MailboxMessage<Tag, 0 /* no additional request data */, 2 /* one or two response values */>;
+	template<MailboxTag Tag>
+	using QueryMessage = MailboxMessage<Tag, 1 /* single request value */, 2 /* one or two response values */>;
 
 	class Mailbox
 	{
@@ -164,6 +285,7 @@ namespace vc4cl
 		Mailbox& operator=(const Mailbox&) = delete;
 		Mailbox& operator=(Mailbox&&) = delete;
 
+		//TODO default was previously L1_NONALLOCATING, but results in errors writing and reading same buffers (within same work-item)?
 		DeviceBuffer* allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes = PAGE_ALIGNMENT, MemoryFlag flags = MemoryFlag::L1_NONALLOCATING) const;
 		bool deallocateBuffer(const DeviceBuffer* buffer) const;
 
@@ -171,7 +293,13 @@ namespace vc4cl
 		CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout) const;
 		uint32_t getTotalGPUMemory() const;
 
-		CHECK_RETURN bool readMailbox(MailboxTag tag, unsigned bufferLength, const std::vector<unsigned>& requestData, std::vector<unsigned>& resultData) const;
+		template<MailboxTag Tag, unsigned RequestSize, unsigned MaxResponseSize>
+		bool readMailboxMessage(MailboxMessage<Tag, RequestSize, MaxResponseSize>& message) const
+		{
+			if(mailboxCall(message.buffer.data()) < 0)
+				return false;
+			return checkReturnValue(message.getResponseValue());
+		}
 
 	private:
 		int fd;
@@ -185,6 +313,10 @@ namespace vc4cl
 
 		CHECK_RETURN bool memUnlock(unsigned handle) const;
 		CHECK_RETURN bool memFree(unsigned handle) const;
+
+		CHECK_RETURN bool readMailboxMessage(unsigned* buffer, unsigned bufferSize);
+
+		CHECK_RETURN bool checkReturnValue(unsigned value) const;
 	};
 
 	Mailbox& mailbox();

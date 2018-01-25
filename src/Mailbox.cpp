@@ -128,28 +128,10 @@ bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer) const
 
 bool Mailbox::executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const
 {
-	std::size_t i=0;
-	std::array<unsigned, 32> p{};
-	p.at(i++) = 0; // size
-	p.at(i++) = 0x00000000; // process request
-
-	p.at(i++) = 0x30010; // (the tag id)
-	p.at(i++) = 28; // (size of the buffer)
-	p.at(i++) = 28; // (size of the data)
-	p.at(i++) = codeAddress;
-	p.at(i++) = valueR0;
-	p.at(i++) = valueR1;
-	p.at(i++) = valueR2;
-	p.at(i++) = valueR3;
-	p.at(i++) = valueR4;
-	p.at(i++) = valueR5;
-
-	p.at(i++) = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
-
-	if(mailboxCall(p.data()) < 0)
+	MailboxMessage<MailboxTag::EXECUTE_CODE, 7, 1> msg({codeAddress, valueR0, valueR1, valueR2, valueR3, valueR4, valueR5});
+	if(mailboxCall(msg.buffer.data()) < 0)
 		return false;
-	return p[5] == 0;
+	return msg.getContent(0) == 0;
 }
 
 bool Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout) const
@@ -161,82 +143,23 @@ bool Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> contro
 		return false;
 #endif
 	}
-	std::size_t i=0;
-	std::array<unsigned, 32> p{};
-
-	p.at(i++) = 0; // size
-	p.at(i++) = 0x00000000; // process request
-	p.at(i++) = 0x30011; // (the tag id)
-	p.at(i++) = 16; // (size of the buffer)
-	p.at(i++) = 16; // (size of the data)
-	p.at(i++) = numQPUs;
-	p.at(i++) = controlAddress.second;
-	p.at(i++) = !flushBuffer;
-	p.at(i++) = static_cast<uint32_t>(timeout.count()); // ms
-
-	p.at(i++) = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
-
-	if(mailboxCall(p.data()) < 0)
+	/*
+	 * "By default the qpu_execute call does a GPU side L1 and L2 data cache flush before executing the qpu code. If you are happy it is safe not to do this, setting noflush=1 will be a little quicker."
+	 * see: https://github.com/raspberrypi/firmware/issues/747
+	 */
+	MailboxMessage<MailboxTag::EXECUTE_QPU, 4, 1> msg({numQPUs, controlAddress.second, !flushBuffer, static_cast<unsigned>(timeout.count())});
+	if(mailboxCall(msg.buffer.data()) < 0)
 		return false;
-	return p[5] == 0;
+	return msg.getContent(0) == 0;
 }
 
 uint32_t Mailbox::getTotalGPUMemory() const
 {
-	//we set it to half of the available graphics memory, to reserve some space for kernels/video calculations
-	std::vector<uint32_t> result;
-	if(!readMailbox(MailboxTag::VC_MEMORY, 2, {}, result))
+	SimpleQueryMessage<MailboxTag::VC_MEMORY> msg;
+	if(!readMailboxMessage(msg))
 		return 0;
-	return result.at(1) / 2;
-}
-
-bool Mailbox::readMailbox(const MailboxTag tag, const unsigned bufferLength, const std::vector<unsigned>& requestData, std::vector<unsigned>& resultData) const
-{
-	std::size_t i=0;
-	std::array<unsigned, 32> p{};
-
-	p.at(i++) = 0; // size
-	p.at(i++) = 0x00000000; // process request
-
-	p.at(i++) = tag; // (the tag id)
-	p.at(i++) = bufferLength * static_cast<unsigned>(sizeof(unsigned)); // (size of the buffer in bytes)
-	p.at(i++) = static_cast<unsigned>(requestData.size() * sizeof(unsigned)); // (size of the data in bytes)
-	for(unsigned u : requestData)
-		p.at(i++) = u;
-	//fill with empty space, if buffer-length > request_length
-	for(unsigned j = static_cast<unsigned>(requestData.size()); j < bufferLength; ++j)
-		p.at(i++) = 0x00000000;	//empty space for return values
-
-	p.at(i++) = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
-
-	if(mailboxCall(p.data()) < 0)
-		return false;
-	resultData.clear();
-	resultData.reserve(bufferLength);
-	for(size_t j = 0; j < bufferLength; ++j)
-	{
-		//p[5] is the first content field
-		resultData.push_back(p.at(5 + j));
-	}
-
-	if(p[1] >> 31)	//0x8000000x
-	{
-		//0x80000000 on success
-		//0x80000001 on failure
-#ifdef DEBUG_MODE
-		std::cout << "[VC4CL] Mailbox request: " << ((p[1] & 0x1) ? "failed" : "succeeded") << std::endl;
-#endif
-		return p[1]  == 0x80000000;
-	}
-	else
-	{
-#ifdef DEBUG_MODE
-		std::cout << "[VC4CL] Unknown return code: " << p[1] << std::endl;
-#endif
-		return false;
-	}
+	//we set it to half of the available graphics memory, to reserve some space for kernels/video calculations
+	return msg.getContent(1) / 2;
 }
 
 /*
@@ -271,21 +194,8 @@ int Mailbox::mailboxCall(void *buffer) const
 
 bool Mailbox::enableQPU(bool enable) const
 {
-	std::size_t i=0;
-	std::array<unsigned, 32> p{};
-
-	p.at(i++) = 0; // size
-	p.at(i++) = 0x00000000; // process request
-
-	p.at(i++) = 0x30012; // (the tag id)
-	p.at(i++) = 4; // (size of the buffer)
-	p.at(i++) = 4; // (size of the data)
-	p.at(i++) = enable;
-
-	p.at(i++) = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
-
-	if(mailboxCall(p.data()) < 0)
+	QueryMessage<MailboxTag::ENABLE_QPU> msg({static_cast<unsigned>(enable)});
+	if(mailboxCall(msg.buffer.data()) < 0)
 		return false;
 	/*
 	 * If the mailbox is already running/being used, 0x80000000 is returned (see #16).
@@ -293,89 +203,59 @@ bool Mailbox::enableQPU(bool enable) const
 	 * which hints to some kind of reference-counter within the VC4 hard-/firmware
 	 * only returning 0 for the first open/last close and 0x80000000 otherwise.
 	 */
-	return p[5] == 0 || p[5] == 0x80000000;
+	return msg.getContent(0) == 0 || msg.getContent(0) == 0x80000000;
 }
 
 unsigned Mailbox::memAlloc(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags) const
 {
-	std::size_t i=0;
-	std::array<unsigned, 32> p{};
-	p.at(i++) = 0; // size
-	p.at(i++) = 0x00000000; // process request
-
-	p.at(i++) = 0x3000c; // (the tag id)
-	p.at(i++) = 12; // (size of the buffer)
-	p.at(i++) = 12; // (size of the data)
-	p.at(i++) = sizeInBytes; // (num bytes? or pages?)
-	p.at(i++) = alignmentInBytes; // (alignment)
-	p.at(i++) = flags; // (MEM_FLAG_L1_NONALLOCATING)
-
-	p.at(i++) = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
-
-	if(mailboxCall(p.data()) < 0)
+	MailboxMessage<MailboxTag::ALLOCATE_MEMORY, 3, 1> msg({sizeInBytes, alignmentInBytes, flags});
+	if(mailboxCall(msg.buffer.data()) < 0)
 		return 0;
-	return p[5];
+	return msg.getContent(0);
 }
 
 DevicePointer Mailbox::memLock(unsigned handle) const
 {
-	std::size_t i=0;
-	std::array<unsigned, 32> p{};
-	p.at(i++) = 0; // size
-	p.at(i++) = 0x00000000; // process request
-
-	p.at(i++) = 0x3000d; // (the tag id)
-	p.at(i++) = 4; // (size of the buffer)
-	p.at(i++) = 4; // (size of the data)
-	p.at(i++) = handle;
-
-	p.at(i++) = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
-
-	if(mailboxCall(p.data()) < 0)
+	QueryMessage<MailboxTag::LOCK_MEMORY> msg({handle});
+	if(mailboxCall(msg.buffer.data()) < 0)
 	   return DevicePointer(0);
-	return DevicePointer(p[5]);
+	return DevicePointer(msg.getContent(0));
 }
 
 bool Mailbox::memUnlock(unsigned handle) const
 {
-	std::size_t i=0;
-	std::array<unsigned, 32> p{};
-	p.at(i++) = 0; // size
-	p.at(i++) = 0x00000000; // process request
-
-	p.at(i++) = 0x3000e; // (the tag id)
-	p.at(i++) = 4; // (size of the buffer)
-	p.at(i++) = 4; // (size of the data)
-	p.at(i++) = handle;
-
-	p.at(i++) = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
-
-	if(mailboxCall(p.data()) < 0)
+	QueryMessage<MailboxTag::UNLOCK_MEMORY> msg({handle});
+	if(mailboxCall(msg.buffer.data()) < 0)
 		return false;
-	return p[5] == 0;
+	return msg.getContent(0) == 0;
 }
 
 bool Mailbox::memFree(unsigned handle) const
 {
-	std::size_t i=0;
-	std::array<unsigned, 32> p{};
-	p.at(i++) = 0; // size
-	p.at(i++) = 0x00000000; // process request
-
-	p.at(i++) = 0x3000f; // (the tag id)
-	p.at(i++) = 4; // (size of the buffer)
-	p.at(i++) = 4; // (size of the data)
-	p.at(i++) = handle;
-
-	p.at(i++) = 0x00000000; // end tag
-	p[0] = i * static_cast<unsigned>(sizeof(unsigned)); // actual size
-
-	if(mailboxCall(p.data()) < 0)
+	QueryMessage<MailboxTag::RELEASE_MEMORY> msg({handle});
+	if(mailboxCall(msg.buffer.data()) < 0)
 		return false;
-	return p[5] == 0;
+	return msg.getContent(0) == 0;
+}
+
+CHECK_RETURN bool Mailbox::checkReturnValue(unsigned value) const
+{
+	if(value >> 31)	//0x8000000x
+	{
+		//0x80000000 on success
+		//0x80000001 on failure
+#ifdef DEBUG_MODE
+		std::cout << "[VC4CL] Mailbox request: " << ((value & 0x1) ? "failed" : "succeeded") << std::endl;
+#endif
+		return value  == 0x80000000;
+	}
+	else
+	{
+#ifdef DEBUG_MODE
+		std::cout << "[VC4CL] Unknown return code: " << value << std::endl;
+#endif
+		return false;
+	}
 }
 
 static std::unique_ptr<Mailbox> mb;

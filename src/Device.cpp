@@ -97,10 +97,10 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 		case CL_DEVICE_MAX_CLOCK_FREQUENCY:
 		{
 			//"Maximum configured clock frequency of the device in MHz."
-			std::vector<uint32_t> result;
-			if(!mailbox().readMailbox(MailboxTag::GET_MAX_CLOCK_RATE, 2, std::vector<uint32_t>{static_cast<uint32_t>(VC4Clock::V3D)}, result))
+			QueryMessage<MailboxTag::GET_MAX_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::V3D)});
+			if(!mailbox().readMailboxMessage(msg))
 				return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Error reading mailbox-info V3D max clock rate!");
-			return returnValue<cl_uint>(result.at(1) / 1000000 /* clock rate is in Hz -> MHz */, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_uint>(msg.getContent(1) / 1000000 /* clock rate is in Hz -> MHz */, param_value_size, param_value, param_value_size_ret);
 		}
 		case CL_DEVICE_ADDRESS_BITS:
 			//"The default compute device address space size specified as an unsigned integer value in bits.
@@ -309,12 +309,11 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 		{
 			//cl_altera_device_temperature - https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_device_temperature.txt
 			//"The core die temperature of the device, in degrees Celsius. If the device does not support the query, the result will default to 0."
-			const uint32_t tempID = 0;
-			std::vector<uint32_t> result;
+			QueryMessage<MailboxTag::GET_TEMPERATURE> msg({0});
 			//"Return the temperature of the SoC in thousandths of a degree C. id should be zero."
-			if(!mailbox().readMailbox(MailboxTag::GET_TEMPERATURE, 2, std::vector<uint32_t>{tempID}, result))
+			if(!mailbox().readMailboxMessage(msg))
 				return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Error reading mailbox-info device temperature!");
-			return returnValue<cl_int>(result.at(0) / 1000, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_int>(msg.getContent(1) / 1000, param_value_size, param_value, param_value_size_ret);
 		}
 		default:
 			//invalid parameter-name
