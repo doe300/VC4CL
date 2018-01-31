@@ -160,6 +160,9 @@ cl_int executeKernel(Event* event)
 				//we need to initialize the local memory to zero
 				memset(localBuffers.at(i)->hostPointer, '\0', arg.sizeToAllocate);
 			}
+#ifdef DEBUG_MODE
+			std::cout << "[VC4CL] Reserved " << arg.sizeToAllocate << " bytes of buffer for local parameter: " << kernel->info.params.at(i).type << " " << kernel->info.params.at(i).name << std::endl;
+#endif
 		}
 	}
 
@@ -319,7 +322,6 @@ cl_int executeKernel(Event* event)
 		std::cout << "[VC4CL] Running work-group " << group_indices[0] << ", " << group_indices[1] << ", " << group_indices[2] << std::endl;
 #endif
 		//all following executions, don't flush cache
-		//TODO test effect of turning on/off cache flush
 		result = executeQPU(static_cast<unsigned>(num_qpus), std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), false, KERNEL_TIMEOUT);
 #ifdef DEBUG_MODE
 		std::cout << "[VC4CL] Execution: " << (result ? "successful" : "failed") << std::endl;

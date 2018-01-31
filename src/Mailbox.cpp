@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <system_error>
@@ -48,7 +49,6 @@ using namespace vc4cl;
 #define MAJOR_NUM 100
 #define IOCTL_MBOX_PROPERTY _IOWR(MAJOR_NUM, 0, char *)
 #define DEVICE_FILE_NAME "/dev/vcio"
-#define GPU_MEM_MAP 0x0 // cached=0x0; direct=0x20000000
 
 DeviceBuffer::DeviceBuffer(uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size) : memHandle(handle), qpuPointer(devPtr), hostPointer(hostPtr), size(size)
 {
@@ -58,6 +58,16 @@ DeviceBuffer::~DeviceBuffer()
 {
 	if(memHandle != 0)
 		mailbox().deallocateBuffer(this);
+}
+
+void DeviceBuffer::dumpContent() const
+{
+	for (unsigned i=0; i < size/sizeof(unsigned); ++i)
+	{
+		if ((i % 8) == 0)
+			printf("\n[VC4CL] %08x:", static_cast<unsigned>(static_cast<unsigned>(qpuPointer) + i * sizeof(unsigned)));
+		printf(" %08x", reinterpret_cast<const unsigned*>(hostPointer)[i]);
+	}
 }
 
 static int mbox_open()
@@ -100,7 +110,7 @@ DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentIn
 	if(handle != 0)
 	{
 		DevicePointer qpuPointer = memLock(handle);
-		void* hostPointer = mapmem(V3D::busAddressToPhysicalAddress(static_cast<unsigned>(qpuPointer) + GPU_MEM_MAP), sizeInBytes);
+		void* hostPointer = mapmem(V3D::busAddressToPhysicalAddress(static_cast<unsigned>(qpuPointer)), sizeInBytes);
 #ifdef DEBUG_MODE
 		std::cout << "[VC4CL] Allocated " << sizeInBytes << " bytes of buffer: handle " << handle << ", device address " << qpuPointer << ", host address " << hostPointer << std::endl;
 #endif
@@ -258,13 +268,14 @@ CHECK_RETURN bool Mailbox::checkReturnValue(unsigned value) const
 	}
 }
 
+//to prevent race-conditions on initialization
+static std::once_flag mailboxInitialized;
 static std::unique_ptr<Mailbox> mb;
 
 Mailbox& vc4cl::mailbox()
 {
-	if(mb == nullptr)
-	{
+	std::call_once(mailboxInitialized, []() -> void {
 		mb.reset(new Mailbox());
-	}
+	});
 	return *mb;
 }

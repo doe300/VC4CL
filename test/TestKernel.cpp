@@ -79,8 +79,7 @@ void TestKernel::testSetKernelArg()
 {
     cl_char16 arg0;
     cl_int state = VC4CL_FUNC(clSetKernelArg)(kernel, 0, sizeof(arg0), &arg0);
-    //FIXME sometimes, this is CL_SUCCESS, sometimes CL_INVALID_ARG_SIZE
-    //TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    TEST_ASSERT_EQUALS(CL_INVALID_ARG_SIZE, state);
     
     state = VC4CL_FUNC(clSetKernelArg)(kernel, 0, sizeof(in_buffer), &in_buffer);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -118,9 +117,9 @@ void TestKernel::testGetKernelInfo()
     TEST_ASSERT_EQUALS(sizeof(cl_program), info_size);
     TEST_ASSERT_EQUALS(program, *reinterpret_cast<cl_program*>(buffer));
     
-    //XXX cannot yet be queried
-    //state = VC4CL_FUNC(clGetKernelInfo)(kernel, CL_KERNEL_ATTRIBUTES, 1024, buffer, &info_size);
-    //TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    state = VC4CL_FUNC(clGetKernelInfo)(kernel, CL_KERNEL_ATTRIBUTES, 1024, buffer, &info_size);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    TEST_ASSERT_EQUALS(std::string("reqd_work_group_size(1,1,1)"), buffer);
     
     state = VC4CL_FUNC(clGetKernelInfo)(kernel, 0xDEADBEAF, 1024, buffer, &info_size);
     TEST_ASSERT(state != CL_SUCCESS);
@@ -250,8 +249,10 @@ void TestKernel::testEnqueueNativeKernel()
 
 void TestKernel::testKernelResult()
 {
-    TEST_ASSERT_EQUALS(0, memcmp(input, toType<Buffer>(in_buffer)->deviceBuffer->hostPointer, sizeof(input)));
-    TEST_ASSERT_EQUALS(0, memcmp(input, toType<Buffer>(out_buffer)->deviceBuffer->hostPointer, sizeof(input)));
+	TEST_ASSERT_EQUALS(strlen(input), strlen(reinterpret_cast<const char*>(toType<Buffer>(in_buffer)->deviceBuffer->hostPointer)));
+	TEST_ASSERT_EQUALS(strlen(input), strlen(reinterpret_cast<const char*>(toType<Buffer>(out_buffer)->deviceBuffer->hostPointer)));
+	TEST_ASSERT_EQUALS(std::string(input), std::string(reinterpret_cast<const char*>(toType<Buffer>(in_buffer)->deviceBuffer->hostPointer), strlen(input)));
+	TEST_ASSERT_EQUALS(std::string(input), std::string(reinterpret_cast<const char*>(toType<Buffer>(out_buffer)->deviceBuffer->hostPointer), strlen(input)));
 #ifdef DEBUG_MODE
     char* buffer = reinterpret_cast<char*>(toType<Buffer>(in_buffer)->deviceBuffer->hostPointer);
     printf("[%s:%d] Input buffer: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c (%zu)\n", __FILE__, __LINE__, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15], strlen(buffer));

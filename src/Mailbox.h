@@ -90,6 +90,8 @@ namespace vc4cl
 
 		DeviceBuffer& operator=(const DeviceBuffer&) = delete;
 		DeviceBuffer& operator=(DeviceBuffer&&) = delete;
+
+		void dumpContent() const;
 	private:
 		DeviceBuffer(uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size);
 

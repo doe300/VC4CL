@@ -55,9 +55,9 @@ static void printUniforms(std::istream& in, std::ostream& out, unsigned globalDa
 			//is already read in while-loop
 			out << val << "\t\t//Work-dimensions" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t\tLocal sizes (" << (val & 0xFF) << ", " << ((val >> 8) & 0xFF) << ", " << ((val >> 16) & 0xFF) << ")" << std::endl;
+			out << val << "\t\t//Local sizes (" << (val & 0xFF) << ", " << ((val >> 8) & 0xFF) << ", " << ((val >> 16) & 0xFF) << ")" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t\tLocal IDs (" << (val & 0xFF) << ", " << ((val >> 8) & 0xFF) << ", " << ((val >> 16) & 0xFF) << ")" << std::endl;
+			out << val << "\t\t//Local IDs (" << (val & 0xFF) << ", " << ((val >> 8) & 0xFF) << ", " << ((val >> 16) & 0xFF) << ")" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
 			out << val << "\t\t//Num groups X" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
@@ -87,7 +87,7 @@ static void printUniforms(std::istream& in, std::ostream& out, unsigned globalDa
 				out << "0x" << std::hex << val << " (" << std::dec << val << ")" << std::endl;
 			}
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));
-			out << val << "\t//Work-group repeat flag (" << (val > 0 ? "repeat" : "end") << ")" << std::endl;
+			out << val << "\t\t//Work-group repeat flag (" << (val > 0 ? "repeat" : "end") << ")" << std::endl;
 
 			//read work-dimensions for next iteration
 			if(i + 1 < numIterations)
@@ -105,6 +105,7 @@ int main(int argc, char** argv)
 	if(argc != 2 || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0 )
 	{
 		std::cout << "Usage: vc4cl_dump_analyzer <input-file>" << std::endl;
+		return 0;
 	}
 #if HAS_COMPILER
 

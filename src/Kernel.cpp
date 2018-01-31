@@ -196,6 +196,14 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
 	return CL_SUCCESS;
 }
 
+static std::string buildAttributeString(const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& compileGroupSizes)
+{
+	if(compileGroupSizes.at(0) == 0)
+		//not set
+		return "";
+	return std::string("reqd_work_group_size(") + (std::to_string(compileGroupSizes.at(0)) + ",") + (std::to_string(compileGroupSizes.at(1)) + ",") + std::to_string(compileGroupSizes.at(2)) + ")";
+}
+
 cl_int Kernel::getInfo(cl_kernel_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
 	switch(param_name)
@@ -211,7 +219,8 @@ cl_int Kernel::getInfo(cl_kernel_info param_name, size_t param_value_size, void*
 		case CL_KERNEL_PROGRAM:
 			return returnValue<cl_program>(program->toBase(), param_value_size, param_value, param_value_size_ret);
 		case CL_KERNEL_ATTRIBUTES:
-			return CL_INVALID_VALUE;
+			//TODO other arbitrary attributes
+			return returnString(buildAttributeString(info.compileGroupSizes), param_value_size, param_value, param_value_size_ret);
 	}
 
 	return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_kernel_info value %d", param_name));

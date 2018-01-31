@@ -374,13 +374,14 @@ void TestExecutions::testWorkItems()
 void TestExecutions::testBarrier()
 {
 	const size_t numQPUs = 2;
+	const size_t numRounds = 2;
 	//setup
 	cl_int errcode = CL_SUCCESS;
 	cl_program program = nullptr;
 	buildProgram(&program, "./test/test_barrier.cl");
 	TEST_ASSERT(program != nullptr);
 
-	cl_mem outBuffer = VC4CL_FUNC(clCreateBuffer)(context, CL_MEM_HOST_READ_ONLY|CL_MEM_WRITE_ONLY, 12 * numQPUs * sizeof(cl_uint), nullptr, &errcode);
+	cl_mem outBuffer = VC4CL_FUNC(clCreateBuffer)(context, CL_MEM_HOST_READ_ONLY|CL_MEM_WRITE_ONLY, 12 * numRounds * numQPUs * sizeof(cl_uint), nullptr, &errcode);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 	TEST_ASSERT(outBuffer != nullptr);
 
@@ -392,15 +393,15 @@ void TestExecutions::testBarrier()
 
 	//execution
 	cl_event event = nullptr;
-	std::array<size_t, 3> globalSizes = {numQPUs, 0, 0};
-	errcode = VC4CL_FUNC(clEnqueueNDRangeKernel)(queue, kernel, 1, nullptr, globalSizes.data(), nullptr, 0, nullptr, &event);
+	std::array<size_t, 3> globalSizes = {numQPUs, numRounds, 0};
+	errcode = VC4CL_FUNC(clEnqueueNDRangeKernel)(queue, kernel, 2, nullptr, globalSizes.data(), nullptr, 0, nullptr, &event);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 	TEST_ASSERT(event != nullptr);
 	errcode = VC4CL_FUNC(clWaitForEvents)(1, &event);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 
 	//test
-	std::array<cl_uint, 12 * numQPUs> result;
+	std::array<cl_uint, 12 * numRounds * numQPUs> result;
 	errcode = VC4CL_FUNC(clEnqueueReadBuffer)(queue, outBuffer, CL_TRUE, 0, result.size() * sizeof(cl_uint), result.data(), 0, nullptr, nullptr);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 
@@ -416,6 +417,7 @@ void TestExecutions::testBarrier()
 	TEST_ASSERT_EQUALS(9u, result.at(9));
 	TEST_ASSERT_EQUALS(10u, result.at(10));
 
+	//FIXME results as of second work-item are wrong!
 	TEST_ASSERT_EQUALS(0u, result.at(12));
 	TEST_ASSERT_EQUALS(1u, result.at(13));
 	TEST_ASSERT_EQUALS(2u, result.at(14));
@@ -427,6 +429,30 @@ void TestExecutions::testBarrier()
 	TEST_ASSERT_EQUALS(8u, result.at(20));
 	TEST_ASSERT_EQUALS(9u, result.at(21));
 	TEST_ASSERT_EQUALS(10u, result.at(22));
+
+	TEST_ASSERT_EQUALS(0u, result.at(24));
+	TEST_ASSERT_EQUALS(1u, result.at(25));
+	TEST_ASSERT_EQUALS(2u, result.at(26));
+	//offset 3 is not set in kernel
+	TEST_ASSERT_EQUALS(4u, result.at(28));
+	TEST_ASSERT_EQUALS(5u, result.at(29));
+	TEST_ASSERT_EQUALS(6u, result.at(30));
+	TEST_ASSERT_EQUALS(7u, result.at(31));
+	TEST_ASSERT_EQUALS(8u, result.at(32));
+	TEST_ASSERT_EQUALS(9u, result.at(33));
+	TEST_ASSERT_EQUALS(10u, result.at(34));
+
+	TEST_ASSERT_EQUALS(0u, result.at(36));
+	TEST_ASSERT_EQUALS(1u, result.at(37));
+	TEST_ASSERT_EQUALS(2u, result.at(38));
+	//offset 3 is not set in kernel
+	TEST_ASSERT_EQUALS(4u, result.at(40));
+	TEST_ASSERT_EQUALS(5u, result.at(41));
+	TEST_ASSERT_EQUALS(6u, result.at(42));
+	TEST_ASSERT_EQUALS(7u, result.at(43));
+	TEST_ASSERT_EQUALS(8u, result.at(44));
+	TEST_ASSERT_EQUALS(9u, result.at(45));
+	TEST_ASSERT_EQUALS(10u, result.at(46));
 
 	//tear-down
 	errcode = VC4CL_FUNC(clReleaseEvent)(event);
