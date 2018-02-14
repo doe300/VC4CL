@@ -15,7 +15,7 @@
 using namespace vc4cl;
 
 static const char kernel_name[] = "hello_world";
-static const size_t work_size[vc4cl::kernel_config::NUM_DIMENSIONS] = {1, 2, 1}; //TODO {8, 8, 8};
+static const size_t work_size[vc4cl::kernel_config::NUM_DIMENSIONS] = {1, 2, 1};
 static std::string sourceCode;
 
 TestKernel::TestKernel() : context(nullptr), program(nullptr), queue(nullptr), in_buffer(nullptr), out_buffer(nullptr), kernel(nullptr)

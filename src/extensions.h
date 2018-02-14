@@ -15,15 +15,23 @@ extern "C"
 #endif
 
 	/*
-	 * Khronos Intermediate Language Programs (cl_khr_il_program)
-	 * https://www.khronos.org/registry/OpenCL/specs/opencl-2.0-extensions.pdf#page=165
+	 * Khronos SPIR Binaries (cl_khr_spir)
+	 * https://www.khronos.org/registry/OpenCL/specs/opencl-1.2-extensions.pdf#page=135
 	 *
-	 * Supports SPIR-V programs for OpenCL 2.1!!
+	 * "clCreateProgramWithBinary can be used to load a SPIR binary. Once a program object has been created from a SPIR binary,
+	 * clBuildProgram can be called to build a program executable or clCompileProgram can be called to compile the SPIR binary."
+	 */
+	//SPIRV-LLVM and "standard" CLang (4.0) support SPIR 1.2 (for OpenCL 1.2)
+#define SPIR_PREFIX "SPIR_"
+#define SPIR_VERSION "1.2"
+
+	/*
+	 * Khronos Intermediate Language Programs (cl_khr_il_program)
+	 * https://www.khronos.org/registry/OpenCL/specs/opencl-1.2-extensions.pdf#page=165
 	 */
 	//SPIR-V 1.2 is the currently latest SPIR-V version
 #define SPIRV_VERSION "SPIR-V_1.2"
-	//SPIRV-LLVM and "standard" CLang (4.0) support SPIR 1.2 (for OpenCL 1.2)
-#define SPIR_VERSION "SPIR_1.2"
+
 	//somehow, except in the OpenCL 2.0 extension specification, this extension, constant and the function added ("clCreateProgramWithILKHR") are nowhere to be found
 	//maybe due to the fact, that they are included in core OpenCL 2.1? -> anyway, define them with the values of the corresponding core-features in OpenCL 2.0
 	//with PR https://github.com/KhronosGroup/OpenCL-Headers/pull/24 they are added to the official OpenCL headers repository with the same values

@@ -141,17 +141,30 @@ namespace vc4cl
 	class Program: public Object<_cl_program, CL_INVALID_PROGRAM>, public HasContext
 	{
 	public:
-		Program(Context* context, const std::vector<char>& code, bool isBinary);
+		Program(Context* context, const std::vector<char>& code, CreationType type);
 		~Program() override;
 
 
+		/*
+		 * Compiles the program from OpenCL C source to intermediate representation (SPIR/LLVM IR, SPIR-V)
+		 */
 		CHECK_RETURN cl_int compile(const std::string& options, const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders, BuildCallback callback, void* userData);
-		CHECK_RETURN cl_int link(const std::string& options, BuildCallback callback, void* userData);
+		/*
+		 * Links the intermediate representation (if supported) and compiles to machine code
+		 */
+		CHECK_RETURN cl_int link(const std::string& options, BuildCallback callback, void* userData, const std::vector<Program*>& programs = {});
 		CHECK_RETURN cl_int getInfo(cl_program_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 		CHECK_RETURN cl_int getBuildInfo(cl_program_build_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 
 		//the program's source, OpenCL C-code or LLVM IR / SPIR-V
 		std::vector<char> sourceCode;
+		/*
+		 * the program's intermediate code (e.g. SPIR or SPIR-V)
+		 * This code is pre-compiled, but not yet linked or compiled to QPU code
+		 *
+		 * We choose single bytes, since we do not know the unit size of LLVM IR (SPIR-V hsa words of 32 bit)
+		 */
+		std::vector<uint8_t> intermediateCode;
 		//the machine-code, VC4C binary
 		std::vector<uint64_t> binaryCode;
 		//the global-data segment
@@ -167,6 +180,7 @@ namespace vc4cl
 
 		BuildStatus getBuildStatus() const;
 	private:
+		cl_int extractModuleInfo();
 		cl_int extractKernelInfo(cl_ulong** ptr);
 	};
 

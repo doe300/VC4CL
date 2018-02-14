@@ -21,14 +21,6 @@
 
 using namespace vc4cl;
 
-/*
- * TODO rewrite, so compile is OpenCL C -> SPIR-V/LLVM-IR and link is SPIR-V/LLVM-IR -> asm
- * + can use linker in SPIR-V Tools to support multiple input programs
- * + more accurate wrt meanings of compilation and linking
- * + can support extension cl_khr_spir
- * - need extra buffer for intermediate code
- */
-
 size_t KernelInfo::getExplicitUniformCount() const
 {
 	size_t count = 0;
@@ -37,28 +29,165 @@ size_t KernelInfo::getExplicitUniformCount() const
 	return count;
 }
 
-Program::Program(Context* context, const std::vector<char>& code, const bool isBinary) : HasContext(context), creationType(isBinary ? CreationType::BINARY : CreationType::SOURCE)
+Program::Program(Context* context, const std::vector<char>& code, CreationType type) : HasContext(context), creationType(type)
 {
-	if(isBinary)
+	switch(type)
 	{
-		binaryCode.resize(code.size() / sizeof(uint64_t), '\0');
-		memcpy(binaryCode.data(), code.data(), code.size());
+		case CreationType::SOURCE:
+			sourceCode = code;
+			break;
+		case CreationType::INTERMEDIATE_LANGUAGE:
+			intermediateCode.resize(code.size() / sizeof(uint8_t), '\0');
+			memcpy(intermediateCode.data(), code.data(), code.size());
+			break;
+		case CreationType::BINARY:
+			binaryCode.resize(code.size() / sizeof(uint64_t), '\0');
+			memcpy(binaryCode.data(), code.data(), code.size());
 	}
-	else
-		sourceCode = code;
 }
 
 Program::~Program()
 {
 }
 
+static cl_int extractLog(std::string& log, std::wstringstream& logStream)
+{
+	/*
+	 * this method is not supported by the Raspbian GCC:
+	 * std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> logConverter;
+	 * program->buildInfo.log = logConverter.to_bytes(logStream.str());
+	 */
+	//"POSIX specifies a common extension: if dst is a null pointer, this function returns the number of bytes that would be written to dst, if converted."
+	std::size_t numCharacters = std::wcstombs(nullptr, logStream.str().data(), SIZE_MAX);
+	//"On conversion error (if invalid wide character was encountered), returns static_cast<std::size_t>(-1)."
+	if(numCharacters == static_cast<std::size_t>(-1))
+		return returnError(CL_BUILD_ERROR, __FILE__, __LINE__, "Invalid character sequence in build-log");
+	else
+	{
+		std::vector<char> logTmp(numCharacters + 1 /* \0 byte */);
+		numCharacters = std::wcstombs(logTmp.data(), logStream.str().data(), numCharacters);
+		log = std::string(logTmp.data(), numCharacters);
+	}
+
+	return CL_SUCCESS;
+}
+
 #if HAS_COMPILER
-static cl_int compile_program(Program* program, const std::string& options, const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders)
+static cl_int precompile_program(Program* program, const std::string& options, const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders)
 {
 	std::istringstream sourceCode;
 	sourceCode.str(std::string(program->sourceCode.data(), program->sourceCode.size()));
 
 	vc4c::SourceType sourceType = vc4c::Precompiler::getSourceType(sourceCode);
+	if(sourceType == vc4c::SourceType::UNKNOWN || sourceType == vc4c::SourceType::QPUASM_BIN || sourceType == vc4c::SourceType::QPUASM_HEX)
+		return returnError(CL_COMPILE_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Invalid source-code type %d", sourceType));
+
+	vc4c::Configuration config;
+
+	program->buildInfo.options = options;
+#ifdef DEBUG_MODE
+	std::cout << "[VC4CL] Precompiling source with: "<< program->buildInfo.options << std::endl;
+#endif
+
+	std::wstringstream logStream;
+	try
+	{
+		vc4c::setLogger(logStream, false, vc4c::LogLevel::WARNING);
+		//create temporary files for embedded headers and include their paths
+		std::vector<vc4c::TemporaryFile> tempHeaderFiles;
+		std::string tempHeaderIncludes;
+		for(const auto& pair : embeddedHeaders)
+		{
+			//TODO sub-folders
+			tempHeaderFiles.emplace_back(std::string("/tmp/") + pair.first, pair.second->sourceCode);
+		}
+		if(!tempHeaderFiles.empty())
+			tempHeaderIncludes = " -I /tmp/ ";
+
+		vc4c::TemporaryFile tmpFile;
+		std::unique_ptr<std::istream> out;
+		vc4c::Precompiler::precompile(sourceCode, out, config, tempHeaderIncludes + options, {}, tmpFile.fileName);
+		if(out == nullptr || (dynamic_cast<std::istringstream*>(out.get()) != nullptr && dynamic_cast<std::istringstream*>(out.get())->str().empty()))
+			//replace only when pre-compiled (and not just linked output to input, e.g. if source-type is output-type)
+			tmpFile.openInputStream(out);
+
+		program->buildInfo.status = CL_SUCCESS;
+
+		uint8_t tmp;
+		while(out->read(reinterpret_cast<char*>(&tmp), sizeof(uint8_t)))
+			program->intermediateCode.push_back(tmp);
+	}
+	catch(vc4c::CompilationError& e)
+	{
+#ifdef DEBUG_MODE
+		std::cout << "[VC4CL] Compilation error: " << e.what() << std::endl;
+#endif
+		program->buildInfo.status = CL_BUILD_ERROR;
+	}
+	//copy log whether build failed or not
+	extractLog(program->buildInfo.log, logStream);
+
+#ifdef DEBUG_MODE
+	std::cout << "[VC4CL] Precompilation complete with status: " << program->buildInfo.status << std::endl;
+	if(!program->buildInfo.log.empty())
+		std::cout << "[VC4CL] Compilation log: " << program->buildInfo.log << std::endl;
+#endif
+
+	return program->buildInfo.status;
+}
+
+static cl_int link_programs(Program* program, const std::vector<Program*>& otherPrograms)
+{
+	if(otherPrograms.empty())
+		return CL_SUCCESS;
+
+	std::wstringstream logStream;
+	try
+	{
+		vc4c::setLogger(logStream, false, vc4c::LogLevel::WARNING);
+
+		std::stringstream linkedCode;
+		std::unordered_map<std::istream*, vc4c::Optional<std::string>> inputModules;
+		std::vector<std::unique_ptr<std::istream>> streamsBuffer;
+		streamsBuffer.reserve(1 + otherPrograms.size());
+		streamsBuffer.emplace_back(new std::stringstream(std::string(reinterpret_cast<const char*>(program->intermediateCode.data()), program->intermediateCode.size())));
+		inputModules.emplace(streamsBuffer.back().get(), vc4c::Optional<std::string>{});
+		for(const Program* p : otherPrograms)
+		{
+			streamsBuffer.emplace_back(new std::stringstream(std::string(reinterpret_cast<const char*>(p->intermediateCode.data()), p->intermediateCode.size())));
+			inputModules.emplace(streamsBuffer.back().get(), vc4c::Optional<std::string>{});
+		}
+		vc4c::Precompiler::linkSourceCode(inputModules, linkedCode);
+		program->intermediateCode.clear();
+		uint8_t tmp;
+		while(linkedCode.read(reinterpret_cast<char*>(&tmp), sizeof(uint8_t)))
+			program->intermediateCode.push_back(tmp);
+	}
+	catch(vc4c::CompilationError& e)
+	{
+#ifdef DEBUG_MODE
+		std::cout << "[VC4CL] Compilation error: " << e.what() << std::endl;
+#endif
+		program->buildInfo.status = CL_BUILD_ERROR;
+	}
+	//copy log whether build failed or not
+	extractLog(program->buildInfo.log, logStream);
+
+#ifdef DEBUG_MODE
+	std::cout << "[VC4CL] Linking complete with status: " << program->buildInfo.status << std::endl;
+	if(!program->buildInfo.log.empty())
+		std::cout << "[VC4CL] Compilation log: " << program->buildInfo.log << std::endl;
+#endif
+
+	return program->buildInfo.status == CL_BUILD_ERROR ? CL_BUILD_ERROR : CL_SUCCESS;
+}
+
+static cl_int compile_program(Program* program, const std::string& options)
+{
+	std::stringstream intermediateCode;
+	intermediateCode.write(reinterpret_cast<char*>(program->intermediateCode.data()), program->intermediateCode.size());
+
+	vc4c::SourceType sourceType = vc4c::Precompiler::getSourceType(intermediateCode);
 	if(sourceType == vc4c::SourceType::UNKNOWN || sourceType == vc4c::SourceType::QPUASM_BIN || sourceType == vc4c::SourceType::QPUASM_HEX)
 		return returnError(CL_COMPILE_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Invalid source-code type %d", sourceType));
 
@@ -79,24 +208,13 @@ static cl_int compile_program(Program* program, const std::string& options, cons
 	try
 	{
 		vc4c::setLogger(logStream, false, vc4c::LogLevel::WARNING);
-		//create temporary files for embedded headers and include their paths
-		std::vector<vc4c::TemporaryFile> tempHeaderFiles;
-		std::string tempHeaderIncludes;
-		for(const auto& pair : embeddedHeaders)
-		{
-			//TODO sub-folders
-			tempHeaderFiles.emplace_back(std::string("/tmp/") + pair.first, pair.second->sourceCode);
-		}
-		if(!tempHeaderFiles.empty())
-			tempHeaderIncludes = " -I /tmp/ ";
 
 		std::stringstream binaryCode;
-		std::size_t numBytes = vc4c::Compiler::compile(sourceCode, binaryCode, config, tempHeaderIncludes + options);
+		std::size_t numBytes = vc4c::Compiler::compile(intermediateCode, binaryCode, config, options);
 		program->buildInfo.status = CL_SUCCESS;
 		program->binaryCode.resize(numBytes / sizeof(uint64_t), '\0');
 
 		memcpy(program->binaryCode.data(), binaryCode.str().data(), numBytes);
-
 	}
 	catch(vc4c::CompilationError& e)
 	{
@@ -106,22 +224,7 @@ static cl_int compile_program(Program* program, const std::string& options, cons
 		program->buildInfo.status = CL_BUILD_ERROR;
 	}
 	//copy log whether build failed or not
-	/*
-	 * this method is not supported by the Raspbian GCC:
-	 * std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> logConverter;
-	 * program->buildInfo.log = logConverter.to_bytes(logStream.str());
-	 */
-	//"POSIX specifies a common extension: if dst is a null pointer, this function returns the number of bytes that would be written to dst, if converted."
-	std::size_t numCharacters = std::wcstombs(nullptr, logStream.str().data(), SIZE_MAX);
-	//"On conversion error (if invalid wide character was encountered), returns static_cast<std::size_t>(-1)."
-	if(numCharacters == static_cast<std::size_t>(-1))
-		return returnError(CL_BUILD_ERROR, __FILE__, __LINE__, "Invalid character sequence in build-log");
-	else
-	{
-		std::vector<char> logTmp(numCharacters + 1 /* \0 byte */);
-		numCharacters = std::wcstombs(logTmp.data(), logStream.str().data(), numCharacters);
-		program->buildInfo.log = std::string(logTmp.data(), numCharacters);
-	}
+	extractLog(program->buildInfo.log, logStream);
 
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Compilation complete with status: " << program->buildInfo.status << std::endl;
@@ -131,6 +234,7 @@ static cl_int compile_program(Program* program, const std::string& options, cons
 
 	return program->buildInfo.status;
 }
+
 #endif
 
 cl_int Program::compile(const std::string& options, const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders, BuildCallback callback, void* userData)
@@ -138,11 +242,12 @@ cl_int Program::compile(const std::string& options, const std::unordered_map<std
 	if(sourceCode.empty())
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "There is no source code to compile!");
 	//if the program was already compiled, clear all results
+	intermediateCode.clear();
 	binaryCode.clear();
 	moduleInfo.kernelInfos.clear();
 #if HAS_COMPILER
 	buildInfo.status = CL_BUILD_IN_PROGRESS;
-	cl_int state = compile_program(this, options, embeddedHeaders);
+	cl_int state = precompile_program(this, options, embeddedHeaders);
 	if(callback != nullptr)
 		(callback)(toBase(), userData);
 #else
@@ -152,15 +257,151 @@ cl_int Program::compile(const std::string& options, const std::unordered_map<std
 	return state;
 }
 
-cl_int Program::link(const std::string& options, BuildCallback callback, void* userData)
+cl_int Program::link(const std::string& options, BuildCallback callback, void* userData, const std::vector<Program*>& programs)
 {
-	if(binaryCode.empty())
+	if(intermediateCode.empty())
 		//not yet compiled
 		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Program needs to be compiled first!");
 	//if the program was already compiled, clear all results
+	binaryCode.clear();
 	moduleInfo.kernelInfos.clear();
 
+	cl_int status = CL_SUCCESS;
+#if HAS_COMPILER
+	buildInfo.status = CL_BUILD_IN_PROGRESS;
+
+	//link and compile program(s)
+	status = link_programs(this, programs);
+
+	if(status == CL_SUCCESS)
+		status = compile_program(this, options);
+
 	// extract kernel-info
+	if(status == CL_SUCCESS)
+		status = extractModuleInfo();
+
+	if(callback != nullptr)
+		(callback)(toBase(), userData);
+#else
+	buildInfo.status = CL_BUILD_NONE;
+	status = CL_COMPILER_NOT_AVAILABLE;
+#endif
+	return status;
+}
+
+cl_int Program::getInfo(cl_program_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
+{
+	std::string kernelNames;
+	for(const KernelInfo& info : moduleInfo.kernelInfos)
+	{
+		kernelNames.append(info.name).append(";");
+	}
+	//remove last semicolon
+	kernelNames = kernelNames.substr(0, kernelNames.length() - 1);
+
+	switch(param_name)
+	{
+		case CL_PROGRAM_REFERENCE_COUNT:
+			return returnValue<cl_uint>(referenceCount, param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_CONTEXT:
+			return returnValue<cl_context>(context()->toBase(), param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_NUM_DEVICES:
+			return returnValue<cl_uint>(1, param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_DEVICES:
+			return returnValue<cl_device_id>(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_IL_KHR:
+			//"Returns the program IL for programs created with clCreateProgramWithILKHR"
+			if(creationType != CreationType::INTERMEDIATE_LANGUAGE)
+				//"[...] the memory pointed to by param_value will be unchanged and param_value_size_ret will be set to zero."
+				return returnValue(nullptr, 0, 0, param_value_size, param_value, param_value_size_ret);
+			return returnValue(intermediateCode.data(), sizeof(uint8_t), intermediateCode.size(), param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_SOURCE:
+			if(sourceCode.empty() || creationType != CreationType::SOURCE)
+				//"[..] a null string or the appropriate program source code is returned [...] "
+				return returnString("", param_value_size, param_value, param_value_size_ret);
+			return returnValue(sourceCode.data(), sizeof(char), sourceCode.size(), param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_BINARY_SIZES:
+			if(binaryCode.empty())
+				/*
+				 * "[...] could be an executable binary, compiled binary or library binary [...]"
+				 * Executable binaries are stored in binaryData, compiled binaries in intermediateCode
+				 */
+				return returnValue<size_t>(intermediateCode.size() * sizeof(uint8_t), param_value_size, param_value, param_value_size_ret);
+			return returnValue<size_t>(binaryCode.size() * sizeof(uint64_t), param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_BINARIES:
+			//"param_value points to an array of n pointers allocated by the caller, where n is the number of devices associated with program. "
+			if(binaryCode.empty())
+			{
+				/*
+				 * "[...] could be an executable binary, compiled binary or library binary [...]"
+				 * Executable binaries are stored in binaryData, compiled binaries in intermediateCode
+				 */
+				if(intermediateCode.empty())
+					return returnValue(nullptr, 0, 0, param_value_size, param_value, param_value_size_ret);
+				return returnValue(intermediateCode.data(), sizeof(uint8_t), intermediateCode.size(), param_value_size, param_value, param_value_size_ret);
+			}
+			return returnValue(binaryCode.data(), sizeof(uint64_t), binaryCode.size(), param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_NUM_KERNELS:
+			if(moduleInfo.kernelInfos.empty())
+				return CL_INVALID_PROGRAM_EXECUTABLE;
+			return returnValue<size_t>(moduleInfo.kernelInfos.size(), param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_KERNEL_NAMES:
+			if(moduleInfo.kernelInfos.empty())
+				return CL_INVALID_PROGRAM_EXECUTABLE;
+			return returnString(kernelNames, param_value_size, param_value, param_value_size_ret);
+	}
+
+	return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_program_info value %d", param_name));
+}
+
+cl_int Program::getBuildInfo(cl_program_build_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
+{
+	switch(param_name)
+	{
+		case CL_PROGRAM_BUILD_STATUS:
+			if(binaryCode.empty())
+				return returnValue<cl_build_status>(CL_BUILD_NONE, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_build_status>(buildInfo.status, param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_BUILD_OPTIONS:
+			return returnString(buildInfo.options, param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_BUILD_LOG:
+			return returnString(buildInfo.log, param_value_size, param_value, param_value_size_ret);
+		case CL_PROGRAM_BINARY_TYPE:
+			//only the source-code is set
+			if(binaryCode.empty() && intermediateCode.empty())
+				return returnValue<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_NONE, param_value_size, param_value, param_value_size_ret);
+			//the intermediate code is set, but the final code is not -> not yet linked
+			//XXX for programs loaded via SPIR input (cl_khr_spir), need to return CL_PROGRAM_BINARY_TYPE_INTERMEDIATE here
+			if(binaryCode.empty())
+				return returnValue<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT, param_value_size, param_value, param_value_size_ret);
+			return returnValue<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_EXECUTABLE, param_value_size, param_value, param_value_size_ret);
+	}
+
+	return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_program_build_info value %d", param_name));
+}
+
+BuildStatus Program::getBuildStatus() const
+{
+	if(binaryCode.empty() && intermediateCode.empty())
+		return BuildStatus::NOT_BUILD;
+	if(binaryCode.empty())
+		return BuildStatus::COMPILED;
+	return BuildStatus::DONE;
+}
+
+static std::string readString(cl_ulong** ptr, cl_uint stringLength)
+{
+	const std::string s(reinterpret_cast<char*>(*ptr), stringLength);
+	*ptr += stringLength / 8;
+	if(stringLength % 8 != 0)
+	{
+		*ptr += 1;
+	}
+	return s;
+}
+
+cl_int Program::extractModuleInfo()
+{
 	cl_ulong* ptr = reinterpret_cast<cl_ulong*>(binaryCode.data());
 	//check and skip magic number
 	if(*reinterpret_cast<const cl_uint*>(ptr) != kernel_config::BINARY_MAGIC_NUMBER)
@@ -194,104 +435,7 @@ cl_int Program::link(const std::string& options, BuildCallback callback, void* u
 		std::copy(globalsPtr, globalsPtr + moduleInfo.getGlobalDataSize(), std::back_inserter(globalData));
 	}
 
-	if(callback != nullptr)
-		(callback)(toBase(), userData);
-
 	return CL_SUCCESS;
-}
-
-cl_int Program::getInfo(cl_program_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
-{
-	std::string kernelNames;
-	for(const KernelInfo& info : moduleInfo.kernelInfos)
-	{
-		kernelNames.append(info.name).append(";");
-	}
-	//remove last semicolon
-	kernelNames = kernelNames.substr(0, kernelNames.length() - 1);
-
-	switch(param_name)
-	{
-		case CL_PROGRAM_REFERENCE_COUNT:
-			return returnValue<cl_uint>(referenceCount, param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_CONTEXT:
-			return returnValue<cl_context>(context()->toBase(), param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_NUM_DEVICES:
-			return returnValue<cl_uint>(1, param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_DEVICES:
-			return returnValue<cl_device_id>(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_IL_KHR:
-			//"Returns the program IL for programs created with clCreateProgramWithILKHR"
-			if(creationType != CreationType::INTERMEDIATE_LANGUAGE)
-				//XXX "[...] the memory pointed to by param_value will be unchanged and param_value_size_ret will be set to zero."
-				return returnValue("", param_value_size, param_value, param_value_size_ret);
-			return returnValue(sourceCode.data(), sizeof(char), sourceCode.size(), param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_SOURCE:
-			if(sourceCode.empty() || creationType != CreationType::SOURCE)
-				return returnString("", param_value_size, param_value, param_value_size_ret);
-			return returnValue(sourceCode.data(), sizeof(char), sourceCode.size(), param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_BINARY_SIZES:
-			return returnValue<size_t>(binaryCode.size() * sizeof(uint64_t), param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_BINARIES:
-			//"param_value points to an array of n pointers allocated by the caller, where n is the number of devices associated with program. "
-			if(binaryCode.empty())
-				return returnValue(nullptr, 0, 0, param_value_size, param_value, param_value_size_ret);
-			return returnValue<unsigned char*>(reinterpret_cast<unsigned char*>(binaryCode.data()), param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_NUM_KERNELS:
-			if(moduleInfo.kernelInfos.empty())
-				return CL_INVALID_PROGRAM_EXECUTABLE;
-			return returnValue<size_t>(moduleInfo.kernelInfos.size(), param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_KERNEL_NAMES:
-			if(moduleInfo.kernelInfos.empty())
-				return CL_INVALID_PROGRAM_EXECUTABLE;
-			return returnString(kernelNames, param_value_size, param_value, param_value_size_ret);
-	}
-
-	return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_program_info value %d", param_name));
-}
-
-cl_int Program::getBuildInfo(cl_program_build_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
-{
-	switch(param_name)
-	{
-		case CL_PROGRAM_BUILD_STATUS:
-			if(binaryCode.empty())
-				return returnValue<cl_build_status>(CL_BUILD_NONE, param_value_size, param_value, param_value_size_ret);
-			return returnValue<cl_build_status>(buildInfo.status, param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_BUILD_OPTIONS:
-			return returnString(buildInfo.options, param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_BUILD_LOG:
-			return returnString(buildInfo.log, param_value_size, param_value, param_value_size_ret);
-		case CL_PROGRAM_BINARY_TYPE:
-			if(binaryCode.empty())
-				return returnValue<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_NONE, param_value_size, param_value, param_value_size_ret);
-			if(moduleInfo.kernelInfos.empty())
-				//not yet "linked"
-				return returnValue<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT, param_value_size, param_value, param_value_size_ret);
-			return returnValue<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_EXECUTABLE, param_value_size, param_value, param_value_size_ret);
-	}
-
-	return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_program_build_info value %d", param_name));
-}
-
-BuildStatus Program::getBuildStatus() const
-{
-	if(binaryCode.empty())
-		return BuildStatus::NOT_BUILD;
-	if(moduleInfo.kernelInfos.empty())
-		return BuildStatus::COMPILED;
-	return BuildStatus::DONE;
-}
-
-static std::string readString(cl_ulong** ptr, cl_uint stringLength)
-{
-	const std::string s(reinterpret_cast<char*>(*ptr), stringLength);
-	*ptr += stringLength / 8;
-	if(stringLength % 8 != 0)
-	{
-		*ptr += 1;
-	}
-	return s;
 }
 
 cl_int Program::extractKernelInfo(cl_ulong** ptr)
@@ -383,7 +527,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(cl_context context, cl_uint cou
 	}
 	sourceCode.push_back('\0');
 
-	Program* program = newOpenCLObject<Program>(toType<Context>(context), sourceCode, false);
+	Program* program = newOpenCLObject<Program>(toType<Context>(context), sourceCode, CreationType::SOURCE);
 	CHECK_ALLOCATION_ERROR_CODE(program, errcode_ret, cl_program)
 
 	RETURN_OBJECT(program->toBase(), errcode_ret)
@@ -417,7 +561,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* 
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "IL source has no length!");
 
 	const std::vector<char> buffer(static_cast<const char*>(il), static_cast<const char*>(il) + length);
-	Program* program = newOpenCLObject<Program>(toType<Context>(context), buffer, false);
+	Program* program = newOpenCLObject<Program>(toType<Context>(context), buffer, CreationType::INTERMEDIATE_LANGUAGE);
 	CHECK_ALLOCATION_ERROR_CODE(program, errcode_ret, cl_program)
 	program->creationType = CreationType::INTERMEDIATE_LANGUAGE;
 
@@ -493,17 +637,14 @@ cl_program VC4CL_FUNC(clCreateProgramWithBinary)(cl_context context, cl_uint num
 	if(lengths[0] == 0 || binaries[0] == nullptr)
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Empty binary data given!");
 
-	//"The program binary can consist of either or both:
-	// Device-specific code and/or,
-	// Implementation-specific intermediate representation (IR) which will be converted to the device-specific code."
-	// -> there is no implementation-specific IR, so only machine-code is supported
-
-	//check whether the argument is a "valid" QPU code
-	if(*reinterpret_cast<const cl_uint*>(binaries[0]) != kernel_config::BINARY_MAGIC_NUMBER)
-		return returnError<cl_program>(CL_INVALID_BINARY, errcode_ret, __FILE__, __LINE__, "Invalid binary data given, magic number does not match!");
-
+	/*
+	 * OpenCL 1.2 extension specification page 135 for cl_khr_spir states:
+	 * "clCreateProgramWithBinary can be used to load a SPIR binary."
+	 * -> so if the check for a valid QPU binary fails, assume SPIR binary
+	 */
+	bool isValidQPUCode = *reinterpret_cast<const cl_uint*>(binaries[0]) == kernel_config::BINARY_MAGIC_NUMBER;
 	const std::vector<char> buffer(binaries[0], binaries[0] + lengths[0]);
-	Program* program = newOpenCLObject<Program>(toType<Context>(context), buffer, true);
+	Program* program = newOpenCLObject<Program>(toType<Context>(context), buffer, isValidQPUCode ? CreationType::BINARY : CreationType::INTERMEDIATE_LANGUAGE);
 	CHECK_ALLOCATION_ERROR_CODE(program, errcode_ret, cl_program)
 
 	if(binary_status != nullptr)
@@ -636,9 +777,7 @@ cl_int VC4CL_FUNC(clBuildProgram)(cl_program program, cl_uint num_devices, const
 		//if the program was never build, compile. If it was already built once, re-compile
 		state = VC4CL_FUNC(clCompileProgram)(program, num_devices, device_list, options, 0, nullptr, nullptr, pfn_notify, user_data);
 	if(state != CL_SUCCESS)
-	{
 		return state;
-	}
 
 	VC4CL_FUNC(clLinkProgram)(toType<Program>(program)->context()->toBase(), num_devices, device_list, options, 1, &program, pfn_notify, user_data, &state);
 	return state;
@@ -787,11 +926,19 @@ cl_program VC4CL_FUNC(clLinkProgram)(cl_context context, cl_uint num_devices, co
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "No devices given!");
 	if(num_devices > 1 || (device_list != nullptr && device_list[0] != Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase()))
 		return returnError<cl_program>(CL_INVALID_DEVICE, errcode_ret, __FILE__, __LINE__, "Invalid device(s) given, only the VC4CL GPU device is supported!");
-	if(num_input_programs == 0 || input_programs == nullptr || num_input_programs > 1)
+	if(num_input_programs == 0 || input_programs == nullptr)
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Invalid input program");
 	cl_program program = input_programs[0];
 	CHECK_PROGRAM_ERROR_CODE(toType<Program>(program), errcode_ret, cl_program)
-	cl_int status = toType<Program>(program)->link(options == nullptr ? "" : options, pfn_notify, user_data);
+
+	std::vector<Program*> programs;
+	for(cl_uint i = 1; i < num_input_programs; ++i)
+	{
+		CHECK_PROGRAM_ERROR_CODE(toType<Program>(input_programs[i]), errcode_ret, cl_program)
+		programs.emplace_back(toType<Program>(input_programs[i]));
+	}
+
+	cl_int status = toType<Program>(program)->link(options == nullptr ? "" : options, pfn_notify, user_data, programs);
 
 	if(status != CL_SUCCESS)
 		return returnError<cl_program>(status, errcode_ret, __FILE__, __LINE__, "Linking failed!");

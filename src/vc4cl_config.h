@@ -35,6 +35,9 @@ namespace vc4cl
 		{
 				// supports SPIR-V code as input for programs (OpenCL 2.0 extension)
 				"cl_khr_il_program",
+				// supports SPIR (subset of LLVM IR) code as input for programs
+				// SPIR is supported by both supported LLVM version ("default" and SPIRV-LLVM)
+				"cl_khr_spir",
 				// supports querying the device temperature with clGetDeviceInfo
 				"cl_altera_device_temperature",
 				// supports additional functions to query all currently live OpenCL objects
