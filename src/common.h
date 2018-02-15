@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #if __cplusplus > 201402L
 #define CHECK_RETURN [[nodiscard]]
@@ -25,6 +26,7 @@ namespace vc4cl
 
 	CHECK_RETURN cl_int returnValue(const void* value, size_t value_size, size_t value_count, size_t output_size, void* output, size_t* output_size_ret);
 	CHECK_RETURN cl_int returnString(const std::string& string, size_t output_size, void* output, size_t* output_size_ret);
+	CHECK_RETURN cl_int returnBuffers(const std::vector<void*>& buffers, const std::vector<size_t>& sizes, size_t type_size, size_t output_size, void* output, size_t* output_size_ret);
 
 	template<typename T>
 	CHECK_RETURN typename std::enable_if<std::is_arithmetic<T>::value | std::is_pointer<T>::value, cl_int>::type

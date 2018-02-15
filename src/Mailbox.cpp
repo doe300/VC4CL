@@ -168,8 +168,7 @@ uint32_t Mailbox::getTotalGPUMemory() const
 	SimpleQueryMessage<MailboxTag::VC_MEMORY> msg;
 	if(!readMailboxMessage(msg))
 		return 0;
-	//we set it to half of the available graphics memory, to reserve some space for kernels/video calculations
-	return msg.getContent(1) / 2;
+	return msg.getContent(1);
 }
 
 /*

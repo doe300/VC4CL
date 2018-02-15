@@ -89,6 +89,7 @@ static cl_int precompile_program(Program* program, const std::string& options, c
 	std::cout << "[VC4CL] Precompiling source with: "<< program->buildInfo.options << std::endl;
 #endif
 
+	cl_int status = CL_SUCCESS;
 	std::wstringstream logStream;
 	try
 	{
@@ -111,8 +112,6 @@ static cl_int precompile_program(Program* program, const std::string& options, c
 			//replace only when pre-compiled (and not just linked output to input, e.g. if source-type is output-type)
 			tmpFile.openInputStream(out);
 
-		program->buildInfo.status = CL_SUCCESS;
-
 		uint8_t tmp;
 		while(out->read(reinterpret_cast<char*>(&tmp), sizeof(uint8_t)))
 			program->intermediateCode.push_back(tmp);
@@ -122,18 +121,18 @@ static cl_int precompile_program(Program* program, const std::string& options, c
 #ifdef DEBUG_MODE
 		std::cout << "[VC4CL] Compilation error: " << e.what() << std::endl;
 #endif
-		program->buildInfo.status = CL_BUILD_ERROR;
+		status = CL_COMPILE_PROGRAM_FAILURE;
 	}
 	//copy log whether build failed or not
 	extractLog(program->buildInfo.log, logStream);
 
 #ifdef DEBUG_MODE
-	std::cout << "[VC4CL] Precompilation complete with status: " << program->buildInfo.status << std::endl;
+	std::cout << "[VC4CL] Precompilation complete with status: " << status << std::endl;
 	if(!program->buildInfo.log.empty())
 		std::cout << "[VC4CL] Compilation log: " << program->buildInfo.log << std::endl;
 #endif
 
-	return program->buildInfo.status;
+	return status;
 }
 
 static cl_int link_programs(Program* program, const std::vector<Program*>& otherPrograms)
@@ -141,6 +140,7 @@ static cl_int link_programs(Program* program, const std::vector<Program*>& other
 	if(otherPrograms.empty())
 		return CL_SUCCESS;
 
+	cl_int status = CL_SUCCESS;
 	std::wstringstream logStream;
 	try
 	{
@@ -150,12 +150,18 @@ static cl_int link_programs(Program* program, const std::vector<Program*>& other
 		std::unordered_map<std::istream*, vc4c::Optional<std::string>> inputModules;
 		std::vector<std::unique_ptr<std::istream>> streamsBuffer;
 		streamsBuffer.reserve(1 + otherPrograms.size());
-		streamsBuffer.emplace_back(new std::stringstream(std::string(reinterpret_cast<const char*>(program->intermediateCode.data()), program->intermediateCode.size())));
-		inputModules.emplace(streamsBuffer.back().get(), vc4c::Optional<std::string>{});
+		if(!program->intermediateCode.empty())
+		{
+			streamsBuffer.emplace_back(new std::stringstream(std::string(reinterpret_cast<const char*>(program->intermediateCode.data()), program->intermediateCode.size())));
+			inputModules.emplace(streamsBuffer.back().get(), vc4c::Optional<std::string>{});
+		}
 		for(const Program* p : otherPrograms)
 		{
-			streamsBuffer.emplace_back(new std::stringstream(std::string(reinterpret_cast<const char*>(p->intermediateCode.data()), p->intermediateCode.size())));
-			inputModules.emplace(streamsBuffer.back().get(), vc4c::Optional<std::string>{});
+			if(p != nullptr && !p->intermediateCode.empty())
+			{
+				streamsBuffer.emplace_back(new std::stringstream(std::string(reinterpret_cast<const char*>(p->intermediateCode.data()), p->intermediateCode.size())));
+				inputModules.emplace(streamsBuffer.back().get(), vc4c::Optional<std::string>{});
+			}
 		}
 		vc4c::Precompiler::linkSourceCode(inputModules, linkedCode);
 		program->intermediateCode.clear();
@@ -168,18 +174,18 @@ static cl_int link_programs(Program* program, const std::vector<Program*>& other
 #ifdef DEBUG_MODE
 		std::cout << "[VC4CL] Compilation error: " << e.what() << std::endl;
 #endif
-		program->buildInfo.status = CL_BUILD_ERROR;
+		status = CL_LINK_PROGRAM_FAILURE;
 	}
 	//copy log whether build failed or not
 	extractLog(program->buildInfo.log, logStream);
 
 #ifdef DEBUG_MODE
-	std::cout << "[VC4CL] Linking complete with status: " << program->buildInfo.status << std::endl;
+	std::cout << "[VC4CL] Linking complete with status: " << status << std::endl;
 	if(!program->buildInfo.log.empty())
 		std::cout << "[VC4CL] Compilation log: " << program->buildInfo.log << std::endl;
 #endif
 
-	return program->buildInfo.status == CL_BUILD_ERROR ? CL_BUILD_ERROR : CL_SUCCESS;
+	return status;
 }
 
 static cl_int compile_program(Program* program, const std::string& options)
@@ -189,7 +195,7 @@ static cl_int compile_program(Program* program, const std::string& options)
 
 	vc4c::SourceType sourceType = vc4c::Precompiler::getSourceType(intermediateCode);
 	if(sourceType == vc4c::SourceType::UNKNOWN || sourceType == vc4c::SourceType::QPUASM_BIN || sourceType == vc4c::SourceType::QPUASM_HEX)
-		return returnError(CL_COMPILE_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Invalid source-code type %d", sourceType));
+		return returnError(CL_BUILD_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Invalid source-code type %d", sourceType));
 
 	vc4c::Configuration config;
 	//set the configuration for the available VPM size
@@ -204,6 +210,7 @@ static cl_int compile_program(Program* program, const std::string& options)
 	std::cout << "[VC4CL] Compiling source with: "<< program->buildInfo.options << std::endl;
 #endif
 
+	cl_int status = CL_SUCCESS;
 	std::wstringstream logStream;
 	try
 	{
@@ -211,7 +218,6 @@ static cl_int compile_program(Program* program, const std::string& options)
 
 		std::stringstream binaryCode;
 		std::size_t numBytes = vc4c::Compiler::compile(intermediateCode, binaryCode, config, options);
-		program->buildInfo.status = CL_SUCCESS;
 		program->binaryCode.resize(numBytes / sizeof(uint64_t), '\0');
 
 		memcpy(program->binaryCode.data(), binaryCode.str().data(), numBytes);
@@ -221,18 +227,18 @@ static cl_int compile_program(Program* program, const std::string& options)
 #ifdef DEBUG_MODE
 		std::cout << "[VC4CL] Compilation error: " << e.what() << std::endl;
 #endif
-		program->buildInfo.status = CL_BUILD_ERROR;
+		status = CL_BUILD_PROGRAM_FAILURE;
 	}
 	//copy log whether build failed or not
 	extractLog(program->buildInfo.log, logStream);
 
 #ifdef DEBUG_MODE
-	std::cout << "[VC4CL] Compilation complete with status: " << program->buildInfo.status << std::endl;
+	std::cout << "[VC4CL] Compilation complete with status: " << status << std::endl;
 	if(!program->buildInfo.log.empty())
 		std::cout << "[VC4CL] Compilation log: " << program->buildInfo.log << std::endl;
 #endif
 
-	return program->buildInfo.status;
+	return status;
 }
 
 #endif
@@ -246,7 +252,6 @@ cl_int Program::compile(const std::string& options, const std::unordered_map<std
 	binaryCode.clear();
 	moduleInfo.kernelInfos.clear();
 #if HAS_COMPILER
-	buildInfo.status = CL_BUILD_IN_PROGRESS;
 	cl_int state = precompile_program(this, options, embeddedHeaders);
 	if(callback != nullptr)
 		(callback)(toBase(), userData);
@@ -259,26 +264,29 @@ cl_int Program::compile(const std::string& options, const std::unordered_map<std
 
 cl_int Program::link(const std::string& options, BuildCallback callback, void* userData, const std::vector<Program*>& programs)
 {
-	if(intermediateCode.empty())
-		//not yet compiled
-		return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Program needs to be compiled first!");
-	//if the program was already compiled, clear all results
-	binaryCode.clear();
-	moduleInfo.kernelInfos.clear();
-
-	cl_int status = CL_SUCCESS;
 #if HAS_COMPILER
-	buildInfo.status = CL_BUILD_IN_PROGRESS;
+	cl_int status = CL_SUCCESS;
+	if(binaryCode.empty())
+	{
+		//the actual link step
+		if(intermediateCode.empty() && programs.empty())
+			//not yet compiled. Don't check, if the other programs have intermediate code (this is the output-program for linking)
+			return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Program needs to be compiled first!");
 
-	//link and compile program(s)
-	status = link_programs(this, programs);
+		//link and compile program(s)
+		status = link_programs(this, programs);
 
-	if(status == CL_SUCCESS)
-		status = compile_program(this, options);
+		if(status == CL_SUCCESS)
+			status = compile_program(this, options);
+	}
 
 	// extract kernel-info
 	if(status == CL_SUCCESS)
+	{
+		//if the program was already compiled, clear all results
+		moduleInfo.kernelInfos.clear();
 		status = extractModuleInfo();
+	}
 
 	if(callback != nullptr)
 		(callback)(toBase(), userData);
@@ -338,9 +346,9 @@ cl_int Program::getInfo(cl_program_info param_name, size_t param_value_size, voi
 				 */
 				if(intermediateCode.empty())
 					return returnValue(nullptr, 0, 0, param_value_size, param_value, param_value_size_ret);
-				return returnValue(intermediateCode.data(), sizeof(uint8_t), intermediateCode.size(), param_value_size, param_value, param_value_size_ret);
+				return returnBuffers({intermediateCode.data()}, {intermediateCode.size()* sizeof(uint8_t)}, sizeof(unsigned char*), param_value_size, param_value, param_value_size_ret);
 			}
-			return returnValue(binaryCode.data(), sizeof(uint64_t), binaryCode.size(), param_value_size, param_value, param_value_size_ret);
+			return returnBuffers({reinterpret_cast<uint8_t*>(binaryCode.data())}, {binaryCode.size() * sizeof(uint64_t)}, sizeof(unsigned char*), param_value_size, param_value, param_value_size_ret);
 		case CL_PROGRAM_NUM_KERNELS:
 			if(moduleInfo.kernelInfos.empty())
 				return CL_INVALID_PROGRAM_EXECUTABLE;
@@ -422,11 +430,8 @@ cl_int Program::extractModuleInfo()
 	}
 
 	if(moduleInfo.kernelInfos.empty())
-	{
 		//no kernel meta-data was found!
-		buildInfo.status = CL_BUILD_ERROR;
 		return returnError(CL_INVALID_PROGRAM, __FILE__, __LINE__, "No kernel offset found!");
-	}
 
 	if(moduleInfo.getGlobalDataSize() > 0)
 	{
@@ -563,7 +568,6 @@ cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* 
 	const std::vector<char> buffer(static_cast<const char*>(il), static_cast<const char*>(il) + length);
 	Program* program = newOpenCLObject<Program>(toType<Context>(context), buffer, CreationType::INTERMEDIATE_LANGUAGE);
 	CHECK_ALLOCATION_ERROR_CODE(program, errcode_ret, cl_program)
-	program->creationType = CreationType::INTERMEDIATE_LANGUAGE;
 
 	RETURN_OBJECT(program->toBase(), errcode_ret)
 }
@@ -772,14 +776,34 @@ cl_int VC4CL_FUNC(clReleaseProgram)(cl_program program)
 cl_int VC4CL_FUNC(clBuildProgram)(cl_program program, cl_uint num_devices, const cl_device_id* device_list, const char* options, void(CL_CALLBACK* pfn_notify)(cl_program program, void* user_data), void* user_data)
 {
 	CHECK_PROGRAM(toType<Program>(program))
-	cl_int state = CL_SUCCESS;
-	if(toType<Program>(program)->getBuildStatus() != BuildStatus::COMPILED)
-		//if the program was never build, compile. If it was already built once, re-compile
-		state = VC4CL_FUNC(clCompileProgram)(program, num_devices, device_list, options, 0, nullptr, nullptr, pfn_notify, user_data);
-	if(state != CL_SUCCESS)
-		return state;
+	if(num_devices > 1 || (num_devices == 0 && device_list != nullptr) || (num_devices > 0 && device_list == nullptr))
+		//only 1 device supported
+		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Only the single VC4CL GPU device is supported!");
+	if(device_list != nullptr && device_list[0] != Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase())
+		return returnError(CL_INVALID_DEVICE, __FILE__, __LINE__, "Invalid device given!");
+	if(pfn_notify == nullptr && user_data != nullptr)
+		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "User data was set, but callback wasn't!");
 
-	VC4CL_FUNC(clLinkProgram)(toType<Program>(program)->context()->toBase(), num_devices, device_list, options, 1, &program, pfn_notify, user_data, &state);
+	cl_int state = CL_SUCCESS;
+	const std::string opts(options == nullptr ? "" : options);
+	Program* p = toType<Program>(program);
+	p->buildInfo.status = CL_BUILD_IN_PROGRESS;
+	if(p->getBuildStatus() != BuildStatus::COMPILED && !p->sourceCode.empty())
+		//if the program was never build, compile. If it was already built once, re-compile (only if original source is available)
+		//since clCompileProgram overwrites the build-status, we can't call it, instead directly call Program#compile
+		state = p->compile(opts, std::unordered_map<std::string, object_wrapper<Program>>{}, pfn_notify, user_data);
+	if(state != CL_SUCCESS)
+	{
+		p->buildInfo.status = CL_BUILD_ERROR;
+		return state;
+	}
+
+	//don't call clLinkProgram, since it creates a new program, while clBuildProgram does not
+	state = p->link(opts, pfn_notify, user_data, {});
+	if(state != CL_SUCCESS)
+		p->buildInfo.status = CL_BUILD_ERROR;
+	else
+		p->buildInfo.status = CL_BUILD_SUCCESS;
 	return state;
 }
 
@@ -837,6 +861,7 @@ cl_int VC4CL_FUNC(clBuildProgram)(cl_program program, cl_uint num_devices, const
 cl_int VC4CL_FUNC(clCompileProgram)(cl_program program, cl_uint num_devices, const cl_device_id* device_list, const char* options, cl_uint num_input_headers, const cl_program* input_headers, const char** header_include_names, void(CL_CALLBACK* pfn_notify)(cl_program program, void* user_data), void* user_data)
 {
 	CHECK_PROGRAM(toType<Program>(program))
+	toType<Program>(program)->buildInfo.status = CL_BUILD_IN_PROGRESS;
 
 	if(num_devices > 1 || (num_devices == 0 && device_list != nullptr) || (num_devices > 0 && device_list == nullptr))
 		//only 1 device supported
@@ -862,7 +887,12 @@ cl_int VC4CL_FUNC(clCompileProgram)(cl_program program, cl_uint num_devices, con
 	}
 
 	const std::string opts(options == nullptr ? "" : options);
-	return toType<Program>(program)->compile( opts, embeddedHeaders, pfn_notify, user_data);
+	cl_int state = toType<Program>(program)->compile( opts, embeddedHeaders, pfn_notify, user_data);
+	if(state != CL_SUCCESS)
+		toType<Program>(program)->buildInfo.status = CL_BUILD_ERROR;
+	else
+		toType<Program>(program)->buildInfo.status = CL_BUILD_SUCCESS;
+	return state;
 }
 
 /*!
@@ -928,22 +958,31 @@ cl_program VC4CL_FUNC(clLinkProgram)(cl_context context, cl_uint num_devices, co
 		return returnError<cl_program>(CL_INVALID_DEVICE, errcode_ret, __FILE__, __LINE__, "Invalid device(s) given, only the VC4CL GPU device is supported!");
 	if(num_input_programs == 0 || input_programs == nullptr)
 		return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Invalid input program");
-	cl_program program = input_programs[0];
-	CHECK_PROGRAM_ERROR_CODE(toType<Program>(program), errcode_ret, cl_program)
 
-	std::vector<Program*> programs;
-	for(cl_uint i = 1; i < num_input_programs; ++i)
+	std::vector<Program*> inputPrograms;
+	inputPrograms.reserve(num_input_programs);
+	for(cl_uint i = 0; i < num_input_programs; ++i)
 	{
 		CHECK_PROGRAM_ERROR_CODE(toType<Program>(input_programs[i]), errcode_ret, cl_program)
-		programs.emplace_back(toType<Program>(input_programs[i]));
+		inputPrograms.emplace_back(toType<Program>(input_programs[i]));
 	}
 
-	cl_int status = toType<Program>(program)->link(options == nullptr ? "" : options, pfn_notify, user_data, programs);
+	//create a new empty program the result of the linking is inserted into
+	Program* newProgram = newOpenCLObject<Program>(toType<Context>(context), std::vector<char>{}, CreationType::INTERMEDIATE_LANGUAGE);
+	CHECK_ALLOCATION_ERROR_CODE(newProgram, errcode_ret, cl_program)
+
+	newProgram->buildInfo.status = CL_BUILD_IN_PROGRESS;
+	cl_int status = newProgram->link(options == nullptr ? "" : options, pfn_notify, user_data, inputPrograms);
 
 	if(status != CL_SUCCESS)
+	{
+		newProgram->buildInfo.status = CL_BUILD_ERROR;
 		return returnError<cl_program>(status, errcode_ret, __FILE__, __LINE__, "Linking failed!");
+	}
+	else
+		newProgram->buildInfo.status = CL_BUILD_SUCCESS;
 
-	RETURN_OBJECT(program, errcode_ret)
+	RETURN_OBJECT(newProgram->toBase(), errcode_ret)
 }
 
 /*!

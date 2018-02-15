@@ -45,3 +45,22 @@ cl_int vc4cl::returnString(const std::string& string, size_t output_size, void* 
 	const size_t string_length = string.length() + 1 /* 0-byte */;
 	return returnValue(string.data(), sizeof(char), string_length, output_size, output, output_size_ret);
 }
+
+CHECK_RETURN cl_int vc4cl::returnBuffers(const std::vector<void*>& buffers, const std::vector<size_t>& sizes, size_t type_size, size_t output_size, void* output, size_t* output_size_ret)
+{
+	if(output != nullptr)
+	{
+		if(output_size < buffers.size() * type_size)
+			//not enough space on output parameter
+			return CL_INVALID_VALUE;
+		//copy the single buffers
+		for(std::size_t i = 0; i < buffers.size(); ++i)
+		{
+			if(buffers.at(i) != nullptr)
+				memcpy(reinterpret_cast<void**>(output)[i], buffers.at(i), sizes.at(i));
+		}
+	}
+	if(output_size_ret != nullptr)
+		*output_size_ret = buffers.size() * type_size;
+	return CL_SUCCESS;
+}
