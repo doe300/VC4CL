@@ -163,6 +163,8 @@ static cl_int link_programs(Program* program, const std::vector<Program*>& other
 				inputModules.emplace(streamsBuffer.back().get(), vc4c::Optional<std::string>{});
 			}
 		}
+		if(!vc4c::Precompiler::isLinkerAvailable(inputModules))
+			return returnError(CL_LINKER_NOT_AVAILABLE, __FILE__, __LINE__, "No linker available for this type of input modules!");
 		vc4c::Precompiler::linkSourceCode(inputModules, linkedCode);
 		program->intermediateCode.clear();
 		uint8_t tmp;
