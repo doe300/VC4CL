@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: nomaddo/cross-rpi
+      - image: nomaddo/cross-rpi:0.1
     steps:
       - checkout
       - run:
@@ -16,10 +16,10 @@ jobs:
           command: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
       - run:
           name: unpack dependencies
-          command: dpkg-deb -x /tmp/vc4cl-stdlib.deb /opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/ && dpkg-deb -x /tmp/vc4c.deb /opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/
+          command: dpkg-deb -x /tmp/vc4cl-stdlib.deb / && dpkg-deb -x /tmp/vc4c.deb /
       - run:
           name: configure
-          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON -DOpenCL_INCLUDE_DIR=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include -DOpenCL_LIBRARY=/opt/rasberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include
+          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON
       - run:
           name: build
           command: make -j2
