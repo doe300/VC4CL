@@ -18,7 +18,7 @@ Additionally the [`cl_khr_icd` extension](https://www.khronos.org/registry/OpenC
 
 The OpenCL version 1.2 was selected as target standard version, since it is the last version of the OpenCL standard where all mandatory features can be supported.
 
-VC4CL supports the **EMBEDDED PROFILE** of the OpenCL-standard, which is a trimmed version of the default **FULL PROFILE**. The most notable features, which are not supported by the VC4CL implementation are images, the `long` and `double` data-types, device-side `printf` and partitioning devices as well as linking of source files. See [RuntimeLibrary](doc/RuntimeLibrary.md) for more details of (not) supported features.
+VC4CL supports the **EMBEDDED PROFILE** of the OpenCL-standard, which is a trimmed version of the default **FULL PROFILE**. The most notable features, which are not supported by the VC4CL implementation are images, the `long` and `double` data-types, device-side `printf` and partitioning devices. See [RuntimeLibrary](doc/RuntimeLibrary.md) for more details of (not) supported features.
 
 ## VideoCore IV GPU
 The VideoCore IV GPU, in the configuration as found in the Raspberry Pi models, has a theoretical maximum performance of **24 GPFLOS** and is therefore very powerful in comparison to the host CPU.
@@ -38,8 +38,8 @@ The following configuration options are available in CMake:
 
 - `BUILD_TESTING` toggles building of test program (when configured, can be built with `make TestVC4CL`)
 - `BUILD_DEBUG` toggles building debug or release program
-- `CROSS_COMPILE` toggles whether to cross-compile for the Raspberry Pi, requires the [Raspberry Pi cross-compiler](https://github.com/raspberrypi/tools) to be installed
-- `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler, defaults to `/opt/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64` (e.g. for the cross compiler cloned into the directory `/opt/raspberrypi/tools/`)
+- `CROSS_COMPILE` toggles whether to cross-compile for the Raspberry Pi. NOTE: The [Raspberry Pi cross-compiler](https://github.com/raspberrypi/tools) is no longer supported!
+- `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler (.g. `arm-linux-gnueabihf-g++-6`)
 - `INCLUDE_COMPILER` whether to include the [VC4C](https://github.com/doe300/VC4C) compiler. For the compiler to be actually included, the VC4C header and library needs to be found too
 - `VC4C_HEADER_PATH` sets the path to the VC4C include headers, defaults to `../VC4C/include/VC4C.h` or `lib/vc4c/include/VC4C.h`
 - `VC4CC_LIBRARY` sets the path to the VC4C compiler library, defaults to `../VC4C/build/libVC4CC.xxx` or `lib/vc4c/build/libVC4CC.xxx`

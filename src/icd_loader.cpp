@@ -4,11 +4,9 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-
 #ifndef CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #endif
-
 
 #include "icd_loader.h"
 
@@ -16,8 +14,6 @@
 #include "extensions.h"
 #include "Device.h"
 #include "Platform.h"
-
-#include <CL/opencl.h>
 
 /*
  * Specification for the ICD loader:
@@ -42,83 +38,77 @@ cl_int VC4CL_FUNC(clIcdGetPlatformIDsKHR)(cl_uint num_entries, cl_platform_id *p
 }
 
 #ifdef use_cl_khr_icd
-
-struct _cl_icd_dispatch
-{
-	void* buffer[200];
-};
-
-struct _cl_icd_dispatch vc4cl_dispatch = {
+_cl_icd_dispatch vc4cl_dispatch = {
 	//see https://github.com/KhronosGroup/OpenCL-ICD-Loader/blob/master/icd_dispatch.h
 	//for implementation, see https://github.com/pocl/pocl/blob/master/lib/CL/clGetPlatformIDs.c
 
 	/* OpenCL 1.0 */
-	reinterpret_cast<void*>(&VC4CL_clGetPlatformIDs), /* clGetPlatformIDs */
-	reinterpret_cast<void*>(&VC4CL_clGetPlatformInfo), /* clGetPlatformInfo */
-	reinterpret_cast<void*>(&VC4CL_clGetDeviceIDs), /* clGetDeviceIDs */
-	reinterpret_cast<void*>(&VC4CL_clGetDeviceInfo), /* clGetDeviceInfo */
-	reinterpret_cast<void*>(&VC4CL_clCreateContext), /* clCreateContext */
-	reinterpret_cast<void*>(&VC4CL_clCreateContextFromType), /* clCreateContextFromType */
-	reinterpret_cast<void*>(&VC4CL_clRetainContext), /* clRetainContext */
-	reinterpret_cast<void*>(&VC4CL_clReleaseContext), /* clReleaseContext */
-	reinterpret_cast<void*>(&VC4CL_clGetContextInfo), /* clGetContextInfo */
-	reinterpret_cast<void*>(&VC4CL_clCreateCommandQueue), /* clCreateCommandQueue */
-	reinterpret_cast<void*>(&VC4CL_clRetainCommandQueue), /* clRetainCommandQueue */
-	reinterpret_cast<void*>(&VC4CL_clReleaseCommandQueue), /* clReleaseCommandQueue */
-	reinterpret_cast<void*>(&VC4CL_clGetCommandQueueInfo), /* clGetCommandQueueInfo */
-	reinterpret_cast<void*>(&VC4CL_clSetCommandQueueProperty), /* clSetCommandQueueProperty */
-	reinterpret_cast<void*>(&VC4CL_clCreateBuffer), /* clCreateBuffer */
-	reinterpret_cast<void*>(&VC4CL_clCreateImage2D), /* clCreateImage2D */
-	reinterpret_cast<void*>(&VC4CL_clCreateImage3D), /* clCreateImage3D */
-	reinterpret_cast<void*>(&VC4CL_clRetainMemObject), /* clRetainMemObject */
-	reinterpret_cast<void*>(&VC4CL_clReleaseMemObject), /* clReleaseMemObject */
-	reinterpret_cast<void*>(&VC4CL_clGetSupportedImageFormats), /* clGetSupportedImageFormats */
-	reinterpret_cast<void*>(&VC4CL_clGetMemObjectInfo), /* clGetMemObjectInfo */
-	reinterpret_cast<void*>(&VC4CL_clGetImageInfo), /* clGetImageInfo */
-	reinterpret_cast<void*>(&VC4CL_clCreateSampler), /* clCreateSampler */
-	reinterpret_cast<void*>(&VC4CL_clRetainSampler), /* clRetainSampler */
-	reinterpret_cast<void*>(&VC4CL_clReleaseSampler), /* clReleaseSampler */
-	reinterpret_cast<void*>(&VC4CL_clGetSamplerInfo), /* clGetSamplerInfo */
-	reinterpret_cast<void*>(&VC4CL_clCreateProgramWithSource), /* clCreateProgramWithSource */
-	reinterpret_cast<void*>(&VC4CL_clCreateProgramWithBinary), /* clCreateProgramWithBinary */
-	reinterpret_cast<void*>(&VC4CL_clRetainProgram), /* clRetainProgram */
-	reinterpret_cast<void*>(&VC4CL_clReleaseProgram), /* clReleaseProgram */
-	reinterpret_cast<void*>(&VC4CL_clBuildProgram), /* clBuildProgram */
-	reinterpret_cast<void*>(&VC4CL_clUnloadCompiler), /* clUnloadCompiler */
-	reinterpret_cast<void*>(&VC4CL_clGetProgramInfo), /* clGetProgramInfo */
-	reinterpret_cast<void*>(&VC4CL_clGetProgramBuildInfo), /* clGetProgramBuildInfo */
-	reinterpret_cast<void*>(&VC4CL_clCreateKernel), /* clCreateKernel */
-	reinterpret_cast<void*>(&VC4CL_clCreateKernelsInProgram), /* clCreateKernelsInProgram */
-	reinterpret_cast<void*>(&VC4CL_clRetainKernel), /* clRetainKernel */
-	reinterpret_cast<void*>(&VC4CL_clReleaseKernel), /* clReleaseKernel */
-	reinterpret_cast<void*>(&VC4CL_clSetKernelArg), /* clSetKernelArg */
-	reinterpret_cast<void*>(&VC4CL_clGetKernelInfo), /* clGetKernelInfo */
-	reinterpret_cast<void*>(&VC4CL_clGetKernelWorkGroupInfo), /* clGetKernelWorkGroupInfo */
-	reinterpret_cast<void*>(&VC4CL_clWaitForEvents), /* clWaitForEvents */
-	reinterpret_cast<void*>(&VC4CL_clGetEventInfo), /* clGetEventInfo */
-	reinterpret_cast<void*>(&VC4CL_clRetainEvent), /* clRetainEvent */
-	reinterpret_cast<void*>(&VC4CL_clReleaseEvent), /* clReleaseEvent */
-	reinterpret_cast<void*>(&VC4CL_clGetEventProfilingInfo), /* clGetEventProfilingInfo */
-	reinterpret_cast<void*>(&VC4CL_clFlush), /* clFlush */
-	reinterpret_cast<void*>(&VC4CL_clFinish), /* clFinish */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueReadBuffer), /* clEnqueueReadBuffer */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueWriteBuffer), /* clEnqueueWriteBuffer */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueCopyBuffer), /* clEnqueueCopyBuffer */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueReadImage), /* clEnqueueReadImage */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueWriteImage), /* clEnqueueWriteImage */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueCopyImage), /* clEnqueueCopyImage */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueCopyImageToBuffer), /* clEnqueueCopyImageToBuffer */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueCopyBufferToImage), /* clEnqueueCopyBufferToImage */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueMapBuffer), /* clEnqueueMapBuffer */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueMapImage), /* clEnqueueMapImage */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueUnmapMemObject), /* clEnqueueUnmapMemObject */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueNDRangeKernel), /* clEnqueueNDRangeKernel */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueTask), /* clEnqueueTask */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueNativeKernel), /* clEnqueueNativeKernel */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueMarker), /* clEnqueueMarker */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueWaitForEvents), /* clEnqueueWaitForEvents */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueBarrier), /* clEnqueueBarrier */
-	reinterpret_cast<void*>(&clGetExtensionFunctionAddress), /* clGetExtensionFunctionAddress */
+	&VC4CL_clGetPlatformIDs, /* clGetPlatformIDs */
+	&VC4CL_clGetPlatformInfo, /* clGetPlatformInfo */
+	&VC4CL_clGetDeviceIDs, /* clGetDeviceIDs */
+	&VC4CL_clGetDeviceInfo, /* clGetDeviceInfo */
+	&VC4CL_clCreateContext, /* clCreateContext */
+	&VC4CL_clCreateContextFromType, /* clCreateContextFromType */
+	&VC4CL_clRetainContext, /* clRetainContext */
+	&VC4CL_clReleaseContext, /* clReleaseContext */
+	&VC4CL_clGetContextInfo, /* clGetContextInfo */
+	&VC4CL_clCreateCommandQueue, /* clCreateCommandQueue */
+	&VC4CL_clRetainCommandQueue, /* clRetainCommandQueue */
+	&VC4CL_clReleaseCommandQueue, /* clReleaseCommandQueue */
+	&VC4CL_clGetCommandQueueInfo, /* clGetCommandQueueInfo */
+	&VC4CL_clSetCommandQueueProperty, /* clSetCommandQueueProperty */
+	&VC4CL_clCreateBuffer, /* clCreateBuffer */
+	&VC4CL_clCreateImage2D, /* clCreateImage2D */
+	&VC4CL_clCreateImage3D, /* clCreateImage3D */
+	&VC4CL_clRetainMemObject, /* clRetainMemObject */
+	&VC4CL_clReleaseMemObject, /* clReleaseMemObject */
+	&VC4CL_clGetSupportedImageFormats, /* clGetSupportedImageFormats */
+	&VC4CL_clGetMemObjectInfo, /* clGetMemObjectInfo */
+	&VC4CL_clGetImageInfo, /* clGetImageInfo */
+	&VC4CL_clCreateSampler, /* clCreateSampler */
+	&VC4CL_clRetainSampler, /* clRetainSampler */
+	&VC4CL_clReleaseSampler, /* clReleaseSampler */
+	&VC4CL_clGetSamplerInfo, /* clGetSamplerInfo */
+	&VC4CL_clCreateProgramWithSource, /* clCreateProgramWithSource */
+	&VC4CL_clCreateProgramWithBinary, /* clCreateProgramWithBinary */
+	&VC4CL_clRetainProgram, /* clRetainProgram */
+	&VC4CL_clReleaseProgram, /* clReleaseProgram */
+	&VC4CL_clBuildProgram, /* clBuildProgram */
+	&VC4CL_clUnloadCompiler, /* clUnloadCompiler */
+	&VC4CL_clGetProgramInfo, /* clGetProgramInfo */
+	&VC4CL_clGetProgramBuildInfo, /* clGetProgramBuildInfo */
+	&VC4CL_clCreateKernel, /* clCreateKernel */
+	&VC4CL_clCreateKernelsInProgram, /* clCreateKernelsInProgram */
+	&VC4CL_clRetainKernel, /* clRetainKernel */
+	&VC4CL_clReleaseKernel, /* clReleaseKernel */
+	&VC4CL_clSetKernelArg, /* clSetKernelArg */
+	&VC4CL_clGetKernelInfo, /* clGetKernelInfo */
+	&VC4CL_clGetKernelWorkGroupInfo, /* clGetKernelWorkGroupInfo */
+	&VC4CL_clWaitForEvents, /* clWaitForEvents */
+	&VC4CL_clGetEventInfo, /* clGetEventInfo */
+	&VC4CL_clRetainEvent, /* clRetainEvent */
+	&VC4CL_clReleaseEvent, /* clReleaseEvent */
+	&VC4CL_clGetEventProfilingInfo, /* clGetEventProfilingInfo */
+	&VC4CL_clFlush, /* clFlush */
+	&VC4CL_clFinish, /* clFinish */
+	&VC4CL_clEnqueueReadBuffer, /* clEnqueueReadBuffer */
+	&VC4CL_clEnqueueWriteBuffer, /* clEnqueueWriteBuffer */
+	&VC4CL_clEnqueueCopyBuffer, /* clEnqueueCopyBuffer */
+	&VC4CL_clEnqueueReadImage, /* clEnqueueReadImage */
+	&VC4CL_clEnqueueWriteImage, /* clEnqueueWriteImage */
+	&VC4CL_clEnqueueCopyImage, /* clEnqueueCopyImage */
+	&VC4CL_clEnqueueCopyImageToBuffer, /* clEnqueueCopyImageToBuffer */
+	&VC4CL_clEnqueueCopyBufferToImage, /* clEnqueueCopyBufferToImage */
+	&VC4CL_clEnqueueMapBuffer, /* clEnqueueMapBuffer */
+	&VC4CL_clEnqueueMapImage, /* clEnqueueMapImage */
+	&VC4CL_clEnqueueUnmapMemObject, /* clEnqueueUnmapMemObject */
+	&VC4CL_clEnqueueNDRangeKernel, /* clEnqueueNDRangeKernel */
+	&VC4CL_clEnqueueTask, /* clEnqueueTask */
+	&VC4CL_clEnqueueNativeKernel, /* clEnqueueNativeKernel */
+	&VC4CL_clEnqueueMarker, /* clEnqueueMarker */
+	&VC4CL_clEnqueueWaitForEvents, /* clEnqueueWaitForEvents */
+	&VC4CL_clEnqueueBarrier, /* clEnqueueBarrier */
+	&clGetExtensionFunctionAddress, /* clGetExtensionFunctionAddress */
 	
 	/* cl_khr_gl_sharing */
 	nullptr, /* clCreateFromGLBuffer */
@@ -140,14 +130,14 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 	nullptr, /* clEnqueueReleaseD3D10ObjectsKHR */
 
 	/* OpenCL 1.1 */
-	reinterpret_cast<void*>(&VC4CL_clSetEventCallback), /* clSetEventCallback */
-	reinterpret_cast<void*>(&VC4CL_clCreateSubBuffer), /* clCreateSubBuffer */
-	reinterpret_cast<void*>(&VC4CL_clSetMemObjectDestructorCallback), /* clSetMemObjectDestructorCallback */
-	reinterpret_cast<void*>(&VC4CL_clCreateUserEvent), /* clCreateUserEvent */
-	reinterpret_cast<void*>(&VC4CL_clSetUserEventStatus), /* clSetUserEventStatus */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueReadBufferRect), /* clEnqueueReadBufferRect */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueWriteBufferRect), /* clEnqueueWriteBufferRect */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueCopyBufferRect), /* clEnqueueCopyBufferRect */
+	&VC4CL_clSetEventCallback, /* clSetEventCallback */
+	&VC4CL_clCreateSubBuffer, /* clCreateSubBuffer */
+	&VC4CL_clSetMemObjectDestructorCallback, /* clSetMemObjectDestructorCallback */
+	&VC4CL_clCreateUserEvent, /* clCreateUserEvent */
+	&VC4CL_clSetUserEventStatus, /* clSetUserEventStatus */
+	&VC4CL_clEnqueueReadBufferRect, /* clEnqueueReadBufferRect */
+	&VC4CL_clEnqueueWriteBufferRect, /* clEnqueueWriteBufferRect */
+	&VC4CL_clEnqueueCopyBufferRect, /* clEnqueueCopyBufferRect */
 
 	/* cl_ext_device_fission */
 	nullptr, /* clCreateSubDevicesEXT */
@@ -158,21 +148,21 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 	nullptr, /* clCreateEventFromGLsyncKHR */
 
 	/* OpenCL 1.2 */
-	reinterpret_cast<void*>(&VC4CL_clCreateSubDevices), /* clCreateSubDevices */
-	reinterpret_cast<void*>(&VC4CL_clRetainDevice), /* clRetainDevice */
-	reinterpret_cast<void*>(&VC4CL_clReleaseDevice), /* clReleaseDevice */
-	reinterpret_cast<void*>(&VC4CL_clCreateImage), /* clCreateImage */
-	reinterpret_cast<void*>(&VC4CL_clCreateProgramWithBuiltInKernels), /* clCreateProgramWithBuiltInKernels */
-	reinterpret_cast<void*>(&VC4CL_clCompileProgram), /* clCompileProgram */
-	reinterpret_cast<void*>(&VC4CL_clLinkProgram), /* clLinkProgram */
-	reinterpret_cast<void*>(&VC4CL_clUnloadPlatformCompiler), /* clUnloadPlatformCompiler */
-	reinterpret_cast<void*>(&VC4CL_clGetKernelArgInfo), /* clGetKernelArgInfo */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueFillBuffer), /* clEnqueueFillBuffer */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueFillImage), /* clEnqueueFillImage */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueMigrateMemObjects), /* clEnqueueMigrateMemObjects */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueMarkerWithWaitList), /* clEnqueueMarkerWithWaitList */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueBarrierWithWaitList), /* clEnqueueBarrierWithWaitList */
-	reinterpret_cast<void*>(&VC4CL_clGetExtensionFunctionAddressForPlatform), /* clGetExtensionFunctionAddressForPlatform */
+	&VC4CL_clCreateSubDevices, /* clCreateSubDevices */
+	&VC4CL_clRetainDevice, /* clRetainDevice */
+	&VC4CL_clReleaseDevice, /* clReleaseDevice */
+	&VC4CL_clCreateImage, /* clCreateImage */
+	&VC4CL_clCreateProgramWithBuiltInKernels, /* clCreateProgramWithBuiltInKernels */
+	&VC4CL_clCompileProgram, /* clCompileProgram */
+	&VC4CL_clLinkProgram, /* clLinkProgram */
+	&VC4CL_clUnloadPlatformCompiler, /* clUnloadPlatformCompiler */
+	&VC4CL_clGetKernelArgInfo, /* clGetKernelArgInfo */
+	&VC4CL_clEnqueueFillBuffer, /* clEnqueueFillBuffer */
+	&VC4CL_clEnqueueFillImage, /* clEnqueueFillImage */
+	&VC4CL_clEnqueueMigrateMemObjects, /* clEnqueueMigrateMemObjects */
+	&VC4CL_clEnqueueMarkerWithWaitList, /* clEnqueueMarkerWithWaitList */
+	&VC4CL_clEnqueueBarrierWithWaitList, /* clEnqueueBarrierWithWaitList */
+	&VC4CL_clGetExtensionFunctionAddressForPlatform, /* clGetExtensionFunctionAddressForPlatform */
 	
 	/* cl_khr_gl_sharing */
 	nullptr, /* clCreateFromGLTexture */
@@ -201,33 +191,33 @@ struct _cl_icd_dispatch vc4cl_dispatch = {
 
 	/* OpenCL 2.0 */
 #ifdef CL_VERSION_2_0
-	reinterpret_cast<void*>(&VC4CL_clCreateCommandQueueWithProperties), /* clCreateCommandQueueWithProperties */
+	&VC4CL_clCreateCommandQueueWithProperties, /* clCreateCommandQueueWithProperties */
 #else
 	nullptr, /* clCreateCommandQueueWithProperties */
 #endif
 	nullptr, /* clCreatePipe */
 	nullptr, /* clGetPipeInfo */
-	reinterpret_cast<void*>(&VC4CL_clSVMAllocARM), /* clSVMAlloc */
-	reinterpret_cast<void*>(&VC4CL_clSVMFreeARM), /* clSVMFree */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMFreeARM), /* clEnqueueSVMFree */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMMemcpyARM), /* clEnqueueSVMMemcpy */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMMemFillARM), /* clEnqueueSVMMemFill */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMMapARM), /* clEnqueueSVMMap */
-	reinterpret_cast<void*>(&VC4CL_clEnqueueSVMUnmapARM), /* clEnqueueSVMUnmap */
+	&VC4CL_clSVMAllocARM, /* clSVMAlloc */
+	&VC4CL_clSVMFreeARM, /* clSVMFree */
+	&VC4CL_clEnqueueSVMFreeARM, /* clEnqueueSVMFree */
+	&VC4CL_clEnqueueSVMMemcpyARM, /* clEnqueueSVMMemcpy */
+	&VC4CL_clEnqueueSVMMemFillARM, /* clEnqueueSVMMemFill */
+	&VC4CL_clEnqueueSVMMapARM, /* clEnqueueSVMMap */
+	&VC4CL_clEnqueueSVMUnmapARM, /* clEnqueueSVMUnmap */
 #ifdef CL_VERSION_2_0
-	reinterpret_cast<void*>(&VC4CL_clCreateSamplerWithProperties), /* clCreateSamplerWithProperties */
+	&VC4CL_clCreateSamplerWithProperties, /* clCreateSamplerWithProperties */
 #else
 	nullptr, /* clCreateSamplerWithProperties */
 #endif
-	reinterpret_cast<void*>(&VC4CL_clSetKernelArgSVMPointerARM), /* clSetKernelArgSVMPointer */
-	reinterpret_cast<void*>(&VC4CL_clSetKernelExecInfoARM), /* clSetKernelExecInfo */
+	&VC4CL_clSetKernelArgSVMPointerARM, /* clSetKernelArgSVMPointer */
+	&VC4CL_clSetKernelExecInfoARM, /* clSetKernelExecInfo */
 
 	/* cl_khr_sub_groups */
 	nullptr, /* clGetKernelSubGroupInfoKHR */
 
 	/* OpenCL 2.1 */
 	nullptr, /* clCloneKernel */
-	reinterpret_cast<void*>(&VC4CL_clCreateProgramWithILKHR), /* clCreateProgramWithIL */
+	&VC4CL_clCreateProgramWithILKHR, /* clCreateProgramWithIL */
 	nullptr, /* clEnqueueSVMMigrateMem */
 	nullptr, /* clGetDeviceAndHostTimer */
 	nullptr, /* clGetHostTimer */

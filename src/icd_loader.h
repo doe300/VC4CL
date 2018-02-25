@@ -4,8 +4,6 @@
  *
  * See the file "LICENSE" for the full license governing this code.
  */
-
-
 #ifndef ICD_LOADER_H
 #define ICD_LOADER_H
 
@@ -17,6 +15,11 @@ extern "C"
 #endif
     
 #if use_cl_khr_icd
+#if __has_include(<ocl_icd.h>)
+    #include <ocl_icd.h>
+#else
+    #error "OpenCL ICD header not found, try installing 'ocl-icd-dev'"
+#endif
     #define vc4cl_icd_dispatch struct _cl_icd_dispatch* dispatch = &vc4cl_dispatch;
     //this idea is stolen from: https://github.com/pocl/pocl/blob/master/lib/CL/pocl_cl.h
     #define VC4CL_FUNC(name) VC4CL_##name
