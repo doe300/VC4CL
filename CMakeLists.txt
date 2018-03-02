@@ -19,6 +19,7 @@ option(CROSS_COMPILE "Cross compile for Raspbian" OFF)
 option(BUILD_DEB_PACKAGE "Enables creating .deb package" ON)
 
 if(CROSS_COMPILE)
+        set (CMAKE_LIBRARY_ARCHITECTURE "arm-linux-gnueabihf")
 	if(NOT CROSS_COMPILER_PATH)
 		set(CROSS_COMPILER_PATH "/usr/bin")
 	endif()

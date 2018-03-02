@@ -19,10 +19,10 @@ jobs:
           command: dpkg-deb -x /tmp/vc4cl-stdlib.deb / && dpkg-deb -x /tmp/vc4c.deb /
       - run:
           name: configure
-          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON
+          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/usr/arm-linux-gnueabihf/opt/vc/lib/libbcm_host.so
       - run:
           name: build
-          command: make -j2
+          command: make -j`nproc`
       - run:
           name: deb-packing
           command: cpack -G DEB
