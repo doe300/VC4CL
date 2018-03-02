@@ -83,8 +83,11 @@ if(INCLUDE_COMPILER)
 		message(STATUS "No VC4C compiler library found!")
 	endif()
 	if(VC4C_HEADER_PATH)
+		find_file(VC4C_TOOLS_HEADER_PATH "tools.h" HINTS "${PROJECT_SOURCE_DIR}/lib/vc4c/include" "${PROJECT_SOURCE_DIR}/../VC4C/include" "/usr/local/include/vc4cc" "/usr/include/vc4cc")
 		message(STATUS "VC4C compiler header found at: ${VC4C_HEADER_PATH}")
 		add_definitions(-DCOMPILER_HEADER="${VC4C_HEADER_PATH}")
+		add_definitions(-DVC4C_TOOLS_HEADER="${VC4C_TOOLS_HEADER_PATH}")
+		add_definitions(-DVC4C_ROOT_PATH="${}") # TODO
 		add_definitions(-DHAS_COMPILER=1)
 
 	else()
@@ -165,6 +168,18 @@ install(FILES VC4CL.icd DESTINATION "/etc/OpenCL/vendors")
 
 if (BUILD_DEB_PACKAGE)
 	message(STATUS "build deb package...")
+	
+	set(PACKAGE_DEPENDENCIES "opencl-c-headers")
+	# TODO for what do we need opencl-c-headers?
+	if(BUILD_ICD)
+		# If we build with ICD support, we need the headers
+		set(PACKAGE_DEPENDENCIES "${PACKAGE_DEPENDENCIES}, ocl-icd-opencl-dev, ocl-icd-dev")
+		# TODO again, do we need the headers? We actually need the ICD library!
+	endif()
+	if(INCLUDE_COMPILER)
+		# If we build with VC4C enabled, we need the VC4C package
+		set(PACKAGE_DEPENDENCIES "${PACKAGE_DEPENDENCIES}, vc4c")
+	endif()
 
 	set(CPACK_GENERATOR "DEB")
 	set(CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
@@ -172,11 +187,12 @@ if (BUILD_DEB_PACKAGE)
 	string(TIMESTAMP BUILD_TIMESTAMP "%Y-%m-%d")
 	set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}-${BUILD_TIMESTAMP}")
 	set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
-	set(CPACK_DEBIAN_PACKAGE_DEPENDS "opencl-c-headers, ocl-icd-opencl-dev, ocl-icd-dev, vc4c")
+	set(CPACK_DEBIAN_PACKAGE_DEPENDS ${PACKAGE_DEPENDENCIES})
 	set(CPACK_PACKAGE_VENDOR "doe300")
 	set(CPACK_PACKAGE_CONTACT "doe300@web.de")
 	set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenCL Runtime for Videocore 4 (raspberrypi only)")
 	set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/doe300/VC4CL")
 	set(CPACK_PACKAGE_FILE_NAME "vc4cl-0.4-Linux")
+	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 	include(CPack)
 endif (BUILD_DEB_PACKAGE)
