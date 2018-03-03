@@ -52,6 +52,7 @@ static void printUniforms(std::istream& in, std::ostream& out, unsigned globalDa
 		for(uint16_t i = 0; i < numIterations; ++i)
 		{
 			out << "//Iteration " << i << ":" << std::endl;
+			//FIXME is wrong if not all implicit UNIFORMs are set!
 			//is already read in while-loop
 			out << val << "\t\t//Work-dimensions" << std::endl;
 			in.read(reinterpret_cast<char*>(&val), sizeof(val));

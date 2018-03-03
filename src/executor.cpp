@@ -44,7 +44,7 @@ static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data
 	return (raw_size / PAGE_ALIGNMENT + 1) * PAGE_ALIGNMENT;
 }
 
-static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_offsets, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& group_indices, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_indices, const unsigned global_data, const unsigned iterationIndex)
+static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_offsets, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& global_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_sizes, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& group_indices, const std::array<std::size_t,kernel_config::NUM_DIMENSIONS>& local_indices, const unsigned global_data, const unsigned iterationIndex, const KernelUniforms& uniformsUsed)
 {
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Setting work-item infos:" << std::endl;
@@ -58,21 +58,34 @@ static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions,
 			<< "), " << group_indices[2] << "(" << (global_sizes[2] / local_sizes[2]) << ")" << std::endl;
 #endif
 	//composes UNIFORMS for the values
-	*ptr++ = num_dimensions;	/* get_work_dim() */
+	if(uniformsUsed.getWorkDimensionsUsed())
+		*ptr++ = num_dimensions;	/* get_work_dim() */
 	//since locals values top at 255, all 3 dimensions can be unified into one 32-bit UNIFORM
 	//when read, the values are shifted by 8 * ndim bits and ANDed with 0xFF
-	*ptr++ = static_cast<unsigned>(local_sizes[2] << 16 | local_sizes[1] << 8 | local_sizes[0]);	/* get_local_size(dim) */
-	*ptr++ = static_cast<unsigned>(local_indices[2] << 16 | local_indices[1] << 8 | local_indices[0]);	/* get_local_id(dim) */
-	*ptr++ = static_cast<unsigned>(global_sizes[0] / local_sizes[0]);	/* get_num_groups(0) */
-	*ptr++ = static_cast<unsigned>(global_sizes[1] / local_sizes[1]);	/* get_num_groups(1) */
-	*ptr++ = static_cast<unsigned>(global_sizes[2] / local_sizes[2]);	/* get_num_groups(2) */
-	*ptr++ = static_cast<unsigned>(group_indices[0] + iterationIndex); /* get_group_id(0) */
-	*ptr++ = static_cast<unsigned>(group_indices[1]); /* get_group_id(1) */
-	*ptr++ = static_cast<unsigned>(group_indices[2]); /* get_group_id(2) */
-	*ptr++ = static_cast<unsigned>(global_offsets[0]);	/* get_global_offset(0) */
-	*ptr++ = static_cast<unsigned>(global_offsets[1]);	/* get_global_offset(1) */
-	*ptr++ = static_cast<unsigned>(global_offsets[2]);	/* get_global_offset(2) */
-	*ptr++ = global_data;	//base address for the global-data block
+	if(uniformsUsed.getLocalSizesUsed())
+		*ptr++ = static_cast<unsigned>(local_sizes[2] << 16 | local_sizes[1] << 8 | local_sizes[0]);	/* get_local_size(dim) */
+	if(uniformsUsed.getLocalIDsUsed())
+		*ptr++ = static_cast<unsigned>(local_indices[2] << 16 | local_indices[1] << 8 | local_indices[0]);	/* get_local_id(dim) */
+	if(uniformsUsed.getNumGroupsXUsed())
+		*ptr++ = static_cast<unsigned>(global_sizes[0] / local_sizes[0]);	/* get_num_groups(0) */
+	if(uniformsUsed.getNumGroupsYUsed())
+		*ptr++ = static_cast<unsigned>(global_sizes[1] / local_sizes[1]);	/* get_num_groups(1) */
+	if(uniformsUsed.getNumGroupsZUsed())
+		*ptr++ = static_cast<unsigned>(global_sizes[2] / local_sizes[2]);	/* get_num_groups(2) */
+	if(uniformsUsed.getGroupIDXUsed())
+		*ptr++ = static_cast<unsigned>(group_indices[0] + iterationIndex); /* get_group_id(0) */
+	if(uniformsUsed.getGroupIDYUsed())
+		*ptr++ = static_cast<unsigned>(group_indices[1]); /* get_group_id(1) */
+	if(uniformsUsed.getGroupIDZUsed())
+		*ptr++ = static_cast<unsigned>(group_indices[2]); /* get_group_id(2) */
+	if(uniformsUsed.getGlobalOffsetXUsed())
+		*ptr++ = static_cast<unsigned>(global_offsets[0]);	/* get_global_offset(0) */
+	if(uniformsUsed.getGlobalOffsetYUsed())
+		*ptr++ = static_cast<unsigned>(global_offsets[1]);	/* get_global_offset(1) */
+	if(uniformsUsed.getGlobalOffsetZUsed())
+		*ptr++ = static_cast<unsigned>(global_offsets[2]);	/* get_global_offset(2) */
+	if(uniformsUsed.getGlobalDataAddressUsed())
+		*ptr++ = global_data;	//base address for the global-data block
 	return ptr;
 }
 
@@ -237,7 +250,7 @@ cl_int executeKernel(Event* event)
 		for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
 		{
 			uniformPointers.at(i).at(iteration) = p;
-			p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration);
+			p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration, kernel->info.uniformsUsed);
 			for(unsigned u = 0; u < kernel->info.params.size(); ++u)
 			{
 				KernelArgument& arg = kernel->args.at(u);
@@ -314,7 +327,7 @@ cl_int executeKernel(Event* event)
 		{
 			for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
 			{
-				set_work_item_info(uniformPointers.at(i).at(iteration), args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration);
+				set_work_item_info(uniformPointers.at(i).at(iteration), args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration, kernel->info.uniformsUsed);
 			}
 			increment_index(local_indices, args.localSizes, 1);
 		}

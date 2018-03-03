@@ -448,11 +448,14 @@ cl_int Program::extractModuleInfo()
 cl_int Program::extractKernelInfo(cl_ulong** ptr)
 {
 	KernelInfo info(*reinterpret_cast<uint64_t*>(*ptr));
-
 	*ptr += 1;
+	
 	info.compileGroupSizes[0] = **ptr & 0xFFFF;
 	info.compileGroupSizes[1] = (**ptr >> 16) & 0xFFFF;
 	info.compileGroupSizes[2] = (**ptr >> 32) & 0xFFFF;
+	*ptr += 1;
+	
+	info.uniformsUsed.value = *reinterpret_cast<uint64_t*>(*ptr);
 	*ptr += 1;
 
 	//name[...]|padding

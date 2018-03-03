@@ -51,6 +51,26 @@ namespace vc4cl
 		//program was created from pre-compiled binary
 		BINARY
 	};
+	
+	/*
+	 * NOTE: ParamInfo KernelInfo and ModuleInfo need to map exactly to the corresponding types in the VC4C project!
+	 */
+	struct KernelUniforms : public Bitfield<uint64_t>
+	{
+		BITFIELD_ENTRY(WorkDimensionsUsed, bool, 0, Bit)
+		BITFIELD_ENTRY(LocalSizesUsed, bool, 1, Bit)
+		BITFIELD_ENTRY(LocalIDsUsed, bool, 2, Bit)
+		BITFIELD_ENTRY(NumGroupsXUsed, bool, 3, Bit)
+		BITFIELD_ENTRY(NumGroupsYUsed, bool, 4, Bit)
+		BITFIELD_ENTRY(NumGroupsZUsed, bool, 5, Bit)
+		BITFIELD_ENTRY(GroupIDXUsed, bool, 6, Bit)
+		BITFIELD_ENTRY(GroupIDYUsed, bool, 7, Bit)
+		BITFIELD_ENTRY(GroupIDZUsed, bool, 8, Bit)
+		BITFIELD_ENTRY(GlobalOffsetXUsed, bool, 9, Bit)
+		BITFIELD_ENTRY(GlobalOffsetYUsed, bool, 10, Bit)
+		BITFIELD_ENTRY(GlobalOffsetZUsed, bool, 11, Bit)
+		BITFIELD_ENTRY(GlobalDataAddressUsed, bool, 12, Bit)
+	};
 
 	/*
 	 * NOTE: ParamInfo KernelInfo and ModuleInfo need to map exactly to the corresponding types in the VC4C project!
@@ -111,6 +131,8 @@ namespace vc4cl
 		std::string name;
 		//the work-group size specified at compile-time
 		std::array<std::size_t,kernel_config::NUM_DIMENSIONS> compileGroupSizes;
+		// bit-field determining the implicit UNIFORMs used by this kernel. Depending on this field, the UNIFORM-values are created host-side
+		KernelUniforms uniformsUsed;
 		//the info for all explicit parameters
 		std::vector<ParamInfo> params;
 
