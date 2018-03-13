@@ -180,12 +180,11 @@ install(FILES VC4CL.icd DESTINATION "/etc/OpenCL/vendors")
 if (BUILD_DEB_PACKAGE)
 	message(STATUS "build deb package...")
 	
+	# opencl-c-headers contains the host-side OpenCL headers
 	set(PACKAGE_DEPENDENCIES "opencl-c-headers")
-	# TODO for what do we need opencl-c-headers?
 	if(BUILD_ICD)
-		# If we build with ICD support, we need the headers
-		set(PACKAGE_DEPENDENCIES "${PACKAGE_DEPENDENCIES}, ocl-icd-opencl-dev, ocl-icd-dev")
-		# TODO again, do we need the headers? We actually need the ICD library!
+		# If we build with ICD support, we need the library (from ocl-icd-opencl-dev and its dependencies)
+		set(PACKAGE_DEPENDENCIES "${PACKAGE_DEPENDENCIES}, ocl-icd-opencl-dev")
 	endif()
 	if(INCLUDE_COMPILER)
 		# If we build with VC4C enabled, we need the VC4C package
