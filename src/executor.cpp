@@ -29,7 +29,7 @@ static const std::chrono::milliseconds KERNEL_TIMEOUT{60 * 1000};
 static const size_t MAX_ITERATIONS = 8;
 
 //get_work_dim, get_local_size, get_local_id, get_num_groups (x, y, z), get_group_id (x, y, z), get_global_offset (x, y, z), global-data, repeat-iteration flag
-static const unsigned NUM_HIDDEN_PARAMETERS = 14;
+static const unsigned MAX_HIDDEN_PARAMETERS = 14;
 
 static unsigned AS_GPU_ADDRESS(const unsigned* ptr, DeviceBuffer* buffer)
 {
@@ -188,7 +188,7 @@ cl_int executeKernel(Event* event)
 	//
 	// ALLOCATE BUFFER
 	//
-	size_t buffer_size = get_size(kernel->info.getLength() * sizeof(uint64_t), num_qpus * numIterations * (NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()), kernel->program->globalData.size() * sizeof(uint64_t), kernel->program->moduleInfo.getStackFrameSize());
+	size_t buffer_size = get_size(kernel->info.getLength() * sizeof(uint64_t), num_qpus * numIterations * (MAX_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()), kernel->program->globalData.size() * sizeof(uint64_t), kernel->program->moduleInfo.getStackFrameSize());
 
 	std::unique_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(static_cast<unsigned>(buffer_size)));
 	if(buffer.get() == nullptr)
@@ -261,7 +261,7 @@ cl_int executeKernel(Event* event)
 					arg.addScalar(localBuffers.at(u)->qpuPointer);
 				}
 #ifdef DEBUG_MODE
-				std::cout << "[VC4CL] Setting parameter " << (NUM_HIDDEN_PARAMETERS - 1) + u << " to " << arg.to_string() << std::endl;
+				std::cout << "[VC4CL] Setting parameter " << (kernel->info.uniformsUsed.countUniforms() - 1) + u << " to " << arg.to_string() << std::endl;
 #endif
 				for(cl_uchar i = 0; i < kernel->info.params[u].getElements(); ++i)
 					*p++ = arg.scalarValues.at(i).getUnsigned();
@@ -271,7 +271,7 @@ cl_int executeKernel(Event* event)
 			*p++ = static_cast<unsigned>(iteration);
 		}
 #ifdef DEBUG_MODE
-		std::cout << "[VC4CL] " << numIterations * (NUM_HIDDEN_PARAMETERS + kernel->info.params.size()) << " parameters set." << std::endl;
+		std::cout << "[VC4CL] " << numIterations * (kernel->info.uniformsUsed.countUniforms() + kernel->info.params.size()) << " parameters set." << std::endl;
 #endif
 		increment_index(local_indices, args.localSizes, 1);
 	}
@@ -279,7 +279,7 @@ cl_int executeKernel(Event* event)
 	/* Build QPU Launch messages */
 	unsigned *qpu_msg = p;
 	for (unsigned i = 0; i < num_qpus; ++i) {
-		*p++ = AS_GPU_ADDRESS(qpu_uniform + i * numIterations * (NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()), buffer.get());
+		*p++ = AS_GPU_ADDRESS(qpu_uniform + i * numIterations * (kernel->info.uniformsUsed.countUniforms() + kernel->info.getExplicitUniformCount()), buffer.get());
 		*p++ = AS_GPU_ADDRESS(qpu_code, buffer.get());
 	}
 	
@@ -296,7 +296,7 @@ cl_int executeKernel(Event* event)
 		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
 		tmp = AS_GPU_ADDRESS(qpu_uniform, buffer.get());
 		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-		uint16_t tmp16 = NUM_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount();
+		uint16_t tmp16 = kernel->info.uniformsUsed.countUniforms() + kernel->info.getExplicitUniformCount();
 		f.write(reinterpret_cast<char*>(&tmp16), sizeof(uint16_t));
 		tmp16 = numIterations;
 		f.write(reinterpret_cast<char*>(&tmp16), sizeof(uint16_t));

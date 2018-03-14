@@ -10,6 +10,7 @@
 #include "Bitfield.h"
 #include "Context.h"
 
+#include <bitset>
 #include <unordered_map>
 #include <vector>
 
@@ -70,6 +71,12 @@ namespace vc4cl
 		BITFIELD_ENTRY(GlobalOffsetYUsed, bool, 10, Bit)
 		BITFIELD_ENTRY(GlobalOffsetZUsed, bool, 11, Bit)
 		BITFIELD_ENTRY(GlobalDataAddressUsed, bool, 12, Bit)
+		
+		inline size_t countUniforms() const
+		{
+		  std::bitset<64> tmp(value);
+		  return tmp.count();
+		}
 	};
 
 	/*
