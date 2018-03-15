@@ -6,8 +6,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: get json
+          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
+      - run:
           name: get vc4c url
-          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/latest/artifacts?branch=master&filter=successful" --output /tmp/dump
+          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/$(.circleci/build_num.py /tmp/json)/artifacts" --output /tmp/dump
       - run:
           name: get vc4cl-stdlib package
           command: wget -O /tmp/vc4cl-stdlib.deb $(python .circleci/get_url.py "vc4cl-stdlib-" "/tmp/dump")
