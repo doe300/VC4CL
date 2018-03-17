@@ -181,7 +181,7 @@ cl_int executeKernel(Event* event)
 
 #ifdef DEBUG_MODE
 	std::cout << "[VC4CL] Running kernel '" << kernel->info.name << "' with " << kernel->info.getLength() << " instructions..." << std::endl;
-	std::cout << "[VC4CL] Local sizes: " << args.localSizes[0] << " " << args.localSizes[1] << " " << args.localSizes[2] << " -> " << num_qpus << " QPUs\n" << std::endl;
+	std::cout << "[VC4CL] Local sizes: " << args.localSizes[0] << " " << args.localSizes[1] << " " << args.localSizes[2] << " -> " << num_qpus << " QPUs" << std::endl;
 	std::cout << "[VC4CL] Global sizes: " << args.globalSizes[0] << " " << args.globalSizes[1] << " " << args.globalSizes[2] << " -> " << (args.globalSizes[0] * args.globalSizes[1] * args.globalSizes[2]) / num_qpus << " work-groups (" << numIterations << " run at once)" << std::endl;
 #endif
 	
@@ -261,7 +261,7 @@ cl_int executeKernel(Event* event)
 					arg.addScalar(localBuffers.at(u)->qpuPointer);
 				}
 #ifdef DEBUG_MODE
-				std::cout << "[VC4CL] Setting parameter " << (kernel->info.uniformsUsed.countUniforms() - 1) + u << " to " << arg.to_string() << std::endl;
+				std::cout << "[VC4CL] Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u) << " to " << arg.to_string() << std::endl;
 #endif
 				for(cl_uchar i = 0; i < kernel->info.params[u].getElements(); ++i)
 					*p++ = arg.scalarValues.at(i).getUnsigned();
@@ -271,7 +271,7 @@ cl_int executeKernel(Event* event)
 			*p++ = static_cast<unsigned>(iteration);
 		}
 #ifdef DEBUG_MODE
-		std::cout << "[VC4CL] " << numIterations * (kernel->info.uniformsUsed.countUniforms() + kernel->info.params.size()) << " parameters set." << std::endl;
+		std::cout << "[VC4CL] " << numIterations * (kernel->info.uniformsUsed.countUniforms() + 1 /* re-run flag */ + kernel->info.params.size()) << " parameters set." << std::endl;
 #endif
 		increment_index(local_indices, args.localSizes, 1);
 	}
@@ -279,7 +279,7 @@ cl_int executeKernel(Event* event)
 	/* Build QPU Launch messages */
 	unsigned *qpu_msg = p;
 	for (unsigned i = 0; i < num_qpus; ++i) {
-		*p++ = AS_GPU_ADDRESS(qpu_uniform + i * numIterations * (kernel->info.uniformsUsed.countUniforms() + kernel->info.getExplicitUniformCount()), buffer.get());
+		*p++ = AS_GPU_ADDRESS(qpu_uniform + i * numIterations * (kernel->info.uniformsUsed.countUniforms() + 1 /* re-run flag */ + kernel->info.getExplicitUniformCount()), buffer.get());
 		*p++ = AS_GPU_ADDRESS(qpu_code, buffer.get());
 	}
 	
@@ -289,17 +289,19 @@ cl_int executeKernel(Event* event)
 		std::cout << "[VC4CL] Dumping kernel buffer to " << dumpFile << std::endl;
 		std::ofstream f(dumpFile, std::ios_base::out|std::ios_base::trunc|std::ios_base::binary);
 		//add additional pointers for the dump-analyzer
-		//qpu base-pointer (global-data pointer) | qpu code-pointer | qpu UNIFORM-pointer | num uniforms per iteration | num iterations
+		//qpu base-pointer (global-data pointer) | qpu code-pointer | qpu UNIFORM-pointer | num uniforms per iteration | num iterations | implicit uniform bit-field
 		unsigned tmp = static_cast<unsigned>(buffer->qpuPointer);
 		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
 		tmp = AS_GPU_ADDRESS(qpu_code, buffer.get());
 		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
 		tmp = AS_GPU_ADDRESS(qpu_uniform, buffer.get());
 		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-		uint16_t tmp16 = kernel->info.uniformsUsed.countUniforms() + kernel->info.getExplicitUniformCount();
+		uint16_t tmp16 = static_cast<uint16_t>(kernel->info.uniformsUsed.countUniforms() + 1 /* re-run flag */ + kernel->info.getExplicitUniformCount());
 		f.write(reinterpret_cast<char*>(&tmp16), sizeof(uint16_t));
-		tmp16 = numIterations;
+		tmp16 = static_cast<uint16_t>(numIterations);
 		f.write(reinterpret_cast<char*>(&tmp16), sizeof(uint16_t));
+		tmp = static_cast<unsigned>(kernel->info.uniformsUsed.value);
+		f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
 		//write buffer contents
 		f.write(reinterpret_cast<char*>(buffer->hostPointer), buffer_size);
 		f.close();
