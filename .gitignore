@@ -25,3 +25,7 @@ lib/
 testResult.log
 testing/
 /VC4CL.icd
+
+#CTest
+/CTestTestfile.cmake
+/Testing

@@ -26,7 +26,7 @@ The GPU (which is located on the same chip as the CPU) has 12 cores, able of run
 
 ## Required software
 
-- A C++11-capable compiler
+- A C++14-capable compiler (e.g. GCC 6.3 or clang from the Raspbian repositories)
 - The [VC4C](https://github.com/doe300/VC4C) compiler to compile OpenCL C-code
 - The Khronos ICD Loader (available in the official Raspbian repository as `sudo apt-get install ocl-icd-opencl-dev ocl-icd-dev`) for building with ICD-support (e.g. allows to run several OpenCL implementations on one machine)
 - The OpenCL headers in version >= 1.2 (available in the Raspbian repositories as `sudo apt-get install opencl-headers`)

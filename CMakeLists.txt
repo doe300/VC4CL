@@ -37,18 +37,21 @@ if(CROSS_COMPILE)
 	message(STATUS "Cross compiling for Raspbian with compiler: ${CMAKE_CXX_COMPILER}")
 endif()
 
+# Set C++ standard to C++14 without any extensions (e.g. GNU)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 project (VC4CL VERSION 0.4)
 add_definitions(-DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
 
 # append usage of C++ to compiler flags, also optimize for speed and enable all warnings
 if(BUILD_DEBUG)
-	LIST(APPEND CMAKE_C_FLAGS "-std=gnu11 -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
-	LIST(APPEND CMAKE_CXX_FLAGS "-std=c++14 -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
+	LIST(APPEND CMAKE_CXX_FLAGS " -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
 	SET(CMAKE_BUILD_TYPE 		Debug)
 	add_definitions(-DDEBUG_MODE=1)
 else()
-	LIST(APPEND CMAKE_C_FLAGS "-std=gnu11 -O3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
-	LIST(APPEND CMAKE_CXX_FLAGS "-std=c++14 -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
+	LIST(APPEND CMAKE_CXX_FLAGS " -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
 	SET(CMAKE_BUILD_TYPE 		Release)
 endif()
 
@@ -142,6 +145,7 @@ add_subdirectory(./src build)
 add_subdirectory(./tools build/tools)
 
 if (BUILD_TESTING)
+	enable_testing()
 	if(NOT TARGET cpptest-lite)
 		# only build cpptest-lite, if it doesn't exist yet (e.g. built by VC4CC)
 		ExternalProject_Add(cpptest-lite-project
@@ -173,9 +177,11 @@ add_custom_command(
   COMMAND echo "${CMAKE_INSTALL_PREFIX}/lib/libVC4CL.so" > ${PROJECT_BINARY_DIR}/VC4CL.icd
   )
 
-add_custom_target(generate_icd DEPENDS VC4CL.icd)
-add_dependencies(VC4CL generate_icd)
-install(FILES VC4CL.icd DESTINATION "/etc/OpenCL/vendors")
+if(BUILD_ICD)
+	add_custom_target(generate_icd DEPENDS VC4CL.icd)
+	add_dependencies(VC4CL generate_icd)
+	install(FILES VC4CL.icd DESTINATION "/etc/OpenCL/vendors")
+endif()
 
 if (BUILD_DEB_PACKAGE)
 	message(STATUS "build deb package...")
@@ -198,6 +204,10 @@ if (BUILD_DEB_PACKAGE)
 	set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}-${BUILD_TIMESTAMP}")
 	set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
 	set(CPACK_DEBIAN_PACKAGE_DEPENDS ${PACKAGE_DEPENDENCIES})
+	if(BUILD_ICD)
+		# provides the opencl-icd meta-package representing an OpenCL implementation which can be accessed via the ICD loader
+		set(CPACK_DEBIAN_PACKAGE_PROVIDES "opencl-icd")
+	endif()
 	set(CPACK_PACKAGE_VENDOR "doe300")
 	set(CPACK_PACKAGE_CONTACT "doe300@web.de")
 	set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenCL Runtime for Videocore 4 (raspberrypi only)")
