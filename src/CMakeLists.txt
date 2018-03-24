@@ -31,6 +31,23 @@ set_target_properties(
 	SOVERSION "1.2"
 )
 
+find_program(
+	CLANG_FORMAT_PATH
+	NAMES clang-format clang-format-3.8 clang-format-3.9 clang-format-4.0
+	HINTS "/usr/bin" "/usr/local/bin"
+)
+
+if(CLANG_FORMAT_PATH)
+	message (STATUS "found clang-format: ${CLANG_FORMAT_PATH}")
+	add_custom_target(
+		clang-format
+		COMMAND ${CLANG_FORMAT_PATH}
+		-i ${SRCS}
+	)
+else()
+  message (WARNING "clang-format not found: strongly recommend to use it before commit!")
+endif()
+
 ##
 # Installation targets
 ##
