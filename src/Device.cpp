@@ -224,7 +224,11 @@ cl_int Device::getInfo(cl_device_info param_name, size_t param_value_size, void*
 			return returnValue<cl_bool>(CL_TRUE, param_value_size, param_value, param_value_size_ret);
 		case CL_DEVICE_COMPILER_AVAILABLE:
 			//"Is CL_FALSE if the implementation does not have a compiler available to compile the program source."
-			return returnValue<cl_bool>(HAS_COMPILER, param_value_size, param_value, param_value_size_ret);
+#if defined(HAS_COMPILER) && HAS_COMPILER == 1
+			return returnValue<cl_bool>(CL_TRUE, param_value_size, param_value, param_value_size_ret);
+#else
+			return returnValue<cl_bool>(CL_FALSE, param_value_size, param_value, param_value_size_ret);
+#endif
 		case CL_DEVICE_LINKER_AVAILABLE:
 			//"Is CL_FALSE if the implementation does not have a linker available."
 #if defined(HAS_COMPILER) && HAS_COMPILER == 1

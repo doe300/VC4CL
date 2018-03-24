@@ -266,8 +266,8 @@ cl_int Program::compile(const std::string& options, const std::unordered_map<std
 
 cl_int Program::link(const std::string& options, BuildCallback callback, void* userData, const std::vector<Program*>& programs)
 {
-#if HAS_COMPILER
 	cl_int status = CL_SUCCESS;
+#if HAS_COMPILER
 	if(binaryCode.empty())
 	{
 		//the actual link step
