@@ -1,7 +1,8 @@
 /*
  * Author: doe300
  *
- * See the file "LICENSE" for the full license governing this code. See the statement below for the copyright of the original code:
+ * See the file "LICENSE" for the full license governing this code. See the statement below for the copyright of the
+ * original code:
  */
 
 /*
@@ -46,297 +47,308 @@
 
 namespace vc4cl
 {
-	class Mailbox;
+    class Mailbox;
 
-	struct DevicePointer
-	{
-	public:
-		constexpr explicit DevicePointer(uint32_t ptr) : pointer(ptr) { }
+    struct DevicePointer
+    {
+    public:
+        constexpr explicit DevicePointer(uint32_t ptr) : pointer(ptr) {}
 
-		constexpr explicit operator uint32_t() const
-		{
-			return pointer;
-		}
+        constexpr explicit operator uint32_t() const
+        {
+            return pointer;
+        }
 
-		friend std::ostream& operator<<(std::ostream& s, const DevicePointer& ptr)
-		{
-			return s << ptr.pointer;
-		}
+        friend std::ostream& operator<<(std::ostream& s, const DevicePointer& ptr)
+        {
+            return s << ptr.pointer;
+        }
 
-	private:
-		uint32_t pointer;
-	};
+    private:
+        uint32_t pointer;
+    };
 
-	/*
-	 * Container for the various pointers required for a GPU buffer object
-	 *
-	 * This is a RAII wrapper around a GPU memory buffer
-	 */
-	struct DeviceBuffer
-	{
-	public:
-		//Identifier of the buffer allocated, think of it as a file-handle
-		const uint32_t memHandle;
-		//Buffer address from VideoCore QPU (GPU) view (the pointer which is passed to the kernel)
-		const DevicePointer qpuPointer;
-		//Buffer address for ARM (host) view (the pointer to use on the host-side to fill/read the buffer)
-		void* const hostPointer;
-		//size of the buffer, in bytes
-		const uint32_t size;
+    /*
+     * Container for the various pointers required for a GPU buffer object
+     *
+     * This is a RAII wrapper around a GPU memory buffer
+     */
+    struct DeviceBuffer
+    {
+    public:
+        // Identifier of the buffer allocated, think of it as a file-handle
+        const uint32_t memHandle;
+        // Buffer address from VideoCore QPU (GPU) view (the pointer which is passed to the kernel)
+        const DevicePointer qpuPointer;
+        // Buffer address for ARM (host) view (the pointer to use on the host-side to fill/read the buffer)
+        void* const hostPointer;
+        // size of the buffer, in bytes
+        const uint32_t size;
 
-		DeviceBuffer(const DeviceBuffer&) = delete;
-		DeviceBuffer(DeviceBuffer&&) = delete;
-		~DeviceBuffer();
+        DeviceBuffer(const DeviceBuffer&) = delete;
+        DeviceBuffer(DeviceBuffer&&) = delete;
+        ~DeviceBuffer();
 
-		DeviceBuffer& operator=(const DeviceBuffer&) = delete;
-		DeviceBuffer& operator=(DeviceBuffer&&) = delete;
+        DeviceBuffer& operator=(const DeviceBuffer&) = delete;
+        DeviceBuffer& operator=(DeviceBuffer&&) = delete;
 
-		void dumpContent() const;
-	private:
-		DeviceBuffer(uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size);
+        void dumpContent() const;
 
-		friend class Mailbox;
-	};
+    private:
+        DeviceBuffer(uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size);
 
-	//taken from https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface
-	//additional documentation from: https://github.com/raspberrypi/userland/blob/master/vcfw/rtos/common/rtos_common_mem.h
-	enum MemoryFlag
-	{
-		/*
-		 * If a handle is discardable, the memory manager may resize it to size 0 at any time when it is not locked or retained.
-		 */
-		DISCARDABLE = 1 << 0,
-		/*
-		 * Block must be kept within bottom 256M region of the relocatable heap.
-		 * Specifying this flag means that an allocation will fail if the block cannot be allocated within that region, and the block will not be moved out of that range.
-		 *
-		 * (This is to support memory blocks used by the codec cache, which must have same top 4 bits; see HW-3058)
-		 */
-		MEM_FLAG_LOW_256M = 1 << 1,
-		/*
-		 * If a handle is allocating (or normal), its block of memory will be accessed in an allocating fashion through the cache.
-		 *
-		 * normal allocating alias. Don't use from ARM
-		 */
-		NORMAL = 0 << 2,
-		/*
-		 * If a handle is direct, its block of memory will be accessed directly, bypassing the cache.
-		 */
-		DIRECT = 1 << 2,
-		/*
-		 * If a handle is coherent, its block of memory will be accessed in a non-allocating fashion through the cache.
-		 */
-		COHERENT = 2 << 2,
-		/*
-		 * If a handle is L1-nonallocating, its block of memory will be accessed by the VPU in a fashion which is allocating in L2, but only coherent in L1.
-		 */
-		L1_NONALLOCATING = (DIRECT | COHERENT),
-		/*
-		 * If a handle is zero'd, its contents are initialized to 0
-		 */
-		ZERO = 1 << 4,
-		/*
-		 * If a handle is uninitialized, it will not be reset to a defined value (either zero, or all 1's) on allocation.
-		 *
-		 * don't initialize (default is initialize to all ones)
-		 */
-		NO_INIT = 1 << 5,
-		/*
-		 * Likely to be locked for long periods of time.
-		 */
-		HINT_PERMALOCK = 1 << 6
-	};
+        friend class Mailbox;
+    };
 
-	/*
-	 * For all tags and their meaning / parameters, see:
-	 * https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface (incomplete list)
-	 * https://github.com/raspberrypi/linux/blob/rpi-4.9.y/include/soc/bcm2835/raspberrypi-firmware.h
-	 *
-	 * The user-space access via ioctl goes through:
-	 * https://github.com/raspberrypi/linux/blob/rpi-4.9.y/drivers/char/broadcom/vcio.c
-	 *
-	 */
-	enum MailboxTag : unsigned
-	{
-		 FIRMWARE_REVISION = 0x00000001,
-		 BOARD_MODEL = 0x00010001,
-		 BOARD_REVISION = 0x00010002,
-		 MAC_ADDRESS = 0x00010003,
-		 BOARD_SERIAL = 0x00010004,
-		 ARM_MEMORY = 0x00010005,
-		 VC_MEMORY = 0x00010006,
-		 CLOCKS = 0x00010007,
-		 COMMAND_LINE = 0x00050001,
-		 DMA_CHANNELS = 0x00060001,
-		 GET_POWER_STATE = 0x00020001,
-		 TIMING = 0x00020002,
-		 SET_POWER_STATE = 0x0002801,
-		 GET_CLOCK_STATE = 0x00030001,
-		 SET_CLOCK_STATE = 0x00038001,
-		 GET_CLOCK_RATE = 0x00030002,
-		 SET_CLOCK_RATE = 0x00038002,
-		 GET_MAX_CLOCK_RATE = 0x00030004,
-		 GET_MIN_CLOCK_RATE = 0x00030007,
-		 GET_TURBO_STATE = 0x00030009,
-		 SET_TURBO_STATE = 0x00038009,
-		 GET_VOLTAGE = 0x00030003,
-		 SET_VOLTAGE = 0x00038003,
-		 GET_MAX_VOLTAGE = 0x00030005,
-		 GET_MIN_VOLTAGE = 0x00030008,
-		 GET_TEMPERATURE = 0x00030006,
-		 GET_MAX_TEMPERATURE = 0x0003000A,
-		 ALLOCATE_MEMORY = 0x0003000C,
-		 LOCK_MEMORY = 0x0003000D,
-		 UNLOCK_MEMORY = 0x0003000E,
-		 RELEASE_MEMORY = 0x0003000F,
-		 EXECUTE_CODE = 0x00030010,
-		 EXECUTE_QPU = 0x00030011,
-		 ENABLE_QPU = 0x00030012
-	};
+    // taken from https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface
+    // additional documentation from:
+    // https://github.com/raspberrypi/userland/blob/master/vcfw/rtos/common/rtos_common_mem.h
+    enum MemoryFlag
+    {
+        /*
+         * If a handle is discardable, the memory manager may resize it to size 0 at any time when it is not locked or
+         * retained.
+         */
+        DISCARDABLE = 1 << 0,
+        /*
+         * Block must be kept within bottom 256M region of the relocatable heap.
+         * Specifying this flag means that an allocation will fail if the block cannot be allocated within that region,
+         * and the block will not be moved out of that range.
+         *
+         * (This is to support memory blocks used by the codec cache, which must have same top 4 bits; see HW-3058)
+         */
+        MEM_FLAG_LOW_256M = 1 << 1,
+        /*
+         * If a handle is allocating (or normal), its block of memory will be accessed in an allocating fashion through
+         * the cache.
+         *
+         * normal allocating alias. Don't use from ARM
+         */
+        NORMAL = 0 << 2,
+        /*
+         * If a handle is direct, its block of memory will be accessed directly, bypassing the cache.
+         */
+        DIRECT = 1 << 2,
+        /*
+         * If a handle is coherent, its block of memory will be accessed in a non-allocating fashion through the cache.
+         */
+        COHERENT = 2 << 2,
+        /*
+         * If a handle is L1-nonallocating, its block of memory will be accessed by the VPU in a fashion which is
+         * allocating in L2, but only coherent in L1.
+         */
+        L1_NONALLOCATING = (DIRECT | COHERENT),
+        /*
+         * If a handle is zero'd, its contents are initialized to 0
+         */
+        ZERO = 1 << 4,
+        /*
+         * If a handle is uninitialized, it will not be reset to a defined value (either zero, or all 1's) on
+         * allocation.
+         *
+         * don't initialize (default is initialize to all ones)
+         */
+        NO_INIT = 1 << 5,
+        /*
+         * Likely to be locked for long periods of time.
+         */
+        HINT_PERMALOCK = 1 << 6
+    };
 
-	/*
-	 * 0: Buffer size
-	 * 1: request/response code
-	 * 2: request tag
-	 * 3: content size
-	 * 4: request/response data size
-	 * ...: request/response data
-	 * x: end tag (0)
-	 *
-	 */
-	template<MailboxTag Tag, unsigned RequestSize, unsigned MaxResponseSize>
-	struct MailboxMessage
-	{
-		static constexpr unsigned requestSize = RequestSize;
-		static constexpr unsigned maximumResponseSize = MaxResponseSize;
-		static constexpr unsigned contentSize = requestSize > maximumResponseSize ? requestSize : maximumResponseSize;
-		static constexpr unsigned messageSize = contentSize + 6;
-		static constexpr MailboxTag tag = Tag;
+    /*
+     * For all tags and their meaning / parameters, see:
+     * https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface (incomplete list)
+     * https://github.com/raspberrypi/linux/blob/rpi-4.9.y/include/soc/bcm2835/raspberrypi-firmware.h
+     *
+     * The user-space access via ioctl goes through:
+     * https://github.com/raspberrypi/linux/blob/rpi-4.9.y/drivers/char/broadcom/vcio.c
+     *
+     */
+    enum MailboxTag : unsigned
+    {
+        FIRMWARE_REVISION = 0x00000001,
+        BOARD_MODEL = 0x00010001,
+        BOARD_REVISION = 0x00010002,
+        MAC_ADDRESS = 0x00010003,
+        BOARD_SERIAL = 0x00010004,
+        ARM_MEMORY = 0x00010005,
+        VC_MEMORY = 0x00010006,
+        CLOCKS = 0x00010007,
+        COMMAND_LINE = 0x00050001,
+        DMA_CHANNELS = 0x00060001,
+        GET_POWER_STATE = 0x00020001,
+        TIMING = 0x00020002,
+        SET_POWER_STATE = 0x0002801,
+        GET_CLOCK_STATE = 0x00030001,
+        SET_CLOCK_STATE = 0x00038001,
+        GET_CLOCK_RATE = 0x00030002,
+        SET_CLOCK_RATE = 0x00038002,
+        GET_MAX_CLOCK_RATE = 0x00030004,
+        GET_MIN_CLOCK_RATE = 0x00030007,
+        GET_TURBO_STATE = 0x00030009,
+        SET_TURBO_STATE = 0x00038009,
+        GET_VOLTAGE = 0x00030003,
+        SET_VOLTAGE = 0x00038003,
+        GET_MAX_VOLTAGE = 0x00030005,
+        GET_MIN_VOLTAGE = 0x00030008,
+        GET_TEMPERATURE = 0x00030006,
+        GET_MAX_TEMPERATURE = 0x0003000A,
+        ALLOCATE_MEMORY = 0x0003000C,
+        LOCK_MEMORY = 0x0003000D,
+        UNLOCK_MEMORY = 0x0003000E,
+        RELEASE_MEMORY = 0x0003000F,
+        EXECUTE_CODE = 0x00030010,
+        EXECUTE_QPU = 0x00030011,
+        ENABLE_QPU = 0x00030012
+    };
 
-		std::array<unsigned, messageSize> buffer;
+    /*
+     * 0: Buffer size
+     * 1: request/response code
+     * 2: request tag
+     * 3: content size
+     * 4: request/response data size
+     * ...: request/response data
+     * x: end tag (0)
+     *
+     */
+    template <MailboxTag Tag, unsigned RequestSize, unsigned MaxResponseSize>
+    struct MailboxMessage
+    {
+        static constexpr unsigned requestSize = RequestSize;
+        static constexpr unsigned maximumResponseSize = MaxResponseSize;
+        static constexpr unsigned contentSize = requestSize > maximumResponseSize ? requestSize : maximumResponseSize;
+        static constexpr unsigned messageSize = contentSize + 6;
+        static constexpr MailboxTag tag = Tag;
 
-		explicit MailboxMessage(std::array<unsigned, requestSize> request)
-		{
-			static_assert(RequestSize > 0, "For empty requests, use the default constructor!");
-			buffer[0] = static_cast<unsigned>(buffer.size() * sizeof(unsigned));
-			buffer[1] = 0; //this is a request
-			buffer[2] = static_cast<unsigned>(tag);
-			buffer[3] = static_cast<unsigned>(contentSize * sizeof(unsigned));
-			buffer[4] = static_cast<unsigned>(requestSize * sizeof(unsigned));
-			memcpy(&buffer[5], request.data(), request.size() * sizeof(unsigned));
-		}
+        std::array<unsigned, messageSize> buffer;
 
-		explicit MailboxMessage()
-		{
-			static_assert(RequestSize == 0, "For non-empty requests, use the parameterized constructor!");
-			buffer[0] = static_cast<unsigned>(buffer.size() * sizeof(unsigned));
-			buffer[1] = 0; //this is a request
-			buffer[2] = static_cast<unsigned>(tag);
-			buffer[3] = static_cast<unsigned>(contentSize * sizeof(unsigned));
-			buffer[4] = static_cast<unsigned>(requestSize * sizeof(unsigned));
-		}
+        explicit MailboxMessage(std::array<unsigned, requestSize> request)
+        {
+            static_assert(RequestSize > 0, "For empty requests, use the default constructor!");
+            buffer[0] = static_cast<unsigned>(buffer.size() * sizeof(unsigned));
+            buffer[1] = 0; // this is a request
+            buffer[2] = static_cast<unsigned>(tag);
+            buffer[3] = static_cast<unsigned>(contentSize * sizeof(unsigned));
+            buffer[4] = static_cast<unsigned>(requestSize * sizeof(unsigned));
+            memcpy(&buffer[5], request.data(), request.size() * sizeof(unsigned));
+        }
 
-		inline unsigned getResponseValue() const
-		{
-			return buffer[1];
-		}
+        explicit MailboxMessage()
+        {
+            static_assert(RequestSize == 0, "For non-empty requests, use the parameterized constructor!");
+            buffer[0] = static_cast<unsigned>(buffer.size() * sizeof(unsigned));
+            buffer[1] = 0; // this is a request
+            buffer[2] = static_cast<unsigned>(tag);
+            buffer[3] = static_cast<unsigned>(contentSize * sizeof(unsigned));
+            buffer[4] = static_cast<unsigned>(requestSize * sizeof(unsigned));
+        }
 
-		inline bool isResponse() const
-		{
-			return buffer[1] == 0x80000000 || buffer[1] == 0x80000001;
-		}
+        inline unsigned getResponseValue() const
+        {
+            return buffer[1];
+        }
 
-		inline bool isSuccessful() const
-		{
-			return buffer[1] == 0x80000000;
-		}
+        inline bool isResponse() const
+        {
+            return buffer[1] == 0x80000000 || buffer[1] == 0x80000001;
+        }
 
-		inline unsigned getResponseSize() const
-		{
-			//first bit set indicates response
-			return buffer[4] & 0x7FFFFFFF;
-		}
+        inline bool isSuccessful() const
+        {
+            return buffer[1] == 0x80000000;
+        }
 
-		inline unsigned* getContent()
-		{
-			return &buffer[5];
-		}
+        inline unsigned getResponseSize() const
+        {
+            // first bit set indicates response
+            return buffer[4] & 0x7FFFFFFF;
+        }
 
-		inline unsigned getContent(unsigned index) const
-		{
-			return buffer.at(5 + index);
-		}
-	};
+        inline unsigned* getContent()
+        {
+            return &buffer[5];
+        }
 
-	template<MailboxTag Tag>
-	using SimpleQueryMessage = MailboxMessage<Tag, 0 /* no additional request data */, 2 /* one or two response values */>;
-	template<MailboxTag Tag>
-	using QueryMessage = MailboxMessage<Tag, 1 /* single request value */, 2 /* one or two response values */>;
+        inline unsigned getContent(unsigned index) const
+        {
+            return buffer.at(5 + index);
+        }
+    };
 
-	class Mailbox
-	{
-	public:
+    template <MailboxTag Tag>
+    using SimpleQueryMessage =
+        MailboxMessage<Tag, 0 /* no additional request data */, 2 /* one or two response values */>;
+    template <MailboxTag Tag>
+    using QueryMessage = MailboxMessage<Tag, 1 /* single request value */, 2 /* one or two response values */>;
 
-		Mailbox();
-		//disallow copy, since one may close the other's file descriptor
-		Mailbox(const Mailbox&) = delete;
-		//disallow move, since we use a singleton
-		Mailbox(Mailbox&&) = delete;
-		~Mailbox();
+    class Mailbox
+    {
+    public:
+        Mailbox();
+        // disallow copy, since one may close the other's file descriptor
+        Mailbox(const Mailbox&) = delete;
+        // disallow move, since we use a singleton
+        Mailbox(Mailbox&&) = delete;
+        ~Mailbox();
 
-		Mailbox& operator=(const Mailbox&) = delete;
-		Mailbox& operator=(Mailbox&&) = delete;
+        Mailbox& operator=(const Mailbox&) = delete;
+        Mailbox& operator=(Mailbox&&) = delete;
 
-		//TODO default was previously L1_NONALLOCATING, but results in errors writing and reading same buffers (within same work-item)?
-		DeviceBuffer* allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes = PAGE_ALIGNMENT, MemoryFlag flags = MemoryFlag::L1_NONALLOCATING) const;
-		bool deallocateBuffer(const DeviceBuffer* buffer) const;
+        // TODO default was previously L1_NONALLOCATING, but results in errors writing and reading same buffers (within
+        // same work-item)?
+        DeviceBuffer* allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes = PAGE_ALIGNMENT,
+            MemoryFlag flags = MemoryFlag::L1_NONALLOCATING) const;
+        bool deallocateBuffer(const DeviceBuffer* buffer) const;
 
-		CHECK_RETURN bool executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const;
-		CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout) const;
-		uint32_t getTotalGPUMemory() const;
+        CHECK_RETURN bool executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2,
+            unsigned valueR3, unsigned valueR4, unsigned valueR5) const;
+        CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress, bool flushBuffer,
+            std::chrono::milliseconds timeout) const;
+        uint32_t getTotalGPUMemory() const;
 
-		template<MailboxTag Tag, unsigned RequestSize, unsigned MaxResponseSize>
-		bool readMailboxMessage(MailboxMessage<Tag, RequestSize, MaxResponseSize>& message) const
-		{
-			if(mailboxCall(message.buffer.data()) < 0)
-				return false;
-			return checkReturnValue(message.getResponseValue());
-		}
+        template <MailboxTag Tag, unsigned RequestSize, unsigned MaxResponseSize>
+        bool readMailboxMessage(MailboxMessage<Tag, RequestSize, MaxResponseSize>& message) const
+        {
+            if(mailboxCall(message.buffer.data()) < 0)
+                return false;
+            return checkReturnValue(message.getResponseValue());
+        }
 
-	private:
-		int fd;
+    private:
+        int fd;
 
-		CHECK_RETURN int mailboxCall(void* buffer) const;
+        CHECK_RETURN int mailboxCall(void* buffer) const;
 
-		CHECK_RETURN bool enableQPU(bool enable) const;
+        CHECK_RETURN bool enableQPU(bool enable) const;
 
-		unsigned memAlloc(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags) const;
-		DevicePointer memLock(unsigned handle) const;
+        unsigned memAlloc(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags) const;
+        DevicePointer memLock(unsigned handle) const;
 
-		CHECK_RETURN bool memUnlock(unsigned handle) const;
-		CHECK_RETURN bool memFree(unsigned handle) const;
+        CHECK_RETURN bool memUnlock(unsigned handle) const;
+        CHECK_RETURN bool memFree(unsigned handle) const;
 
-		CHECK_RETURN bool readMailboxMessage(unsigned* buffer, unsigned bufferSize);
+        CHECK_RETURN bool readMailboxMessage(unsigned* buffer, unsigned bufferSize);
 
-		CHECK_RETURN bool checkReturnValue(unsigned value) const;
-	};
+        CHECK_RETURN bool checkReturnValue(unsigned value) const;
+    };
 
-	Mailbox& mailbox();
+    Mailbox& mailbox();
 
-	enum class VC4Clock
-	{
-		RESERVED = 0,
-		EMMC  = 1,
-		UART = 2,
-		ARM = 3,
-		CORE = 4,
-		V3D = 5,
-		H264 = 6,
-		ISP = 7,
-		SDRAM = 8,
-		PIXEL = 9,
-		PWM = 10
-	};
+    enum class VC4Clock
+    {
+        RESERVED = 0,
+        EMMC = 1,
+        UART = 2,
+        ARM = 3,
+        CORE = 4,
+        V3D = 5,
+        H264 = 6,
+        ISP = 7,
+        SDRAM = 8,
+        PIXEL = 9,
+        PWM = 10
+    };
 
 } /* namespace vc4cl */
 

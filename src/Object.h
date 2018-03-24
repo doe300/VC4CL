@@ -17,204 +17,202 @@
 
 namespace vc4cl
 {
-	//This class exists only, so the object-tracker can track Objects on a common base class
-	class BaseObject
-	{
-	public:
-		BaseObject(std::string typeName) : typeName(std::move(typeName)), referenceCount(1)
-		{
-			//reference-count is implicitly retained
-		}
-		virtual ~BaseObject() = default;
+    // This class exists only, so the object-tracker can track Objects on a common base class
+    class BaseObject
+    {
+    public:
+        BaseObject(std::string typeName) : typeName(std::move(typeName)), referenceCount(1)
+        {
+            // reference-count is implicitly retained
+        }
+        virtual ~BaseObject() = default;
 
-		virtual void* getBasePointer() = 0;
+        virtual void* getBasePointer() = 0;
 
-		const std::string typeName;
-	protected:
-		cl_uint referenceCount;
+        const std::string typeName;
 
-		friend class ObjectTracker;
-	};
+    protected:
+        cl_uint referenceCount;
 
-	template<typename BaseType, cl_int invalidObjectCode>
-	class Object : public BaseObject
-	{
-	public:
-		//make sure, objects can't be copied or moved, since it invalidates the pointers
-		Object(const Object&) = delete;
-		Object(Object&&) = delete;
-		~Object() override = default;
+        friend class ObjectTracker;
+    };
 
-		Object& operator=(const Object&) = delete;
-		Object& operator=(Object&&) = delete;
+    template <typename BaseType, cl_int invalidObjectCode>
+    class Object : public BaseObject
+    {
+    public:
+        // make sure, objects can't be copied or moved, since it invalidates the pointers
+        Object(const Object&) = delete;
+        Object(Object&&) = delete;
+        ~Object() override = default;
 
-		CHECK_RETURN cl_int retain()
-		{
-			if(!checkReferences())
-				return returnError(invalidObjectCode, __FILE__, __LINE__, "Object reference check failed!");
-			referenceCount += 1;
-			return CL_SUCCESS;
-		}
+        Object& operator=(const Object&) = delete;
+        Object& operator=(Object&&) = delete;
 
-		CHECK_RETURN cl_int release()
-		{
-			if(!checkReferences())
-				return returnError(invalidObjectCode, __FILE__, __LINE__, "Object reference check failed!");
-			referenceCount -= 1;
-			if(referenceCount == 0)
-				ObjectTracker::removeObject(this);
-			return CL_SUCCESS;
-		}
+        CHECK_RETURN cl_int retain()
+        {
+            if(!checkReferences())
+                return returnError(invalidObjectCode, __FILE__, __LINE__, "Object reference check failed!");
+            referenceCount += 1;
+            return CL_SUCCESS;
+        }
 
-		BaseType* toBase()
-		{
-			return &base;
-		}
+        CHECK_RETURN cl_int release()
+        {
+            if(!checkReferences())
+                return returnError(invalidObjectCode, __FILE__, __LINE__, "Object reference check failed!");
+            referenceCount -= 1;
+            if(referenceCount == 0)
+                ObjectTracker::removeObject(this);
+            return CL_SUCCESS;
+        }
 
-		const BaseType* toBase() const
-		{
-			return &base;
-		}
+        BaseType* toBase()
+        {
+            return &base;
+        }
 
-		inline bool checkReferences() const
-		{
-			return referenceCount > 0;
-		}
+        const BaseType* toBase() const
+        {
+            return &base;
+        }
 
-		inline cl_uint getReferences() const
-		{
-			return referenceCount;
-		}
+        inline bool checkReferences() const
+        {
+            return referenceCount > 0;
+        }
 
-		void* getBasePointer() override
-		{
-			return reinterpret_cast<void*>(&base);
-		}
+        inline cl_uint getReferences() const
+        {
+            return referenceCount;
+        }
 
-	protected:
-		BaseType base;
+        void* getBasePointer() override
+        {
+            return reinterpret_cast<void*>(&base);
+        }
 
-		Object() : BaseObject(BaseType::TYPE_NAME), base(this) { }
-	};
+    protected:
+        BaseType base;
 
-	template<typename T>
-	struct object_wrapper
-	{
-	public:
-		constexpr object_wrapper() : ref(nullptr)
-		{
+        Object() : BaseObject(BaseType::TYPE_NAME), base(this) {}
+    };
 
-		}
+    template <typename T>
+    struct object_wrapper
+    {
+    public:
+        constexpr object_wrapper() : ref(nullptr) {}
 
-		explicit object_wrapper(T* object) : ref(object)
-		{
-			retainPointer();
-		}
+        explicit object_wrapper(T* object) : ref(object)
+        {
+            retainPointer();
+        }
 
-		object_wrapper(const object_wrapper& other) : ref(other.ref)
-		{
-			retainPointer();
-		}
+        object_wrapper(const object_wrapper& other) : ref(other.ref)
+        {
+            retainPointer();
+        }
 
-		object_wrapper(object_wrapper&& other) : ref(other.ref)
-		{
-			//neither retain (here) nor release (with destruction of the other wrapper)
-			other.ref = nullptr;
-		}
+        object_wrapper(object_wrapper&& other) : ref(other.ref)
+        {
+            // neither retain (here) nor release (with destruction of the other wrapper)
+            other.ref = nullptr;
+        }
 
-		~object_wrapper()
-		{
-			releasePointer();
-		}
+        ~object_wrapper()
+        {
+            releasePointer();
+        }
 
-		object_wrapper& operator=(const object_wrapper& other)
-		{
-			if(ref == other.ref)
-				return *this;
+        object_wrapper& operator=(const object_wrapper& other)
+        {
+            if(ref == other.ref)
+                return *this;
 
-			releasePointer();
-			ref = other.ref;
-			retainPointer();
+            releasePointer();
+            ref = other.ref;
+            retainPointer();
 
-			return *this;
-		}
+            return *this;
+        }
 
-		object_wrapper& operator=(object_wrapper&& other)
-		{
-			if(ref == other.ref)
-				return *this;
+        object_wrapper& operator=(object_wrapper&& other)
+        {
+            if(ref == other.ref)
+                return *this;
 
-			releasePointer();
-			ref = other.ref;
-			//neither retain (here) nor release (with destruction of the other wrapper)
-			other.ref = nullptr;
+            releasePointer();
+            ref = other.ref;
+            // neither retain (here) nor release (with destruction of the other wrapper)
+            other.ref = nullptr;
 
-			return *this;
-		}
+            return *this;
+        }
 
-		T* get()
-		{
-			return ref;
-		}
+        T* get()
+        {
+            return ref;
+        }
 
-		const T* get() const
-		{
-			return ref;
-		}
+        const T* get() const
+        {
+            return ref;
+        }
 
-		T* operator->()
-		{
-			return ref;
-		}
+        T* operator->()
+        {
+            return ref;
+        }
 
-		const T* operator->() const
-		{
-			return ref;
-		}
+        const T* operator->() const
+        {
+            return ref;
+        }
 
-		explicit operator bool() const
-		{
-			return ref != nullptr;
-		}
+        explicit operator bool() const
+        {
+            return ref != nullptr;
+        }
 
-		void reset(T* ptr)
-		{
-			releasePointer();
-			ref = ptr;
-			retainPointer();
-		}
+        void reset(T* ptr)
+        {
+            releasePointer();
+            ref = ptr;
+            retainPointer();
+        }
 
-	private:
-		T* ref;
+    private:
+        T* ref;
 
-		void releasePointer()
-		{
-			if(ref != nullptr)
-				ignoreReturnValue(ref->release(), __FILE__, __LINE__, "No way to handle error here!");
-		}
+        void releasePointer()
+        {
+            if(ref != nullptr)
+                ignoreReturnValue(ref->release(), __FILE__, __LINE__, "No way to handle error here!");
+        }
 
-		void retainPointer()
-		{
-			if(ref != nullptr && ref->retain() != CL_SUCCESS)
-				throw std::runtime_error("Failed to retain object!");
-		}
-	};
+        void retainPointer()
+        {
+            if(ref != nullptr && ref->retain() != CL_SUCCESS)
+                throw std::runtime_error("Failed to retain object!");
+        }
+    };
 
-	template<typename T, typename... Args>
-	CHECK_RETURN inline T* newOpenCLObject(Args... args)
-	{
-		try
-		{
-			auto ptr = new T(args...);
-			ObjectTracker::addObject(ptr);
-			return ptr;
-		}
-		catch(std::bad_alloc& e)
-		{
-			//so we can return CL_OUT_OF_HOST_MEMORY
-			return nullptr;
-		}
-	}
+    template <typename T, typename... Args>
+    CHECK_RETURN inline T* newOpenCLObject(Args... args)
+    {
+        try
+        {
+            auto ptr = new T(args...);
+            ObjectTracker::addObject(ptr);
+            return ptr;
+        }
+        catch(std::bad_alloc& e)
+        {
+            // so we can return CL_OUT_OF_HOST_MEMORY
+            return nullptr;
+        }
+    }
 } // namespace vc4cl
 
 #endif /* VC4CL_OBJECT_H */

@@ -11,53 +11,56 @@
 
 namespace vc4cl
 {
-	using ContextCallback = void(CL_CALLBACK*)(const char* errinfo, const void *private_info, size_t cb, void* user_data);
+    using ContextCallback = void(CL_CALLBACK*)(
+        const char* errinfo, const void* private_info, size_t cb, void* user_data);
 
-	enum ContextProperty
-	{
-		NONE = 0,
-		USER_SYNCHRONISATION = 1,
-		PLATFORM = 2,
-		//provided by cl_khr_initialize_memory
-		INITIALIZE_MEMORY = 4,
-	};
+    enum ContextProperty
+    {
+        NONE = 0,
+        USER_SYNCHRONISATION = 1,
+        PLATFORM = 2,
+        // provided by cl_khr_initialize_memory
+        INITIALIZE_MEMORY = 4,
+    };
 
-	class Context : public Object<_cl_context, CL_INVALID_CONTEXT>
-	{
-	public:
-		Context(const Device* device, bool userSync, cl_context_properties memoryToZeroOut, const Platform* platform, ContextProperty explicitProperties, ContextCallback callback = nullptr, void* userData = nullptr);
-		~Context() override;
-		CHECK_RETURN cl_int getInfo(cl_context_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
+    class Context : public Object<_cl_context, CL_INVALID_CONTEXT>
+    {
+    public:
+        Context(const Device* device, bool userSync, cl_context_properties memoryToZeroOut, const Platform* platform,
+            ContextProperty explicitProperties, ContextCallback callback = nullptr, void* userData = nullptr);
+        ~Context() override;
+        CHECK_RETURN cl_int getInfo(
+            cl_context_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 
-		void fireCallback(const std::string& errorInfo, const void* privateInfo, size_t cb);
-		bool initializeMemoryToZero(cl_context_properties memoryType) const;
+        void fireCallback(const std::string& errorInfo, const void* privateInfo, size_t cb);
+        bool initializeMemoryToZero(cl_context_properties memoryType) const;
 
-		const Device* device;
+        const Device* device;
 
-	private:
-		//properties
-		const bool userSync;
-		const Platform* platform;
-		const ContextProperty explicitProperties;
-		const cl_context_properties memoryToInitialize;
+    private:
+        // properties
+        const bool userSync;
+        const Platform* platform;
+        const ContextProperty explicitProperties;
+        const cl_context_properties memoryToInitialize;
 
-		//callback
-		const ContextCallback callback;
-		void* userData;
-	};
+        // callback
+        const ContextCallback callback;
+        void* userData;
+    };
 
-	class HasContext
-	{
-	public:
-		explicit HasContext(Context* context);
-		virtual ~HasContext();
+    class HasContext
+    {
+    public:
+        explicit HasContext(Context* context);
+        virtual ~HasContext();
 
-		const Context* context() const;
-		Context* context();
+        const Context* context() const;
+        Context* context();
 
-	private:
-		object_wrapper<Context> c;
-	};
+    private:
+        object_wrapper<Context> c;
+    };
 
 } /* namespace vc4cl */
 

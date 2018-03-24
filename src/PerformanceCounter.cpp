@@ -20,80 +20,83 @@ static std::bitset<16> usedCounters{0};
 
 PerformanceCounter::PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index) : type(type), index(index)
 {
-	std::lock_guard<std::mutex> lock(counterAccessMutex);
-	if(!V3D::instance().setCounter(index, static_cast<vc4cl::CounterType>(type)))
-	{
-		//all error-cases care checked before
-		throw std::invalid_argument("Failed to set counter configuration!");
-	}
+    std::lock_guard<std::mutex> lock(counterAccessMutex);
+    if(!V3D::instance().setCounter(index, static_cast<vc4cl::CounterType>(type)))
+    {
+        // all error-cases care checked before
+        throw std::invalid_argument("Failed to set counter configuration!");
+    }
 }
 
 PerformanceCounter::~PerformanceCounter()
 {
-	std::lock_guard<std::mutex> lock(counterAccessMutex);
-	V3D::instance().disableCounter(index);
-	usedCounters.reset(index);
+    std::lock_guard<std::mutex> lock(counterAccessMutex);
+    V3D::instance().disableCounter(index);
+    usedCounters.reset(index);
 }
 
 cl_int PerformanceCounter::getValue(cl_uint* value) const
 {
-	if(value == nullptr)
-		return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Output parameter is NULL!");
-	std::lock_guard<std::mutex> lock(counterAccessMutex);
-	*value = V3D::instance().getCounter(index);
-	return CL_SUCCESS;
+    if(value == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Output parameter is NULL!");
+    std::lock_guard<std::mutex> lock(counterAccessMutex);
+    *value = V3D::instance().getCounter(index);
+    return CL_SUCCESS;
 }
 
 cl_int PerformanceCounter::reset()
 {
-	std::lock_guard<std::mutex> lock(counterAccessMutex);
-	V3D::instance().resetCounterValue(index);
-	return CL_SUCCESS;
+    std::lock_guard<std::mutex> lock(counterAccessMutex);
+    V3D::instance().resetCounterValue(index);
+    return CL_SUCCESS;
 }
 
-cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(cl_device_id device, const cl_counter_type_vc4cl counter_type, cl_int* errcode_ret)
+cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(
+    cl_device_id device, const cl_counter_type_vc4cl counter_type, cl_int* errcode_ret)
 {
-	std::lock_guard<std::mutex> lock(counterAccessMutex);
-	CHECK_DEVICE_ERROR_CODE(toType<Device>(device), errcode_ret, cl_counter_vc4cl)
+    std::lock_guard<std::mutex> lock(counterAccessMutex);
+    CHECK_DEVICE_ERROR_CODE(toType<Device>(device), errcode_ret, cl_counter_vc4cl)
 
-	if(counter_type > 29)
-		return returnError<cl_counter_vc4cl>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Invalid counter-type %u!", counter_type));
-	if(usedCounters.all())
-		return returnError<cl_counter_vc4cl>(CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__, "No more free counters!");
+    if(counter_type > 29)
+        return returnError<cl_counter_vc4cl>(
+            CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, buildString("Invalid counter-type %u!", counter_type));
+    if(usedCounters.all())
+        return returnError<cl_counter_vc4cl>(
+            CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__, "No more free counters!");
 
-	cl_uchar counterIndex = 0;
-	for(; counterIndex < usedCounters.size(); ++counterIndex)
-	{
-		if(!usedCounters.test(counterIndex))
-			break;
-	}
-	usedCounters.set(counterIndex);
+    cl_uchar counterIndex = 0;
+    for(; counterIndex < usedCounters.size(); ++counterIndex)
+    {
+        if(!usedCounters.test(counterIndex))
+            break;
+    }
+    usedCounters.set(counterIndex);
 
-	PerformanceCounter* counter = newOpenCLObject<PerformanceCounter>(counter_type, counterIndex);
-	CHECK_ALLOCATION_ERROR_CODE(counter, errcode_ret, cl_counter_vc4cl)
-	RETURN_OBJECT(counter->toBase(), errcode_ret)
+    PerformanceCounter* counter = newOpenCLObject<PerformanceCounter>(counter_type, counterIndex);
+    CHECK_ALLOCATION_ERROR_CODE(counter, errcode_ret, cl_counter_vc4cl)
+    RETURN_OBJECT(counter->toBase(), errcode_ret)
 }
 
 cl_int VC4CL_FUNC(clGetPerformanceCounterValueVC4CL)(cl_counter_vc4cl counter, cl_uint* value)
 {
-	CHECK_COUNTER(toType<PerformanceCounter>(counter))
-	return toType<PerformanceCounter>(counter)->getValue(value);
+    CHECK_COUNTER(toType<PerformanceCounter>(counter))
+    return toType<PerformanceCounter>(counter)->getValue(value);
 }
 
 cl_int VC4CL_FUNC(clReleasePerformanceCounterVC4CL)(cl_counter_vc4cl counter)
 {
-	CHECK_COUNTER(toType<PerformanceCounter>(counter))
-	return toType<PerformanceCounter>(counter)->release();
+    CHECK_COUNTER(toType<PerformanceCounter>(counter))
+    return toType<PerformanceCounter>(counter)->release();
 }
 
 cl_int VC4CL_FUNC(clRetainPerformanceCounterVC4CL)(cl_counter_vc4cl counter)
 {
-	CHECK_COUNTER(toType<PerformanceCounter>(counter))
-	return toType<PerformanceCounter>(counter)->retain();
+    CHECK_COUNTER(toType<PerformanceCounter>(counter))
+    return toType<PerformanceCounter>(counter)->retain();
 }
 
 cl_int VC4CL_FUNC(clResetPerformanceCounterValueVC4CL)(cl_counter_vc4cl counter)
 {
-	CHECK_COUNTER(toType<PerformanceCounter>(counter))
-	return toType<PerformanceCounter>(counter)->reset();
+    CHECK_COUNTER(toType<PerformanceCounter>(counter))
+    return toType<PerformanceCounter>(counter)->reset();
 }

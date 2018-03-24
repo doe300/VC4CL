@@ -42,7 +42,7 @@ if(CLANG_FORMAT_PATH)
 	add_custom_target(
 		clang-format
 		COMMAND ${CLANG_FORMAT_PATH}
-		-i ${SRCS}
+		-i ${SRCS} ${HDRS}
 	)
 else()
   message (WARNING "clang-format not found: strongly recommend to use it before commit!")

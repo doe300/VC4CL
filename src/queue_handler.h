@@ -11,13 +11,13 @@
 
 namespace vc4cl
 {
-	class CommandQueue;
+    class CommandQueue;
 
-	void pushEventToQueue(Event* event);
-	Event* peekQueue(CommandQueue* queue);
-	void waitForEvent(const Event* event);
-	void initEventQueue();
-	void deinitEventQueue();
+    void pushEventToQueue(Event* event);
+    Event* peekQueue(CommandQueue* queue);
+    void waitForEvent(const Event* event);
+    void initEventQueue();
+    void deinitEventQueue();
 
 } /* namespace vc4cl */
 

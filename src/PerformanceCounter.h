@@ -12,19 +12,19 @@
 
 namespace vc4cl
 {
-	class PerformanceCounter: public Object<_cl_counter_vc4cl, CL_INVALID_PERFORMANCE_COUNTER_VC4CL>
-	{
-	public:
-		PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index);
-		~PerformanceCounter() override;
+    class PerformanceCounter : public Object<_cl_counter_vc4cl, CL_INVALID_PERFORMANCE_COUNTER_VC4CL>
+    {
+    public:
+        PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index);
+        ~PerformanceCounter() override;
 
-		cl_int getValue(cl_uint* value) const;
-		cl_int reset();
+        cl_int getValue(cl_uint* value) const;
+        cl_int reset();
 
-	private:
-		cl_counter_type_vc4cl type;
-		cl_uchar index;
-	};
+    private:
+        cl_counter_type_vc4cl type;
+        cl_uchar index;
+    };
 
 } /* namespace vc4cl */
 

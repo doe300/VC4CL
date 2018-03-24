@@ -11,19 +11,20 @@
 
 namespace vc4cl
 {
-	class Platform;
+    class Platform;
 
-	class Device : public Object<_cl_device_id, CL_INVALID_DEVICE>
-	{
-	public:
-		~Device() override;
-		CHECK_RETURN cl_int getInfo(cl_device_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const;
+    class Device : public Object<_cl_device_id, CL_INVALID_DEVICE>
+    {
+    public:
+        ~Device() override;
+        CHECK_RETURN cl_int getInfo(
+            cl_device_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const;
 
-	private:
-		Device();
+    private:
+        Device();
 
-		friend class Platform;
-	};
+        friend class Platform;
+    };
 
 } /* namespace vc4cl */
 
