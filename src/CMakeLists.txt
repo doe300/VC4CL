@@ -10,16 +10,16 @@ file( GLOB SRCS *.cpp */*.cpp)
 add_library( VC4CL SHARED ${SRCS} ${HDRS} )
 
 if(INCLUDE_COMPILER AND EXISTS "${VC4C_HEADER_PATH}")
-	target_link_libraries(VC4CL ${VC4CC_LIBRARY})
+	target_link_libraries(VC4CL ${VC4CC_LIBRARY} ${SYSROOT_LIBRARY_FLAGS})
 endif()
 
 if(CROSS_COMPILE OR EXISTS "/opt/vc/include/bcm_host.h")
 	find_library(BCMHOST_LIBRARY NAMES bcm_host libbcm_host HINTS "/opt/vc/lib")
-	target_link_libraries(VC4CL ${BCMHOST_LIBRARY})
+	target_link_libraries(VC4CL ${BCMHOST_LIBRARY} ${SYSROOT_LIBRARY_FLAGS})
 endif()
 
 if(CROSS_COMPILE)
-	target_link_libraries(VC4CL rt)
+	target_link_libraries(VC4CL rt ${SYSROOT_LIBRARY_FLAGS})
 endif()
 
 # "For shared libraries VERSION and SOVERSION can be used to specify the build version and API version respectively."
