@@ -108,22 +108,22 @@ namespace vc4cl
 
         ~V3D();
 
-        uint32_t getSystemInfo(SystemInfo key) const;
+        uint32_t getSystemInfo(SystemInfo key) const __attribute__((pure));
 
         CHECK_RETURN bool setCounter(uint8_t counterIndex, CounterType type);
         void resetCounterValue(uint8_t counterIndex);
-        int32_t getCounter(uint8_t counterIndex) const;
+        int32_t getCounter(uint8_t counterIndex) const __attribute__((pure));
         void disableCounter(uint8_t counterIndex);
 
         CHECK_RETURN bool setReservation(uint8_t qpu, QPUReservation val);
-        QPUReservation getReservation(uint8_t qpu) const;
+        QPUReservation getReservation(uint8_t qpu) const __attribute__((pure));
 
         bool hasError(ErrorType type) const;
 
         CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> addressPairs, bool flushBuffer,
             std::chrono::milliseconds timeout);
 
-        static uint32_t busAddressToPhysicalAddress(uint32_t busAddress);
+        static uint32_t busAddressToPhysicalAddress(uint32_t busAddress) __attribute__((const));
         static constexpr uint32_t MEMORY_PAGE_SIZE = 4 * 1024; // 4 KB
 
     private:

@@ -21,7 +21,7 @@ namespace vc4cl
     class BaseObject
     {
     public:
-        BaseObject(std::string typeName) : typeName(std::move(typeName)), referenceCount(1)
+        explicit BaseObject(const char* const typeName) : typeName(typeName), referenceCount(1)
         {
             // reference-count is implicitly retained
         }
@@ -29,7 +29,7 @@ namespace vc4cl
 
         virtual void* getBasePointer() = 0;
 
-        const std::string typeName;
+        const char* const typeName;
 
     protected:
         cl_uint referenceCount;
@@ -114,7 +114,7 @@ namespace vc4cl
             retainPointer();
         }
 
-        object_wrapper(object_wrapper&& other) : ref(other.ref)
+        object_wrapper(object_wrapper&& other) noexcept : ref(other.ref)
         {
             // neither retain (here) nor release (with destruction of the other wrapper)
             other.ref = nullptr;
@@ -207,7 +207,7 @@ namespace vc4cl
             ObjectTracker::addObject(ptr);
             return ptr;
         }
-        catch(std::bad_alloc& e)
+        catch(std::bad_alloc&)
         {
             // so we can return CL_OUT_OF_HOST_MEMORY
             return nullptr;

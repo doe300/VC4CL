@@ -64,7 +64,7 @@ namespace vc4cl
         void setUseHostPointer(void* hostPtr, size_t hostSize);
         void setAllocateHostPointer(size_t hostSize);
         void setCopyHostPointer(void* hostPtr, size_t hostSize);
-        cl_mem_flags getMemFlags() const;
+        cl_mem_flags getMemFlags() const __attribute__((pure));
 
         /*
          * For use with CL_MEM_USE_HOST_PTR, this synchronizes the data in the device-buffer with the host-buffer

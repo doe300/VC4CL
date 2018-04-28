@@ -84,7 +84,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
     args[arg_index] = KernelArgument();
 
     const ParamInfo& paramInfo = info.params[arg_index];
-    if(paramInfo.getPointer() == CL_FALSE)
+    if(!paramInfo.getPointer())
     {
         // literal (scalar or vector) argument
         if(arg_size != paramInfo.getSize())
@@ -582,7 +582,7 @@ cl_kernel VC4CL_FUNC(clCreateKernel)(cl_program program, const char* kernel_name
     const KernelInfo* info = nullptr;
     for(const KernelInfo& i : toType<Program>(program)->moduleInfo.kernelInfos)
     {
-        if(i.name.compare(kernel_name) == 0)
+        if(i.name == kernel_name)
         {
             info = &i;
             break;

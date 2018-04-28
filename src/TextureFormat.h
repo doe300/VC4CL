@@ -74,8 +74,8 @@ namespace vc4cl
         ~TFormatAccessor() override = default;
 
         int checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const override;
-        void* calculatePixelOffset(
-            void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const override;
+        void* calculatePixelOffset(void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const override
+            __attribute__((pure));
     };
 
     struct LTFormatAccessor : public TextureAccessor
@@ -96,8 +96,8 @@ namespace vc4cl
         ~RasterFormatAccessor() override = default;
 
         int checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const override;
-        void* calculatePixelOffset(
-            void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const override;
+        void* calculatePixelOffset(void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const override
+            __attribute__((pure));
 
         // These function are overridden to provide a better performance by copying a scan-line at once and not every
         // single pixel

@@ -217,7 +217,7 @@ cl_int executeKernel(Event* event)
         kernel->program->globalData.size() * sizeof(uint64_t), kernel->program->moduleInfo.getStackFrameSize());
 
     std::unique_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(static_cast<unsigned>(buffer_size)));
-    if(buffer.get() == nullptr)
+    if(!buffer)
         return CL_OUT_OF_RESOURCES;
 
     //
@@ -363,7 +363,7 @@ cl_int executeKernel(Event* event)
 #ifdef DEBUG_MODE
     std::cout << "[VC4CL] Execution: " << (result ? "successful" : "failed") << std::endl;
 #endif
-    if(result == false)
+    if(!result)
         return CL_OUT_OF_RESOURCES;
     while(increment_index(group_indices, group_limits, numIterations))
     {
@@ -389,7 +389,7 @@ cl_int executeKernel(Event* event)
 #ifdef DEBUG_MODE
         std::cout << "[VC4CL] Execution: " << (result ? "successful" : "failed") << std::endl;
 #endif
-        if(result == false)
+        if(!result)
             return CL_OUT_OF_RESOURCES;
     }
 

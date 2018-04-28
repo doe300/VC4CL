@@ -168,7 +168,7 @@ bool Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> contro
      * https://github.com/raspberrypi/firmware/issues/747
      */
     MailboxMessage<MailboxTag::EXECUTE_QPU, 4, 1> msg(
-        {numQPUs, controlAddress.second, !flushBuffer, static_cast<unsigned>(timeout.count())});
+        {numQPUs, controlAddress.second, static_cast<unsigned>(!flushBuffer), static_cast<unsigned>(timeout.count())});
     if(mailboxCall(msg.buffer.data()) < 0)
         return false;
     return msg.getContent(0) == 0;
@@ -260,12 +260,12 @@ bool Mailbox::memFree(unsigned handle) const
 
 CHECK_RETURN bool Mailbox::checkReturnValue(unsigned value) const
 {
-    if(value >> 31) // 0x8000000x
+    if((value >> 31) == 1) // 0x8000000x
     {
     // 0x80000000 on success
     // 0x80000001 on failure
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Mailbox request: " << ((value & 0x1) ? "failed" : "succeeded") << std::endl;
+        std::cout << "[VC4CL] Mailbox request: " << (((value & 0x1) == 0x1) ? "failed" : "succeeded") << std::endl;
 #endif
         return value == 0x80000000;
     }
@@ -284,6 +284,6 @@ static std::unique_ptr<Mailbox> mb;
 
 Mailbox& vc4cl::mailbox()
 {
-    std::call_once(mailboxInitialized, []() -> void { mb.reset(new Mailbox()); });
+    std::call_once(mailboxInitialized, []() -> void { mb = std::make_unique<Mailbox>(); });
     return *mb;
 }

@@ -74,11 +74,11 @@ namespace vc4cl
     }
 
     template <typename... T>
-    CHECK_RETURN inline std::string buildString(const std::string& format, T... args)
+    CHECK_RETURN inline std::string buildString(const char* format, T... args)
     {
         char tmp[4096];
-        int num = snprintf(tmp, 4096, format.data(), std::forward<T>(args)...);
-        return std::string(tmp, num);
+        int num = snprintf(tmp, 4096, format, std::forward<T>(args)...);
+        return std::string(tmp, static_cast<unsigned>(num));
     }
 
     template <typename T, typename Src>
@@ -96,7 +96,7 @@ namespace vc4cl
         {
             return new T(args...);
         }
-        catch(std::bad_alloc& e)
+        catch(std::bad_alloc&)
         {
             // so we can return CL_OUT_OF_HOST_MEMORY
             return nullptr;
@@ -126,10 +126,10 @@ namespace vc4cl
     return object;
 
 #define CHECK_PLATFORM(platform)                                                                                       \
-    if(platform != nullptr && platform != Platform::getVC4CLPlatform().toBase())                                       \
+    if((platform) != nullptr && (platform) != Platform::getVC4CLPlatform().toBase())                                   \
         return returnError(CL_INVALID_PLATFORM, __FILE__, __LINE__, "Platform is not the VC4CL platform!");
 #define CHECK_PLATFORM_ERROR_CODE(platform, errcode_ret, type)                                                         \
-    if(platform != nullptr && platform != VC4CL_PLATFORM.get())                                                        \
+    if((platform) != nullptr && (platform) != VC4CL_PLATFORM.get())                                                    \
         return returnError<type>(CL_INVALID_PLATFORM, errcode_ret);
 
 #define CHECK_DEVICE(device) CHECK_OBJECT(device, CL_INVALID_DEVICE)
@@ -142,7 +142,7 @@ namespace vc4cl
 
 #define CHECK_DEVICE_WITH_CONTEXT(dev, context)                                                                        \
     CHECK_DEVICE(dev)                                                                                                  \
-    if(context->device != dev)                                                                                         \
+    if((context)->device != (dev))                                                                                     \
         return returnError(CL_INVALID_DEVICE, __FILE__, __LINE__, "Device does not match the Context's device!");
 
 #define CHECK_COMMAND_QUEUE(queue) CHECK_OBJECT(queue, CL_INVALID_COMMAND_QUEUE)
@@ -170,11 +170,11 @@ namespace vc4cl
     CHECK_OBJECT_ERROR_CODE(event, CL_INVALID_EVENT, errcode_ret, type)
 
 #define CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)                                                \
-    if((event_wait_list == nullptr) != (num_events_in_wait_list == 0))                                                 \
+    if(((event_wait_list) == nullptr) != ((num_events_in_wait_list) == 0))                                             \
         return returnError(                                                                                            \
             CL_INVALID_EVENT_WAIT_LIST, __FILE__, __LINE__, "Event list does not match the number of elements!");
 #define CHECK_EVENT_WAIT_LIST_ERROR_CODE(event_wait_list, num_events_in_wait_list, errcode_ret, type)                  \
-    if((event_wait_list == nullptr) != (num_events_in_wait_list == 0))                                                 \
+    if(((event_wait_list) == nullptr) != ((num_events_in_wait_list) == 0))                                             \
         return returnError<type>(                                                                                      \
             CL_INVALID_EVENT_WAIT_LIST, errcode_ret, __FILE__, __LINE__, "Event list validity check failed!");
 
@@ -199,15 +199,16 @@ namespace vc4cl
 
     constexpr bool moreThanOneMemoryAccessFlagSet(cl_mem_flags flags)
     {
-        return (hasFlag<cl_mem_flags>(flags, CL_MEM_WRITE_ONLY) + hasFlag<cl_mem_flags>(flags, CL_MEM_READ_ONLY) +
-                   hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE)) > 1;
+        return (static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_WRITE_ONLY)) +
+                   static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_READ_ONLY)) +
+                   static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE))) > 1;
     }
 
     constexpr bool moreThanOneHostAccessFlagSet(cl_mem_flags flags)
     {
-        return (hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_WRITE_ONLY) +
-                   hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_READ_ONLY) +
-                   hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_NO_ACCESS)) > 1;
+        return (static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_WRITE_ONLY)) +
+                   static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_READ_ONLY)) +
+                   static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_NO_ACCESS))) > 1;
     }
 } // namespace vc4cl
 #endif /* CONFIG_H */

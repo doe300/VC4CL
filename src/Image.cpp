@@ -287,7 +287,7 @@ cl_int Image::enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer
     if(context() != buffer->context())
         return returnError(CL_INVALID_CONTEXT, __FILE__, __LINE__, "Context of image and buffer do not match!");
     //"CL_INVALID_MEM_OBJECT [...] or if dst_image is a 1D image buffer object created from src_buffer."
-    if(deviceBuffer.get() && buffer->deviceBuffer.get())
+    if(deviceBuffer && buffer->deviceBuffer)
         return returnError(
             CL_INVALID_MEM_OBJECT, __FILE__, __LINE__, "Cannot copy between image and buffer using the same data!");
 
@@ -319,10 +319,12 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
     const size_t* region, size_t* rowPitchOutput, size_t* slicePitchOutput, cl_uint numEventsInWaitList,
     const cl_event* waitList, cl_event* event, cl_int* errcode_ret)
 {
-    if(!hostReadable && (mapFlags & CL_MAP_READ))
+    if(!hostReadable && hasFlag<cl_mem_flags>(mapFlags, CL_MAP_READ))
         return returnError<void*>(
             CL_INVALID_OPERATION, errcode_ret, __FILE__, __LINE__, "Cannot read from not host-readable image!");
-    if(!hostWriteable && ((mapFlags & CL_MAP_WRITE) || (mapFlags & CL_MAP_WRITE_INVALIDATE_REGION)))
+    if(!hostWriteable &&
+        (hasFlag<cl_mem_flags>(mapFlags, CL_MAP_WRITE) ||
+            hasFlag<cl_mem_flags>(mapFlags, CL_MAP_WRITE_INVALIDATE_REGION)))
         return returnError<void*>(
             CL_INVALID_OPERATION, errcode_ret, __FILE__, __LINE__, "Cannot write to not host-writeable image!");
 
@@ -428,13 +430,13 @@ size_t Image::calculateElementSize() const
 
 cl_int Image::checkImageAccess(const size_t* origin, const size_t* region) const
 {
-    if((origin[2] != 0 && (imageType.numDimensions + imageType.isImageArray) < 3) ||
-        (origin[1] != 0 && (imageType.numDimensions + imageType.isImageArray) < 2))
+    if((origin[2] != 0 && (imageType.numDimensions + static_cast<int>(imageType.isImageArray)) < 3) ||
+        (origin[1] != 0 && (imageType.numDimensions + static_cast<int>(imageType.isImageArray)) < 2))
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Image origin for undefined dimension must be zero!");
     if(region[0] == 0 || region[1] == 0 || region[2] == 0)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Image region cannot be zero!");
-    if((origin[2] != 1 && (imageType.numDimensions + imageType.isImageArray) < 3) ||
-        (origin[1] != 1 && (imageType.numDimensions + imageType.isImageArray) < 2))
+    if((origin[2] != 1 && (imageType.numDimensions + static_cast<int>(imageType.isImageArray)) < 3) ||
+        (origin[1] != 1 && (imageType.numDimensions + static_cast<int>(imageType.isImageArray)) < 2))
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Image region for undefined dimension must be one!");
 
     // 1D, 2D, 3D, 1D array, 2D array
@@ -503,7 +505,8 @@ cl_int Sampler::getInfo(
     case CL_SAMPLER_CONTEXT:
         return returnValue<cl_context>(context()->toBase(), param_value_size, param_value, param_value_size_ret);
     case CL_SAMPLER_NORMALIZED_COORDS:
-        return returnValue<cl_bool>(normalized_coords, param_value_size, param_value, param_value_size_ret);
+        return returnValue<cl_bool>(
+            static_cast<cl_bool>(normalized_coords), param_value_size, param_value, param_value_size_ret);
     case CL_SAMPLER_ADDRESSING_MODE:
         return returnValue<cl_addressing_mode>(addressing_mode, param_value_size, param_value, param_value_size_ret);
     case CL_SAMPLER_FILTER_MODE:
@@ -784,20 +787,26 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
     if(buffer != nullptr)
     {
         const cl_mem_flags bufferFlags = buffer->getMemFlags();
-        if((bufferFlags & CL_MEM_WRITE_ONLY) && ((flags & CL_MEM_READ_ONLY) || (flags & CL_MEM_READ_WRITE)))
+        if(hasFlag<cl_mem_flags>(bufferFlags, CL_MEM_WRITE_ONLY) &&
+            (hasFlag<cl_mem_flags>(flags, CL_MEM_READ_ONLY) || hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE)))
             return returnError<cl_mem>(
                 CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Memory flags of image and buffer do not match!");
-        if((bufferFlags & CL_MEM_READ_ONLY) && ((flags & CL_MEM_WRITE_ONLY) || (flags & CL_MEM_READ_WRITE)))
+        if(hasFlag<cl_mem_flags>(bufferFlags, CL_MEM_READ_ONLY) &&
+            (hasFlag<cl_mem_flags>(flags, CL_MEM_WRITE_ONLY) || hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE)))
             return returnError<cl_mem>(
                 CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Memory flags of image and buffer do not match!");
-        if((bufferFlags & CL_MEM_USE_HOST_PTR) || (bufferFlags & CL_MEM_ALLOC_HOST_PTR) ||
-            (bufferFlags & CL_MEM_COPY_HOST_PTR))
+        if(hasFlag<cl_mem_flags>(bufferFlags, CL_MEM_USE_HOST_PTR) ||
+            hasFlag<cl_mem_flags>(bufferFlags, CL_MEM_ALLOC_HOST_PTR) ||
+            hasFlag<cl_mem_flags>(bufferFlags, CL_MEM_COPY_HOST_PTR))
             return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__,
                 "Cannot use/copy/allocate host pointer for image, when source buffer is set!");
-        if(((bufferFlags & CL_MEM_HOST_WRITE_ONLY) && (flags & CL_MEM_HOST_READ_ONLY)) ||
-            ((bufferFlags & CL_MEM_HOST_READ_ONLY) && (flags & CL_MEM_HOST_WRITE_ONLY)) ||
-            ((bufferFlags & CL_MEM_HOST_NO_ACCESS) &&
-                ((flags & CL_MEM_HOST_READ_ONLY) || (flags & CL_MEM_HOST_WRITE_ONLY))))
+        if((hasFlag<cl_mem_flags>(bufferFlags, CL_MEM_HOST_WRITE_ONLY) &&
+               hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_READ_ONLY)) ||
+            (hasFlag<cl_mem_flags>(bufferFlags, CL_MEM_HOST_READ_ONLY) &&
+                hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_WRITE_ONLY)) ||
+            (hasFlag<cl_mem_flags>(bufferFlags, CL_MEM_HOST_NO_ACCESS) &&
+                (hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_READ_ONLY) ||
+                    hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_WRITE_ONLY))))
             return returnError<cl_mem>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__,
                 "Host access flags of image and buffer do not match!");
     }
@@ -814,9 +823,9 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
     {
         const cl_mem_flags bufferFlags = buffer->getMemFlags();
         flags |= bufferFlags & (CL_MEM_USE_HOST_PTR | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR);
-        if((flags & (CL_MEM_READ_WRITE | CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY)) == 0)
+        if(!hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE | CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY))
             flags |= bufferFlags & (CL_MEM_READ_WRITE | CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY);
-        if((flags & (CL_MEM_HOST_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_NO_ACCESS)) == 0)
+        if(!hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_NO_ACCESS))
             flags |= bufferFlags & (CL_MEM_HOST_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_NO_ACCESS);
     }
     //"For all image types except CL_MEM_OBJECT_IMAGE1D_BUFFER , if value specified for flags is 0, the default is used
@@ -824,10 +833,12 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
     else if(flags == 0)
         flags = CL_MEM_READ_WRITE;
 
-    if(host_ptr == nullptr && ((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
+    if(host_ptr == nullptr &&
+        (hasFlag<cl_mem_flags>(flags, CL_MEM_USE_HOST_PTR) || hasFlag<cl_mem_flags>(flags, CL_MEM_COPY_HOST_PTR)))
         return returnError<cl_mem>(CL_INVALID_HOST_PTR, errcode_ret, __FILE__, __LINE__,
             "Usage of host-pointer specified in flags but no host-buffer given!");
-    if(host_ptr != nullptr && !((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
+    if(host_ptr != nullptr &&
+        !(hasFlag<cl_mem_flags>(flags, CL_MEM_USE_HOST_PTR) || hasFlag<cl_mem_flags>(flags, CL_MEM_COPY_HOST_PTR)))
         return returnError<cl_mem>(CL_INVALID_HOST_PTR, errcode_ret, __FILE__, __LINE__,
             "Host pointer given, but not used according to flags!");
 
@@ -868,11 +879,11 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
     }
 
     // TODO are these correct??
-    if(flags & CL_MEM_USE_HOST_PTR)
+    if(hasFlag<cl_mem_flags>(flags, CL_MEM_USE_HOST_PTR))
         image->setUseHostPointer(host_ptr, size);
-    else if(flags & CL_MEM_ALLOC_HOST_PTR)
+    else if(hasFlag<cl_mem_flags>(flags, CL_MEM_ALLOC_HOST_PTR))
         image->setAllocateHostPointer(size);
-    if(flags & CL_MEM_COPY_HOST_PTR)
+    if(hasFlag<cl_mem_flags>(flags, CL_MEM_COPY_HOST_PTR))
     {
         //"CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR"
         image->setCopyHostPointer(host_ptr, size);

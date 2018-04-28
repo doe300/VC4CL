@@ -167,7 +167,7 @@ namespace vc4cl
     public:
         TextureAccessSetup(TextureType type, uint16_t width, uint16_t height) noexcept : Bitfield(0)
         {
-            setTypeExtended(type.id >> 4);
+            setTypeExtended(type.id >> 4 == 1);
             setHeight(height);
             setWidth(width);
         }

@@ -7,7 +7,7 @@
 #ifndef VC4CL_BITFIELD
 #define VC4CL_BITFIELD
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace vc4cl
 {
@@ -35,7 +35,7 @@ namespace vc4cl
         static constexpr uint32_t MASK_Int{0xFFFFFFFF};
         static constexpr uint32_t MASK_SignedInt{0xFFFFFFFF};
 
-        constexpr Bitfield(UnderlyingType val = 0) : value(val) {}
+        explicit constexpr Bitfield(UnderlyingType val = 0) : value(val) {}
 
         template <typename T>
         inline void setEntry(T val, uint8_t pos, UnderlyingType mask)

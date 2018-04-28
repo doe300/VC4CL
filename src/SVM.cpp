@@ -536,9 +536,7 @@ cl_int VC4CL_FUNC(clEnqueueSVMMapARM)(cl_command_queue command_queue, cl_bool bl
     if(svm_ptr == nullptr || size == 0)
         return returnError(
             CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot map a NULL SVM pointer or a pointer of size zero");
-    if(((map_flags & CL_MAP_READ) == CL_MAP_READ) + ((map_flags & CL_MAP_WRITE) == CL_MAP_WRITE) +
-            ((map_flags & CL_MAP_WRITE_INVALIDATE_REGION) == CL_MAP_WRITE_INVALIDATE_REGION) >
-        1)
+    if(((map_flags & CL_MAP_READ) + (map_flags & CL_MAP_WRITE) + (map_flags & CL_MAP_WRITE_INVALIDATE_REGION)) > 1)
         // the possible map flags are mutually exclusive
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Invalid map flags specified");
 

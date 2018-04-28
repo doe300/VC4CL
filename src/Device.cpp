@@ -20,7 +20,7 @@
 
 using namespace vc4cl;
 
-Device::Device() : Object() {}
+Device::Device() {}
 
 Device::~Device() {}
 
@@ -33,7 +33,7 @@ cl_int Device::getInfo(
      * if clock period is 1ns -> result is 1
      * for 1 ms -> (1000000000 / 1000) = 1000
      */
-    const auto clockResolution = std::nano::den / std::chrono::high_resolution_clock::period::den;
+    static constexpr auto clockResolution = std::nano::den / std::chrono::high_resolution_clock::period::den;
 
     switch(param_name)
     {
@@ -460,19 +460,20 @@ cl_int VC4CL_FUNC(clGetDeviceIDs)(cl_platform_id platform, cl_device_type device
     cl_uint num_found = 0;
 
     bool device_found = false;
-    if(device_type & CL_DEVICE_TYPE_ACCELERATOR)
+    if(hasFlag<cl_device_type>(device_type, CL_DEVICE_TYPE_ACCELERATOR))
     {
         // OpenCL accelerator device queried -> not supported
     }
-    if(device_type & CL_DEVICE_TYPE_CPU)
+    if(hasFlag<cl_device_type>(device_type, CL_DEVICE_TYPE_CPU))
     {
         // CPU device queried -> not supported
     }
-    if(device_type & CL_DEVICE_TYPE_CUSTOM)
+    if(hasFlag<cl_device_type>(device_type, CL_DEVICE_TYPE_CUSTOM))
     {
         // custom device queried -> not supported
     }
-    if((device_type & CL_DEVICE_TYPE_DEFAULT) || (device_type & CL_DEVICE_TYPE_GPU))
+    if(hasFlag<cl_device_type>(device_type, CL_DEVICE_TYPE_DEFAULT) ||
+        hasFlag<cl_device_type>(device_type, CL_DEVICE_TYPE_GPU))
     {
         device_found = true;
         // default device queried -> GPU

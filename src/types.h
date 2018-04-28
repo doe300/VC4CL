@@ -29,6 +29,7 @@ struct _cl_object
 
     _cl_object(const _cl_object&) = delete;
     _cl_object(_cl_object&&) = delete;
+    ~_cl_object() noexcept = default;
 
     _cl_object& operator=(const _cl_object&) = delete;
     _cl_object& operator=(_cl_object&&) = delete;

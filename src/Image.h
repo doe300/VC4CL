@@ -128,7 +128,7 @@ namespace vc4cl
 
         TextureConfiguration toTextureConfiguration() const;
 
-        size_t calculateElementSize() const;
+        size_t calculateElementSize() const __attribute__((pure));
 
         ChannelOrder channelOrder;
         ChannelType channelType;
@@ -231,12 +231,12 @@ namespace vc4cl
 
     struct hash_cl_image_format : public std::hash<std::string>
     {
-        size_t operator()(const cl_image_format& format) const noexcept;
+        size_t operator()(const cl_image_format& format) const noexcept __attribute__((pure));
     };
 
     struct equal_cl_image_format : public std::equal_to<cl_image_format>
     {
-        bool operator()(const cl_image_format& f1, const cl_image_format& f2) const noexcept;
+        bool operator()(const cl_image_format& f1, const cl_image_format& f2) const noexcept __attribute__((pure));
     };
 
 } /* namespace vc4cl */

@@ -38,8 +38,8 @@
 #include "common.h"
 
 #include <chrono>
+#include <cstring>
 #include <iostream>
-#include <string.h>
 #include <utility>
 #include <vector>
 
@@ -330,7 +330,7 @@ namespace vc4cl
 
         CHECK_RETURN bool readMailboxMessage(unsigned* buffer, unsigned bufferSize);
 
-        CHECK_RETURN bool checkReturnValue(unsigned value) const;
+        CHECK_RETURN bool checkReturnValue(unsigned value) const __attribute__((const));
     };
 
     Mailbox& mailbox();

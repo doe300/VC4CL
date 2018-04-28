@@ -25,10 +25,10 @@ namespace vc4cl
         CHECK_RETURN cl_int enqueueEvent(Event* event);
         cl_int setProperties(cl_command_queue_properties properties, bool enable);
 
-        cl_int flush();
+        cl_int flush() __attribute__((const));
         cl_int finish();
 
-        bool isProfilingEnabled() const;
+        bool isProfilingEnabled() const __attribute__((pure));
 
     private:
         // properties

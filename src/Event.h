@@ -76,7 +76,7 @@ namespace vc4cl
         // prohibit copying or moving, since it might screw up with the manual reference counts
         EventAction(const EventAction&) = delete;
         EventAction(EventAction&&) = delete;
-        virtual ~EventAction();
+        virtual ~EventAction() __attribute__((const));
 
         EventAction& operator=(const EventAction&) = delete;
         EventAction& operator=(EventAction&&) = delete;
@@ -107,7 +107,7 @@ namespace vc4cl
     {
         const cl_int status;
         explicit NoAction(cl_int status = CL_SUCCESS) : status(status) {}
-        ~NoAction() override;
+        ~NoAction() override __attribute__((const));
 
         cl_int operator()(Event* event) override
         {
@@ -131,11 +131,11 @@ namespace vc4cl
             size_t* param_value_size_ret) const;
 
         CHECK_RETURN cl_int waitFor() const;
-        bool isFinished() const;
-        cl_int getStatus() const;
+        bool isFinished() const __attribute__((pure));
+        cl_int getStatus() const __attribute__((pure));
         void fireCallbacks();
         void updateStatus(cl_int status, bool fireCallbacks = true);
-        CommandQueue* getCommandQueue();
+        CommandQueue* getCommandQueue() __attribute__((pure));
         CHECK_RETURN cl_int prepareToQueue(CommandQueue* queue);
         void setEventWaitList(cl_uint numEvents, const cl_event* events);
         CHECK_RETURN cl_int setAsResultOrRelease(cl_int condition, cl_event* event);

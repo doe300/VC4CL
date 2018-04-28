@@ -10,18 +10,18 @@ using namespace vc4cl;
 Buffer::Buffer(Context* context, cl_mem_flags flags) :
     HasContext(context), readable(true), writeable(true), hostReadable(true), hostWriteable(true), parent(nullptr)
 {
-    if(flags & CL_MEM_WRITE_ONLY)
+    if(hasFlag<cl_mem_flags>(flags, CL_MEM_WRITE_ONLY))
         readable = false;
-    if(flags & CL_MEM_READ_ONLY)
+    if(hasFlag<cl_mem_flags>(flags, CL_MEM_READ_ONLY))
         writeable = false;
-    if((flags & CL_MEM_HOST_READ_ONLY) || (flags & CL_MEM_HOST_NO_ACCESS))
+    if(hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_READ_ONLY) || hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_NO_ACCESS))
         hostWriteable = false;
-    if((flags & CL_MEM_HOST_WRITE_ONLY) || (flags & CL_MEM_HOST_NO_ACCESS))
+    if(hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_WRITE_ONLY) || hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_NO_ACCESS))
         hostReadable = false;
 
-    useHostPtr = flags & CL_MEM_USE_HOST_PTR;
-    allocHostPtr = flags & CL_MEM_ALLOC_HOST_PTR;
-    copyHostPtr = flags & CL_MEM_COPY_HOST_PTR;
+    useHostPtr = hasFlag<cl_mem_flags>(flags, CL_MEM_USE_HOST_PTR);
+    allocHostPtr = hasFlag<cl_mem_flags>(flags, CL_MEM_ALLOC_HOST_PTR);
+    copyHostPtr = hasFlag<cl_mem_flags>(flags, CL_MEM_COPY_HOST_PTR);
 }
 
 Buffer::Buffer(Buffer* parent, cl_mem_flags flags) : Buffer(parent->context(), flags)
@@ -45,20 +45,22 @@ Buffer* Buffer::createSubBuffer(
         return returnError<Buffer*>(
             CL_INVALID_MEM_OBJECT, errcode_ret, __FILE__, __LINE__, "Parent is not a valid buffer!");
 
-    if(!readable && ((flags & CL_MEM_READ_WRITE) || (flags & CL_MEM_READ_ONLY)))
+    if(!readable && (hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE) || hasFlag<cl_mem_flags>(flags, CL_MEM_READ_ONLY)))
         return returnError<Buffer*>(
             CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Readable flag contradicts parent!");
-    if(!writeable && ((flags & CL_MEM_READ_WRITE) || (flags & CL_MEM_WRITE_ONLY)))
+    if(!writeable &&
+        (hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE) || hasFlag<cl_mem_flags>(flags, CL_MEM_WRITE_ONLY)))
         return returnError<Buffer*>(
             CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Writable flag contradicts parent!");
-    if((flags & CL_MEM_ALLOC_HOST_PTR) || (flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR))
+    if(hasFlag<cl_mem_flags>(flags, CL_MEM_ALLOC_HOST_PTR) || hasFlag<cl_mem_flags>(flags, CL_MEM_USE_HOST_PTR) ||
+        hasFlag<cl_mem_flags>(flags, CL_MEM_COPY_HOST_PTR))
         return returnError<Buffer*>(
             CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Invalid host flags for sub-buffer!");
 
-    if(!hostReadable && (flags & CL_MEM_HOST_READ_ONLY))
+    if(!hostReadable && hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_READ_ONLY))
         return returnError<Buffer*>(
             CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Host readability flag contradicts parent!");
-    if(!hostWriteable && (flags & CL_MEM_HOST_WRITE_ONLY))
+    if(!hostWriteable && hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_WRITE_ONLY))
         return returnError<Buffer*>(
             CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Host writability flag contradicts parent!");
 
@@ -94,12 +96,14 @@ Buffer* Buffer::createSubBuffer(
     CHECK_ALLOCATION_ERROR_CODE(subBuffer, errcode_ret, Buffer*)
 
     // set default flags from parent
-    if(!((flags & CL_MEM_READ_WRITE) || (flags & CL_MEM_READ_ONLY) || (flags & CL_MEM_WRITE_ONLY)))
+    if(!(hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE) || hasFlag<cl_mem_flags>(flags, CL_MEM_READ_ONLY) ||
+           hasFlag<cl_mem_flags>(flags, CL_MEM_WRITE_ONLY)))
     {
         subBuffer->readable = readable;
         subBuffer->writeable = writeable;
     }
-    if(!((flags & CL_MEM_HOST_READ_ONLY) || (flags & CL_MEM_HOST_WRITE_ONLY) || (flags & CL_MEM_HOST_NO_ACCESS)))
+    if(!(hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_READ_ONLY) || hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_WRITE_ONLY) ||
+           hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_NO_ACCESS)))
     {
         subBuffer->hostReadable = hostReadable;
         subBuffer->hostWriteable = hostWriteable;
@@ -422,10 +426,12 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
         return returnError<void*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__,
             buildString("Maximum position (%u) exceeds buffer-size (%u)!", offset + size, hostSize));
 
-    if(!hostReadable && (map_flags & CL_MAP_READ))
+    if(!hostReadable && hasFlag<cl_map_flags>(map_flags, CL_MAP_READ))
         return returnError<void*>(
             CL_INVALID_OPERATION, errcode_ret, __FILE__, __LINE__, "Cannot read from not host-readable buffer!");
-    if(!hostWriteable && ((map_flags & CL_MAP_WRITE) || (map_flags & CL_MAP_WRITE_INVALIDATE_REGION)))
+    if(!hostWriteable &&
+        (hasFlag<cl_map_flags>(map_flags, CL_MAP_WRITE) ||
+            hasFlag<cl_map_flags>(map_flags, CL_MAP_WRITE_INVALIDATE_REGION)))
         return returnError<void*>(
             CL_INVALID_OPERATION, errcode_ret, __FILE__, __LINE__, "Cannot write to not host-writeable buffer!");
 
@@ -823,7 +829,8 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
         flags = CL_MEM_READ_WRITE;
     // if neither of CL_MEM_READ_WRITE, CL_MEM_READ_ONLY or CL_MEM_WRITE_ONLY is set, assume CL_MEM_READ_WRITE:
     //"This flag specifies that the memory object will be read and written by a kernel. This is the default."
-    if((flags & CL_MEM_READ_WRITE) == 0 && (flags & CL_MEM_READ_ONLY) == 0 && (flags & CL_MEM_WRITE_ONLY) == 0)
+    if(!hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE) && !hasFlag<cl_mem_flags>(flags, CL_MEM_READ_ONLY) &&
+        !hasFlag<cl_mem_flags>(flags, CL_MEM_WRITE_ONLY))
         flags |= CL_MEM_READ_WRITE;
 
     if(moreThanOneMemoryAccessFlagSet(flags))
@@ -837,11 +844,13 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
         return returnError<cl_mem>(CL_INVALID_BUFFER_SIZE, errcode_ret, __FILE__, __LINE__,
             buildString("Buffer size (%u) exceeds system maximum (%u)!", size, mailbox().getTotalGPUMemory()));
 
-    if(host_ptr == nullptr && ((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
+    if(host_ptr == nullptr &&
+        (hasFlag<cl_mem_flags>(flags, CL_MEM_USE_HOST_PTR) || hasFlag<cl_mem_flags>(flags, CL_MEM_COPY_HOST_PTR)))
         return returnError<cl_mem>(CL_INVALID_HOST_PTR, errcode_ret, __FILE__, __LINE__,
             "Usage of host-pointer specified in flags but no host-buffer given!");
 
-    if(host_ptr != nullptr && !((flags & CL_MEM_USE_HOST_PTR) || (flags & CL_MEM_COPY_HOST_PTR)))
+    if(host_ptr != nullptr &&
+        !(hasFlag<cl_mem_flags>(flags, CL_MEM_USE_HOST_PTR) || hasFlag<cl_mem_flags>(flags, CL_MEM_COPY_HOST_PTR)))
         return returnError<cl_mem>(CL_INVALID_HOST_PTR, errcode_ret, __FILE__, __LINE__,
             "Host pointer given, but not used according to flags!");
 
@@ -849,14 +858,14 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
     CHECK_ALLOCATION_ERROR_CODE(buffer, errcode_ret, cl_mem)
 
     buffer->deviceBuffer.reset(mailbox().allocateBuffer(static_cast<unsigned>(size)));
-    if(buffer->deviceBuffer.get() == nullptr)
+    if(!buffer->deviceBuffer)
     {
         ignoreReturnValue(buffer->release(), __FILE__, __LINE__, "Already errored");
         return returnError<cl_mem>(CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__,
             buildString("Failed to allocate enough device memory (%u)!", size));
     }
 
-    if(flags & CL_MEM_USE_HOST_PTR)
+    if(hasFlag<cl_mem_flags>(flags, CL_MEM_USE_HOST_PTR))
     {
         //"OpenCL implementations are allowed to cache the buffer contents pointed to by host_ptr in device memory."
         buffer->setUseHostPointer(host_ptr, size);
@@ -868,14 +877,14 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
                 *errcode_ret, errcode_ret, __FILE__, __LINE__, "Failed to copy host-memory into device-memory!");
         }
     }
-    else if(flags & CL_MEM_ALLOC_HOST_PTR)
+    else if(hasFlag<cl_mem_flags>(flags, CL_MEM_ALLOC_HOST_PTR))
     {
         //"This flag specifies that the application wants the OpenCL implementation to allocate memory from host
         // accessible memory."
         //-> QPU memory is always host-accessible
         buffer->setAllocateHostPointer(size);
     }
-    if(flags & CL_MEM_COPY_HOST_PTR)
+    if(hasFlag<cl_mem_flags>(flags, CL_MEM_COPY_HOST_PTR))
     {
         if(host_ptr == nullptr)
         {
@@ -1017,8 +1026,8 @@ cl_int VC4CL_FUNC(clEnqueueReadBuffer)(cl_command_queue command_queue, cl_mem bu
 {
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(buffer))
-    return toType<Buffer>(buffer)->enqueueRead(toType<CommandQueue>(command_queue), blocking_read, offset, size, ptr,
-        num_events_in_wait_list, event_wait_list, event);
+    return toType<Buffer>(buffer)->enqueueRead(toType<CommandQueue>(command_queue), blocking_read == CL_TRUE, offset,
+        size, ptr, num_events_in_wait_list, event_wait_list, event);
 }
 
 /*!
@@ -1101,8 +1110,8 @@ cl_int VC4CL_FUNC(clEnqueueWriteBuffer)(cl_command_queue command_queue, cl_mem b
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(buffer))
 
-    return toType<Buffer>(buffer)->enqueueWrite(toType<CommandQueue>(command_queue), blocking_write, offset, size, ptr,
-        num_events_in_wait_list, event_wait_list, event);
+    return toType<Buffer>(buffer)->enqueueWrite(toType<CommandQueue>(command_queue), blocking_write == CL_TRUE, offset,
+        size, ptr, num_events_in_wait_list, event_wait_list, event);
 }
 
 /*!
@@ -1210,8 +1219,8 @@ cl_int VC4CL_FUNC(clEnqueueReadBufferRect)(cl_command_queue command_queue, cl_me
 {
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(buffer))
-    return toType<Buffer>(buffer)->enqueueReadRect(toType<CommandQueue>(command_queue), blocking_read, buffer_origin,
-        host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr,
+    return toType<Buffer>(buffer)->enqueueReadRect(toType<CommandQueue>(command_queue), blocking_read == CL_TRUE,
+        buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr,
         num_events_in_wait_list, event_wait_list, event);
 }
 
@@ -1326,8 +1335,8 @@ cl_int VC4CL_FUNC(clEnqueueWriteBufferRect)(cl_command_queue command_queue, cl_m
 {
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(buffer))
-    return toType<Buffer>(buffer)->enqueueWriteRect(toType<CommandQueue>(command_queue), blocking_write, buffer_origin,
-        host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr,
+    return toType<Buffer>(buffer)->enqueueWriteRect(toType<CommandQueue>(command_queue), blocking_write == CL_TRUE,
+        buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr,
         num_events_in_wait_list, event_wait_list, event);
 }
 
@@ -1647,8 +1656,8 @@ void* VC4CL_FUNC(clEnqueueMapBuffer)(cl_command_queue command_queue, cl_mem buff
     CHECK_COMMAND_QUEUE_ERROR_CODE(toType<CommandQueue>(command_queue), errcode_ret, void*)
     CHECK_BUFFER_ERROR_CODE(toType<Buffer>(buffer), errcode_ret, void*)
 
-    return toType<Buffer>(buffer)->enqueueMap(toType<CommandQueue>(command_queue), blocking_map, map_flags, offset,
-        size, num_events_in_wait_list, event_wait_list, event, errcode_ret);
+    return toType<Buffer>(buffer)->enqueueMap(toType<CommandQueue>(command_queue), blocking_map == CL_TRUE, map_flags,
+        offset, size, num_events_in_wait_list, event_wait_list, event, errcode_ret);
 }
 
 /*!

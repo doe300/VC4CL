@@ -254,7 +254,7 @@ cl_context VC4CL_FUNC(clCreateContextFromType)(const cl_context_properties* prop
 {
     cl_uint num_devices = 0;
     cl_device_id device;
-    cl_uint error =
+    cl_int error =
         VC4CL_FUNC(clGetDeviceIDs)(Platform::getVC4CLPlatform().toBase(), device_type, 1, &device, &num_devices);
     if(error != CL_SUCCESS)
         return returnError<cl_context>(error, errcode_ret, __FILE__, __LINE__, "Failed to get device ID!");

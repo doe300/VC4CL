@@ -257,7 +257,7 @@ void VC4CL_FUNC(clReportLiveObjectsAltera)(cl_platform_id platform,
 #define CL_COUNTER_L2_CACHE_HITS_VC4CL 28
 #define CL_COUNTER_L2_CACHE_MISSES_VC4CL 29
 
-#define CL_INVALID_PERFORMANCE_COUNTER_VC4CL -112
+#define CL_INVALID_PERFORMANCE_COUNTER_VC4CL (-112)
 
 typedef cl_uchar cl_counter_type_vc4cl;
 typedef struct _cl_counter_vc4cl* cl_counter_vc4cl;
@@ -267,9 +267,9 @@ typedef struct _cl_counter_vc4cl* cl_counter_vc4cl;
  * returns an object representing this counter. Returns NULL and sets errcode_ret on error
  */
 cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(
-    cl_device_id device, const cl_counter_type_vc4cl counter_type, cl_int* errcode_ret);
+    cl_device_id device, cl_counter_type_vc4cl counter_type, cl_int* errcode_ret);
 typedef CL_API_ENTRY cl_counter_vc4cl(CL_API_CALL* clCreatePerformanceCounterVC4CL_fn)(
-    cl_device_id device, const cl_counter_type_vc4cl counter_type, cl_int* errcode_ret);
+    cl_device_id device, cl_counter_type_vc4cl counter_type, cl_int* errcode_ret);
 
 /*!
  * Reads the current value of the performance-counter object passed as argument and stores it into the value

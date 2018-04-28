@@ -145,7 +145,7 @@ namespace vc4cl
         // the info for all explicit parameters
         std::vector<ParamInfo> params;
 
-        size_t getExplicitUniformCount() const;
+        size_t getExplicitUniformCount() const __attribute__((pure));
     };
 
     /*
@@ -213,7 +213,7 @@ namespace vc4cl
         // if this is set, the program is completely finished compiling
         ModuleInfo moduleInfo;
 
-        BuildStatus getBuildStatus() const;
+        BuildStatus getBuildStatus() const __attribute__((pure));
 
     private:
         cl_int extractModuleInfo();

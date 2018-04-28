@@ -38,9 +38,9 @@ namespace vc4cl
         SharedVirtualMemory(Context* context, std::shared_ptr<DeviceBuffer> buffer);
         ~SharedVirtualMemory() override;
 
-        cl_int getHostOffset(const void* hostPointer) const;
-        void* getDevicePointer(size_t offset = 0);
-        void* getHostPointer(size_t offset = 0);
+        cl_int getHostOffset(const void* hostPointer) const __attribute__((pure));
+        void* getDevicePointer(size_t offset = 0) __attribute__((pure));
+        void* getHostPointer(size_t offset = 0) __attribute__((pure));
 
         static SharedVirtualMemory* findSVM(const void* hostPtr);
 

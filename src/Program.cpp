@@ -99,6 +99,7 @@ static cl_int precompile_program(Program* program, const std::string& options,
         vc4c::setLogger(logStream, false, vc4c::LogLevel::WARNING);
         // create temporary files for embedded headers and include their paths
         std::vector<vc4c::TemporaryFile> tempHeaderFiles;
+        tempHeaderFiles.reserve(embeddedHeaders.size());
         std::string tempHeaderIncludes;
         for(const auto& pair : embeddedHeaders)
         {
@@ -611,7 +612,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(
 cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* il, size_t length, cl_int* errcode_ret)
 {
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
-    if(il == NULL || length == 0)
+    if(il == nullptr || length == 0)
         return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "IL source has no length!");
 
     const std::vector<char> buffer(static_cast<const char*>(il), static_cast<const char*>(il) + length);

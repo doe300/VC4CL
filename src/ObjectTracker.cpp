@@ -67,7 +67,7 @@ void ObjectTracker::iterateObjects(ReportFunction func, void* userData)
 
     for(const auto& obj : liveObjects)
     {
-        func(userData, obj->getBasePointer(), obj->typeName.data(), obj->referenceCount);
+        func(userData, obj->getBasePointer(), obj->typeName, obj->referenceCount);
     }
 }
 

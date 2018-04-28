@@ -28,12 +28,12 @@ namespace vc4cl
     public:
         Context(const Device* device, bool userSync, cl_context_properties memoryToZeroOut, const Platform* platform,
             ContextProperty explicitProperties, ContextCallback callback = nullptr, void* userData = nullptr);
-        ~Context() override;
+        ~Context() override __attribute__((const));
         CHECK_RETURN cl_int getInfo(
             cl_context_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
 
         void fireCallback(const std::string& errorInfo, const void* privateInfo, size_t cb);
-        bool initializeMemoryToZero(cl_context_properties memoryType) const;
+        bool initializeMemoryToZero(cl_context_properties memoryType) const __attribute__((pure));
 
         const Device* device;
 
@@ -55,8 +55,8 @@ namespace vc4cl
         explicit HasContext(Context* context);
         virtual ~HasContext();
 
-        const Context* context() const;
-        Context* context();
+        const Context* context() const __attribute__((pure));
+        Context* context() __attribute__((pure));
 
     private:
         object_wrapper<Context> c;
