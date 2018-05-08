@@ -2,13 +2,13 @@ include_directories(..)
 include_directories(../include)
 
 add_executable(v3d_info V3DInfo.cpp)
-target_link_libraries(v3d_info VC4CL)
+target_link_libraries(v3d_info VC4CL ${SYSROOT_LIBRARY_FLAGS})
 
 add_executable(v3d_profile V3DProfile.cpp)
-target_link_libraries(v3d_profile VC4CL)
+target_link_libraries(v3d_profile VC4CL ${SYSROOT_LIBRARY_FLAGS})
 
 add_executable(vc4cl_dump_analyzer DumpAnalyzer.cpp)
-target_link_libraries(vc4cl_dump_analyzer VC4CL)
+target_link_libraries(vc4cl_dump_analyzer VC4CL ${SYSROOT_LIBRARY_FLAGS})
 ##
 # Installation targets
 ##

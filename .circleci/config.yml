@@ -8,7 +8,7 @@ jobs:
       - run: .circleci/clang-format-diff.sh
   build:
     docker:
-      - image: nomaddo/cross-rpi:0.1
+      - image: nomaddo/cross-rpi:0.2
     steps:
       - checkout
       - run:
@@ -25,10 +25,10 @@ jobs:
           command: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
       - run:
           name: unpack dependencies
-          command: dpkg-deb -x /tmp/vc4cl-stdlib.deb / && dpkg-deb -x /tmp/vc4c.deb /
+          command: sudo dpkg-deb -x /tmp/vc4cl-stdlib.deb / && sudo dpkg-deb -x /tmp/vc4c.deb /
       - run:
           name: configure
-          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/usr/arm-linux-gnueabihf/opt/vc/lib/libbcm_host.so
+          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
       - run:
           name: build
           command: make -j`nproc`

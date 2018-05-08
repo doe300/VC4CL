@@ -23,17 +23,19 @@ if(CROSS_COMPILE)
 	if(NOT CROSS_COMPILER_PATH)
 		set(CROSS_COMPILER_PATH "/usr/bin")
 	endif()
-	#Set Cross compiler
-	SET(CMAKE_SYSTEM_NAME 		"Linux")
-	SET(CMAKE_C_COMPILER   		"${CROSS_COMPILER_PATH}/arm-linux-gnueabihf-gcc")
-	SET(CMAKE_CXX_COMPILER 		"${CROSS_COMPILER_PATH}/arm-linux-gnueabihf-g++")
-	SET(CMAKE_FIND_ROOT_PATH  	"${CROSS_COMPILER_PATH}/../../")
-	SET(CMAKE_AR                    "${CROSS_COMPILER_PATH}/arm-linux-gnueabihf-ar")
-	SET(CMAKE_CXX_COMPILER_AR       "${CROSS_COMPILER_PATH}/arm-linux-gnueabihf-gcc-ar")
-	SET(CMAKE_CXX_COMPILER_RANLIB   "${CROSS_COMPILER_PATH}/arm-linux-gnueabihf-ranlib")
-	SET(CMAKE_C_COMPILER_AR         "${CROSS_COMPILER_PATH}/arm-linux-gnueabihf-gcc-ar")
-	SET(CMAKE_CXX_COMPILER_RANLIB   "${CROSS_COMPILER_PATH}/arm-linux-gnueabihf-ranlib")
-	SET(CMAKE_LINKER                "${CROSS_COMPILER_PATH}/arm-linux-gnueabihf-ld")
+
+	if(NOT CROSS_COMPILER_PREFIX)
+		set(CROSS_COMPILER_PREFIX "arm-linux-gnueabihf-")
+	endif()
+
+        if (SYSROOT_CROSS)
+          # set(CMAKE_SYSROOT ${SYSROOT_CROSS})
+          set(CMAKE_FIND_ROOT_PATH ${SYSROOT_CROSS})
+          set(SYSROOT_LIBRARY_FLAGS "-Wl,-rpath-link,${SYSROOT_CROSS}/lib/arm-linux-gnueabihf:${SYSROOT_CROSS}/usr/lib/arm-linux-gnueabihf")
+          message(STATUS "sysroot: ${SYSROOT_CROSS}")
+        endif()
+
+        include(cmake/RaspberryPi.cmake)
 	message(STATUS "Cross compiling for Raspbian with compiler: ${CMAKE_CXX_COMPILER}")
 endif()
 
@@ -185,7 +187,7 @@ endif()
 
 if (BUILD_DEB_PACKAGE)
 	message(STATUS "build deb package...")
-	
+
 	# opencl-c-headers contains the host-side OpenCL headers
 	set(PACKAGE_DEPENDENCIES "opencl-c-headers")
 	if(BUILD_ICD)
