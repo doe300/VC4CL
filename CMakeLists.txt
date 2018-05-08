@@ -79,7 +79,6 @@ else()
 endif()
 
 # Check for OpenCL headers
-message(STATUS "OpenCL include dir: ${OpenCL_INCLUDE_DIR}")
 find_package(OpenCL REQUIRED)
 message(STATUS "Found headers for OpenCL up to version ${OpenCL_VERSION_STRING} located in ${OpenCL_INCLUDE_DIRS}")
 include_directories(${OpenCL_INCLUDE_DIRS})
