@@ -25,6 +25,8 @@
 
 cl_int VC4CL_FUNC(clIcdGetPlatformIDsKHR)(cl_uint num_entries, cl_platform_id* platforms, cl_uint* num_platforms)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clIcdGetPlatformIDsKHR, "cl_uint", num_entries, "cl_platform_id*", platforms,
+        "cl_uint*", num_platforms);
     if((num_entries == 0) != (platforms == nullptr))
         return vc4cl::returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Output parameter is empty!");
 

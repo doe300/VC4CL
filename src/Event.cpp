@@ -229,6 +229,7 @@ void Event::setTime(cl_ulong& field)
  */
 cl_event VC4CL_FUNC(clCreateUserEvent)(cl_context context, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_event", clCreateUserEvent, "cl_context", context, "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_event)
     Event* event = newOpenCLObject<Event>(toType<Context>(context), CL_SUBMITTED, CommandType::USER_COMMAND);
     CHECK_ALLOCATION_ERROR_CODE(event, errcode_ret, cl_event)
@@ -259,6 +260,7 @@ cl_event VC4CL_FUNC(clCreateUserEvent)(cl_context context, cl_int* errcode_ret)
  */
 cl_int VC4CL_FUNC(clSetUserEventStatus)(cl_event event, cl_int execution_status)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clSetUserEventStatus, "cl_event", event, "cl_int", execution_status);
     CHECK_EVENT(toType<Event>(event))
     return toType<Event>(event)->setUserEventStatus(execution_status);
 }
@@ -284,6 +286,7 @@ cl_int VC4CL_FUNC(clSetUserEventStatus)(cl_event event, cl_int execution_status)
  */
 cl_int VC4CL_FUNC(clWaitForEvents)(cl_uint num_events, const cl_event* event_list)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clWaitForEvents, "cl_uint", num_events, "const cl_event*", event_list);
     if(num_events == 0 || event_list == nullptr)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "No events to wait for!");
 
@@ -323,6 +326,8 @@ cl_int VC4CL_FUNC(clWaitForEvents)(cl_uint num_events, const cl_event* event_lis
 cl_int VC4CL_FUNC(clEnqueueWaitForEvents)(
     cl_command_queue command_queue, cl_uint num_events, const cl_event* event_list)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueWaitForEvents, "cl_command_queue", command_queue, "cl_uint", num_events,
+        "const cl_event*", event_list);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
 
     if(num_events == 0 || event_list == nullptr)
@@ -368,6 +373,8 @@ cl_int VC4CL_FUNC(clEnqueueWaitForEvents)(
 cl_int VC4CL_FUNC(clGetEventInfo)(
     cl_event event, cl_event_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetEventInfo, "cl_event", event, "cl_event_info", param_name, "size_t",
+        param_value_size, "void*", param_value, "size_t*", param_value_size_ret);
     CHECK_EVENT(toType<Event>(event))
     return toType<Event>(event)->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }
@@ -430,6 +437,9 @@ cl_int VC4CL_FUNC(clSetEventCallback)(cl_event event, cl_int command_exec_callba
     void(CL_CALLBACK* pfn_event_notify)(cl_event event, cl_int event_command_exec_status, void* user_data),
     void* user_data)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clSetEventCallback, "cl_event", event, "cl_int", command_exec_callback_type,
+        "void(CL_CALLBACK*)(cl_event event, cl_int event_command_exec_status, void* user_data)", pfn_event_notify,
+        "void*", user_data);
     CHECK_EVENT(toType<Event>(event))
     return toType<Event>(event)->setCallback(command_exec_callback_type, pfn_event_notify, user_data);
 }
@@ -449,6 +459,7 @@ cl_int VC4CL_FUNC(clSetEventCallback)(cl_event event, cl_int command_exec_callba
  */
 cl_int VC4CL_FUNC(clRetainEvent)(cl_event event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clRetainEvent, "cl_event", event);
     CHECK_EVENT(toType<Event>(event))
     return toType<Event>(event)->retain();
 }
@@ -481,6 +492,7 @@ cl_int VC4CL_FUNC(clRetainEvent)(cl_event event)
  */
 cl_int VC4CL_FUNC(clReleaseEvent)(cl_event event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clReleaseEvent, "cl_event", event);
     CHECK_EVENT(toType<Event>(event))
     return toType<Event>(event)->release();
 }
@@ -525,6 +537,8 @@ cl_int VC4CL_FUNC(clReleaseEvent)(cl_event event)
 cl_int VC4CL_FUNC(clGetEventProfilingInfo)(cl_event event, cl_profiling_info param_name, size_t param_value_size,
     void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetEventProfilingInfo, "cl_event", event, "cl_profiling_info", param_name,
+        "size_t", param_value_size, "void*", param_value, "size_t*", param_value_size_ret);
     CHECK_EVENT(toType<Event>(event))
     return toType<Event>(event)->getProfilingInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }

@@ -156,6 +156,8 @@ bool CommandQueue::isProfilingEnabled() const
 cl_command_queue VC4CL_FUNC(clCreateCommandQueue)(
     cl_context context, cl_device_id device, cl_command_queue_properties properties, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_command_queue", clCreateCommandQueue, "cl_context", context, "cl_device_id", device,
+        "cl_command_queue_properties", properties, "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_command_queue)
     if(toType<Context>(context)->device != toType<Device>(device))
         return returnError<cl_command_queue>(
@@ -209,6 +211,8 @@ cl_command_queue VC4CL_FUNC(clCreateCommandQueue)(
 cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithProperties)(
     cl_context context, cl_device_id device, const cl_queue_properties* properties, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_command_queue", clCreateCommandQueueWithProperties, "cl_context", context, "cl_device_id",
+        device, "const cl_queue_properties*", properties, "cl_int*", errcode_ret);
     cl_command_queue_properties props = 0;
     if(properties != nullptr)
     {
@@ -251,6 +255,7 @@ cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithProperties)(
  */
 cl_int VC4CL_FUNC(clRetainCommandQueue)(cl_command_queue command_queue)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clRetainCommandQueue, "cl_command_queue", command_queue);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     return toType<CommandQueue>(command_queue)->retain();
 }
@@ -274,6 +279,7 @@ cl_int VC4CL_FUNC(clRetainCommandQueue)(cl_command_queue command_queue)
  */
 cl_int VC4CL_FUNC(clReleaseCommandQueue)(cl_command_queue command_queue)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clReleaseCommandQueue, "cl_command_queue", command_queue);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     return toType<CommandQueue>(command_queue)->release();
 }
@@ -311,6 +317,8 @@ cl_int VC4CL_FUNC(clReleaseCommandQueue)(cl_command_queue command_queue)
 cl_int VC4CL_FUNC(clGetCommandQueueInfo)(cl_command_queue command_queue, cl_command_queue_info param_name,
     size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetCommandQueueInfo, "cl_command_queue", command_queue, "cl_command_queue_info",
+        param_name, "size_t", param_value_size, "void*", param_value, "size_t*", param_value_size_ret);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     return toType<CommandQueue>(command_queue)
         ->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
@@ -345,6 +353,8 @@ cl_int VC4CL_FUNC(clGetCommandQueueInfo)(cl_command_queue command_queue, cl_comm
 cl_int VC4CL_FUNC(clSetCommandQueueProperty)(cl_command_queue command_queue, cl_command_queue_properties properties,
     cl_bool enable, cl_command_queue_properties* old_properties)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clSetCommandQueueProperty, "cl_command_queue", command_queue,
+        "cl_command_queue_properties", properties, "cl_bool", enable, "cl_command_queue_properties*", old_properties);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     if(old_properties != nullptr)
     {
@@ -384,6 +394,7 @@ cl_int VC4CL_FUNC(clSetCommandQueueProperty)(cl_command_queue command_queue, cl_
  */
 cl_int VC4CL_FUNC(clFlush)(cl_command_queue command_queue)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clFlush, "cl_command_queue", command_queue);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     return toType<CommandQueue>(command_queue)->flush();
 }
@@ -405,6 +416,7 @@ cl_int VC4CL_FUNC(clFlush)(cl_command_queue command_queue)
  */
 cl_int VC4CL_FUNC(clFinish)(cl_command_queue command_queue)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clFinish, "cl_command_queue", command_queue);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     return toType<CommandQueue>(command_queue)->finish();
 }

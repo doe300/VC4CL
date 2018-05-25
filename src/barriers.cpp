@@ -54,12 +54,14 @@ using namespace vc4cl;
 cl_int VC4CL_FUNC(clEnqueueMarkerWithWaitList)(
     cl_command_queue command_queue, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueMarkerWithWaitList, "cl_command_queue", command_queue, "cl_uint",
+        num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
 
     CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
 
-    // since our commands are always executed in-order, no special handling is necessary (it always waits for all events
-    // to finish)
+    // since our commands are always executed in-order, no special handling is necessary (it always waits for all
+    // events to finish)
     cl_int errcode = CL_SUCCESS;
     Event* e = newOpenCLObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::MARKER);
     CHECK_ALLOCATION(e)
@@ -117,6 +119,8 @@ cl_int VC4CL_FUNC(clEnqueueMarker)(cl_command_queue command_queue, cl_event* eve
 cl_int VC4CL_FUNC(clEnqueueBarrierWithWaitList)(
     cl_command_queue command_queue, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueBarrierWithWaitList, "cl_command_queue", command_queue, "cl_uint",
+        num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
 
     CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)

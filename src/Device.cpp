@@ -442,6 +442,8 @@ cl_int Device::getInfo(
 cl_int VC4CL_FUNC(clGetDeviceIDs)(cl_platform_id platform, cl_device_type device_type, cl_uint num_entries,
     cl_device_id* devices, cl_uint* num_devices)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetDeviceIDs, "cl_platform_id", platform, "cl_device_type", device_type, "cl_uint",
+        num_entries, "cl_device_id*", devices, "cl_uint*", num_devices);
     CHECK_PLATFORM(platform)
 
     if(devices == nullptr && num_devices == nullptr)
@@ -533,6 +535,8 @@ cl_int VC4CL_FUNC(clGetDeviceIDs)(cl_platform_id platform, cl_device_type device
 cl_int VC4CL_FUNC(clGetDeviceInfo)(cl_device_id device, cl_device_info param_name, size_t param_value_size,
     void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetDeviceInfo, "cl_device_id", device, "cl_device_info", param_name, "size_t",
+        param_value_size, "void*", param_value, "size_t*", param_value_size_ret);
     CHECK_DEVICE(toType<Device>(device))
     return toType<Device>(device)->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }
@@ -583,6 +587,8 @@ cl_int VC4CL_FUNC(clGetDeviceInfo)(cl_device_id device, cl_device_info param_nam
 cl_int VC4CL_FUNC(clCreateSubDevices)(cl_device_id in_device, const cl_device_partition_property* properties,
     cl_uint num_devices, cl_device_id* out_devices, cl_uint* num_devices_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clCreateSubDevices, "cl_device_id", in_device, "const cl_device_partition_property*",
+        properties, "cl_uint", num_devices, "cl_device_id*", out_devices, "cl_uint*", num_devices_ret);
     CHECK_DEVICE(toType<Device>(in_device))
     // is not supported
 
@@ -606,6 +612,7 @@ cl_int VC4CL_FUNC(clCreateSubDevices)(cl_device_id in_device, const cl_device_pa
  */
 cl_int VC4CL_FUNC(clRetainDevice)(cl_device_id device)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clRetainDevice, "cl_device_id", device);
     CHECK_DEVICE(toType<Device>(device))
     // not supported
     //"[...] the device is a root-level device"
@@ -631,6 +638,7 @@ cl_int VC4CL_FUNC(clRetainDevice)(cl_device_id device)
  */
 cl_int VC4CL_FUNC(clReleaseDevice)(cl_device_id device)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clReleaseDevice, "cl_device_id", device);
     CHECK_DEVICE(toType<Device>(device))
     // not supported
     return CL_INVALID_DEVICE;

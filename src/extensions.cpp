@@ -18,6 +18,8 @@ using namespace vc4cl;
 
 void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platform, const char* funcname)
 {
+    VC4CL_PRINT_API_CALL(
+        "void*", clGetExtensionFunctionAddressForPlatform, "cl_platform_id", platform, "const char*", funcname);
 #ifdef DEBUG_MODE
     std::cout << "[VC4CL] get extension function address: " << funcname << std::endl;
 #endif

@@ -20,7 +20,7 @@ static std::bitset<16> usedCounters{0};
 
 PerformanceCounter::PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index) : type(type), index(index)
 {
-    std::lock_guard<std::mutex> lock(counterAccessMutex);
+    // no need to lock, lock is already held by clCreatePerformanceCounterVC4CL
     if(!V3D::instance().setCounter(index, static_cast<vc4cl::CounterType>(type)))
     {
         // all error-cases care checked before

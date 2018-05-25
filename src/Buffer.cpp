@@ -822,6 +822,8 @@ cl_int BufferRectCopy::operator()(Event* event)
 cl_mem VC4CL_FUNC(clCreateBuffer)(
     cl_context context, cl_mem_flags flags, size_t size, void* host_ptr, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_mem", clCreateBuffer, "cl_context", context, "cl_mem_flags", flags, "size_t", size,
+        "void*", host_ptr, "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_mem)
 
     //"If value specified for flags is 0, the default is used which is CL_MEM_READ_WRITE. "
@@ -942,6 +944,8 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
 cl_mem VC4CL_FUNC(clCreateSubBuffer)(cl_mem buffer, cl_mem_flags flags, cl_buffer_create_type buffer_create_type,
     const void* buffer_create_info, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_mem", clCreateSubBuffer, "cl_mem", buffer, "cl_mem_flags", flags, "cl_buffer_create_type",
+        buffer_create_type, "const void*", buffer_create_info, "cl_int*", errcode_ret);
     CHECK_BUFFER_ERROR_CODE(toType<Buffer>(buffer), errcode_ret, cl_mem)
     Buffer* subBuffer =
         toType<Buffer>(buffer)->createSubBuffer(flags, buffer_create_type, buffer_create_info, errcode_ret);
@@ -1024,6 +1028,9 @@ cl_int VC4CL_FUNC(clEnqueueReadBuffer)(cl_command_queue command_queue, cl_mem bu
     size_t offset, size_t size, void* ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
     cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueReadBuffer, "cl_command_queue", command_queue, "cl_mem", buffer, "cl_bool",
+        blocking_read, "size_t", offset, "size_t", size, "void*", ptr, "cl_uint", num_events_in_wait_list,
+        "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(buffer))
     return toType<Buffer>(buffer)->enqueueRead(toType<CommandQueue>(command_queue), blocking_read == CL_TRUE, offset,
@@ -1107,6 +1114,9 @@ cl_int VC4CL_FUNC(clEnqueueWriteBuffer)(cl_command_queue command_queue, cl_mem b
     size_t offset, size_t size, const void* ptr, cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
     cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueWriteBuffer, "cl_command_queue", command_queue, "cl_mem", buffer, "cl_bool",
+        blocking_write, "size_t", offset, "size_t", size, "void*", ptr, "cl_uint", num_events_in_wait_list,
+        "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(buffer))
 
@@ -1217,6 +1227,10 @@ cl_int VC4CL_FUNC(clEnqueueReadBufferRect)(cl_command_queue command_queue, cl_me
     size_t buffer_slice_pitch, size_t host_row_pitch, size_t host_slice_pitch, void* ptr,
     cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueReadBufferRect, "cl_command_queue", command_queue, "cl_mem", buffer,
+        "cl_bool", blocking_read, "const size_t*", buffer_origin, "const size_t*", host_origin, "const size_t*", region,
+        "size_t", buffer_row_pitch, "size_t", buffer_slice_pitch, "size_t", host_row_pitch, "size_t", host_slice_pitch,
+        "void*", ptr, "cl_uint", num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(buffer))
     return toType<Buffer>(buffer)->enqueueReadRect(toType<CommandQueue>(command_queue), blocking_read == CL_TRUE,
@@ -1333,6 +1347,11 @@ cl_int VC4CL_FUNC(clEnqueueWriteBufferRect)(cl_command_queue command_queue, cl_m
     size_t buffer_slice_pitch, size_t host_row_pitch, size_t host_slice_pitch, const void* ptr,
     cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueWriteBufferRect, "cl_command_queue", command_queue, "cl_mem", buffer,
+        "cl_bool", blocking_write, "const size_t*", buffer_origin, "const size_t*", host_origin, "const size_t*",
+        region, "size_t", buffer_row_pitch, "size_t", buffer_slice_pitch, "size_t", host_row_pitch, "size_t",
+        host_slice_pitch, "void*", ptr, "cl_uint", num_events_in_wait_list, "const cl_event*", event_wait_list,
+        "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(buffer))
     return toType<Buffer>(buffer)->enqueueWriteRect(toType<CommandQueue>(command_queue), blocking_write == CL_TRUE,
@@ -1398,6 +1417,9 @@ cl_int VC4CL_FUNC(clEnqueueCopyBuffer)(cl_command_queue command_queue, cl_mem sr
     size_t src_offset, size_t dst_offset, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
     cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueCopyBuffer, "cl_command_queue", command_queue, "cl_mem", src_buffer,
+        "cl_mem", dst_buffer, "size_t", src_offset, "size_t", dst_offset, "size_t", size, "cl_uint",
+        num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(src_buffer))
     CHECK_BUFFER(toType<Buffer>(dst_buffer))
@@ -1499,6 +1521,10 @@ cl_int VC4CL_FUNC(clEnqueueCopyBufferRect)(cl_command_queue command_queue, cl_me
     size_t src_slice_pitch, size_t dst_row_pitch, size_t dst_slice_pitch, cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueCopyBufferRect, "cl_command_queue", command_queue, "cl_mem", src_buffer,
+        "cl_mem", dst_buffer, "const size_t*", src_origin, "const size_t*", dst_origin, "const size_t*", region,
+        "size_t", src_row_pitch, "size_t", src_slice_pitch, "size_t", dst_row_pitch, "size_t", dst_slice_pitch,
+        "cl_uint", num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(src_buffer))
     CHECK_BUFFER(toType<Buffer>(dst_buffer))
@@ -1572,6 +1598,9 @@ cl_int VC4CL_FUNC(clEnqueueFillBuffer)(cl_command_queue command_queue, cl_mem bu
     size_t pattern_size, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
     cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueFillBuffer, "cl_command_queue", command_queue, "cl_mem", buffer,
+        "const void*", pattern, "size_t", pattern_size, "size_t", offset, "size_t", size, "cl_uint",
+        num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(buffer))
 
@@ -1653,6 +1682,9 @@ void* VC4CL_FUNC(clEnqueueMapBuffer)(cl_command_queue command_queue, cl_mem buff
     cl_map_flags map_flags, size_t offset, size_t size, cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list, cl_event* event, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("void*", clEnqueueMapBuffer, "cl_command_queue", command_queue, "cl_mem", buffer, "cl_bool",
+        blocking_map, "cl_map_flags", map_flags, "size_t", offset, "size_t", size, "cl_uint", num_events_in_wait_list,
+        "const cl_event*", event_wait_list, "cl_event*", event, "cl_int*", errcode_ret);
     CHECK_COMMAND_QUEUE_ERROR_CODE(toType<CommandQueue>(command_queue), errcode_ret, void*)
     CHECK_BUFFER_ERROR_CODE(toType<Buffer>(buffer), errcode_ret, void*)
 
@@ -1675,6 +1707,7 @@ void* VC4CL_FUNC(clEnqueueMapBuffer)(cl_command_queue command_queue, cl_mem buff
  */
 cl_int VC4CL_FUNC(clRetainMemObject)(cl_mem memobj)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clRetainMemObject, "cl_mem", memobj);
     CHECK_BUFFER(toType<Buffer>(memobj))
     return toType<Buffer>(memobj)->retain();
 }
@@ -1696,6 +1729,7 @@ cl_int VC4CL_FUNC(clRetainMemObject)(cl_mem memobj)
  */
 cl_int VC4CL_FUNC(clReleaseMemObject)(cl_mem memobj)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clReleaseMemObject, "cl_mem", memobj);
     CHECK_BUFFER(toType<Buffer>(memobj))
     return toType<Buffer>(memobj)->release();
 }
@@ -1748,6 +1782,8 @@ cl_int VC4CL_FUNC(clReleaseMemObject)(cl_mem memobj)
 cl_int VC4CL_FUNC(clSetMemObjectDestructorCallback)(
     cl_mem memobj, void(CL_CALLBACK* pfn_notify)(cl_mem memobj, void* user_data), void* user_data)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clSetMemObjectDestructorCallback, "cl_mem", memobj,
+        "void(CL_CALLBACK*)(cl_mem memobj, void* user_data)", pfn_notify, "void*", user_data);
     CHECK_BUFFER(toType<Buffer>(memobj))
     return toType<Buffer>(memobj)->setDestructorCallback(pfn_notify, user_data);
 }
@@ -1804,6 +1840,9 @@ cl_int VC4CL_FUNC(clSetMemObjectDestructorCallback)(
 cl_int VC4CL_FUNC(clEnqueueUnmapMemObject)(cl_command_queue command_queue, cl_mem memobj, void* mapped_ptr,
     cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueUnmapMemObject, "cl_command_queue", command_queue, "cl_mem", memobj,
+        "void*", mapped_ptr, "cl_uint", num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*",
+        event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(memobj))
 
@@ -1878,6 +1917,9 @@ cl_int VC4CL_FUNC(clEnqueueMigrateMemObjects)(cl_command_queue command_queue, cl
     const cl_mem* mem_objects, cl_mem_migration_flags flags, cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueMigrateMemObjects, "cl_command_queue", command_queue, "cl_uint",
+        num_mem_objects, "const cl_mem*", mem_objects, "cl_mem_migration_flags", flags, "cl_uint",
+        num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CommandQueue* commandQueue = toType<CommandQueue>(command_queue);
     if(num_mem_objects == 0 || mem_objects == nullptr)
@@ -1935,6 +1977,8 @@ cl_int VC4CL_FUNC(clEnqueueMigrateMemObjects)(cl_command_queue command_queue, cl
 cl_int VC4CL_FUNC(clGetMemObjectInfo)(
     cl_mem memobj, cl_mem_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetMemObjectInfo, "cl_mem", memobj, "cl_mem_info", param_name, "size_t",
+        param_value_size, "void*", param_value, "size_t*", param_value_size_ret);
     CHECK_BUFFER(toType<Buffer>(memobj))
     return toType<Buffer>(memobj)->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }

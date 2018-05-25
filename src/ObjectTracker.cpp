@@ -73,6 +73,7 @@ void ObjectTracker::iterateObjects(ReportFunction func, void* userData)
 
 void VC4CL_FUNC(clTrackLiveObjectsAltera)(cl_platform_id platform)
 {
+    VC4CL_PRINT_API_CALL("void", clTrackLiveObjectsAltera, "cl_platform_id", platform);
     // no-op, object tracking is always enabled
 }
 
@@ -81,5 +82,7 @@ void VC4CL_FUNC(clReportLiveObjectsAltera)(cl_platform_id platform,
         void* /* user_data */, void* /* obj_ptr */, const char* /* type_name */, cl_uint /* refcount */),
     void* user_data)
 {
+    VC4CL_PRINT_API_CALL("void", clReportLiveObjectsAltera, "cl_platform_id", platform,
+        "void(CL_CALLBACK*)(void*, void*, const char*, cl_uint)", report_fn, "void*", user_data);
     liveObjectsTracker.iterateObjects(report_fn, user_data);
 }

@@ -150,6 +150,10 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
     void(CL_CALLBACK* pfn_notify)(const char* errinfo, const void* private_info, size_t cb, void* user_data),
     void* user_data, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_context", clCreateContext, "const cl_context_properties*", properties, "cl_uint",
+        num_devices, "const cl_device_id*", devices,
+        "void(CL_CALLBACK*)(const char* errinfo, const void* private_info, size_t cb, void* user_data)", pfn_notify,
+        "void*", user_data, "cl_int*", errcode_ret);
     ContextProperty explicitProperties = ContextProperty::NONE;
     cl_platform_id platform = Platform::getVC4CLPlatform().toBase();
     bool user_sync = false;
@@ -252,6 +256,10 @@ cl_context VC4CL_FUNC(clCreateContextFromType)(const cl_context_properties* prop
     void(CL_CALLBACK* pfn_notify)(const char* errinfo, const void* private_info, size_t cb, void* user_data),
     void* user_data, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_context", clCreateContextFromType, "const cl_context_properties*", properties,
+        "cl_device_type", device_type,
+        "void(CL_CALLBACK*)(const char* errinfo, const void* private_info, size_t cb, void* user_data)", pfn_notify,
+        "void*", user_data, "cl_int*", errcode_ret);
     cl_uint num_devices = 0;
     cl_device_id device;
     cl_int error =
@@ -280,6 +288,7 @@ cl_context VC4CL_FUNC(clCreateContextFromType)(const cl_context_properties* prop
  */
 cl_int VC4CL_FUNC(clRetainContext)(cl_context context)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clRetainContext, "cl_context", context);
     CHECK_CONTEXT(toType<Context>(context))
     return toType<Context>(context)->retain();
 }
@@ -301,6 +310,7 @@ cl_int VC4CL_FUNC(clRetainContext)(cl_context context)
  */
 cl_int VC4CL_FUNC(clReleaseContext)(cl_context context)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clReleaseContext, "cl_context", context);
     CHECK_CONTEXT(toType<Context>(context))
     return toType<Context>(context)->release();
 }
@@ -338,6 +348,8 @@ cl_int VC4CL_FUNC(clReleaseContext)(cl_context context)
 cl_int VC4CL_FUNC(clGetContextInfo)(cl_context context, cl_context_info param_name, size_t param_value_size,
     void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetContextInfo, "cl_context", context, "cl_context_info", param_name, "size_t",
+        param_value_size, "void*", param_value, "size_t*", param_value_size_ret);
     CHECK_CONTEXT(toType<Context>(context))
     return toType<Context>(context)->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }

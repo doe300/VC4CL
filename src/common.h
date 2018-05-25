@@ -11,6 +11,7 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -210,5 +211,42 @@ namespace vc4cl
                    static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_READ_ONLY)) +
                    static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_NO_ACCESS))) > 1;
     }
+
+    template <typename T>
+    std::ostream& printAPICallInternal(std::ostream& s, const char* const paramName, T param)
+    {
+        return s << paramName << " " << param;
+    }
+
+    template <>
+    inline std::ostream& printAPICallInternal<const char*>(
+        std::ostream& s, const char* const paramName, const char* param)
+    {
+        return s << paramName << " " << (param == nullptr ? "(null)" : param);
+    }
+
+    template <typename T, typename... U>
+    std::ostream& printAPICallInternal(std::ostream& s, const char* const paramName, T param, U... args)
+    {
+        printAPICallInternal(s, paramName, param) << ",";
+        return printAPICallInternal(s, args...);
+    }
+
+    template <typename... T>
+    inline void printAPICall(const char* const retType, const char* const funcName, T... args)
+    {
+#ifdef DEBUG_MODE
+        static bool printAPICalls = true;
+#else
+        static bool printAPICalls = std::getenv("VC4CL_DEBUG") != nullptr;
+#endif
+        if(printAPICalls)
+        {
+            std::cout << "[VC4CL] API call: " << retType << " " << funcName << "(";
+            printAPICallInternal(std::cout, args...) << ")" << std::endl;
+        }
+    }
+
+#define VC4CL_PRINT_API_CALL(retType, funcName, ...) vc4cl::printAPICall(retType, #funcName, __VA_ARGS__)
 } // namespace vc4cl
 #endif /* CONFIG_H */

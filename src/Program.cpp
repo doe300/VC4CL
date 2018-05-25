@@ -542,6 +542,8 @@ cl_int Program::extractKernelInfo(cl_ulong** ptr)
 cl_program VC4CL_FUNC(clCreateProgramWithSource)(
     cl_context context, cl_uint count, const char** strings, const size_t* lengths, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_program", clCreateProgramWithSource, "cl_context", context, "cl_uint", count,
+        "const char**", strings, "const size_t*", lengths, "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
 
     if(count == 0 || strings == nullptr)
@@ -611,6 +613,8 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(
  */
 cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* il, size_t length, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_program", clCreateProgramWithILKHR, "cl_context", context, "const void*", il, "size_t",
+        length, "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
     if(il == nullptr || length == 0)
         return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "IL source has no length!");
@@ -685,6 +689,9 @@ cl_program VC4CL_FUNC(clCreateProgramWithBinary)(cl_context context, cl_uint num
     const cl_device_id* device_list, const size_t* lengths, const unsigned char** binaries, cl_int* binary_status,
     cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_program", clCreateProgramWithBinary, "cl_context", context, "cl_uint", num_devices,
+        "const cl_device_id*", device_list, "const size_t*", lengths, "const unsigned char**", binaries, "cl_int*",
+        binary_status, "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
 
     if(num_devices == 0 || device_list == nullptr)
@@ -754,6 +761,8 @@ cl_program VC4CL_FUNC(clCreateProgramWithBinary)(cl_context context, cl_uint num
 cl_program VC4CL_FUNC(clCreateProgramWithBuiltInKernels)(cl_context context, cl_uint num_devices,
     const cl_device_id* device_list, const char* kernel_names, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_program", clCreateProgramWithBuiltInKernels, "cl_context", context, "cl_uint", num_devices,
+        "const cl_device_id*", device_list, "const char*", kernel_names, "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
 
     if(exceedsLimits<cl_uint>(num_devices, 1, 1) || device_list == nullptr)
@@ -786,6 +795,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBuiltInKernels)(cl_context context, cl_
  */
 cl_int VC4CL_FUNC(clRetainProgram)(cl_program program)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clRetainProgram, "cl_program", program);
     CHECK_PROGRAM(toType<Program>(program));
     return toType<Program>(program)->retain();
 }
@@ -806,6 +816,7 @@ cl_int VC4CL_FUNC(clRetainProgram)(cl_program program)
  */
 cl_int VC4CL_FUNC(clReleaseProgram)(cl_program program)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clReleaseProgram, "cl_program", program);
     CHECK_PROGRAM(toType<Program>(program));
     return toType<Program>(program)->release();
 }
@@ -870,6 +881,9 @@ cl_int VC4CL_FUNC(clReleaseProgram)(cl_program program)
 cl_int VC4CL_FUNC(clBuildProgram)(cl_program program, cl_uint num_devices, const cl_device_id* device_list,
     const char* options, void(CL_CALLBACK* pfn_notify)(cl_program program, void* user_data), void* user_data)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clBuildProgram, "cl_program", program, "cl_uint", num_devices, "const cl_device_id*",
+        device_list, "const char*", options, "void(CL_CALLBACK*)(cl_program program, void* user_data)", pfn_notify,
+        "void*", user_data);
     CHECK_PROGRAM(toType<Program>(program))
     if(num_devices > 1 || (num_devices == 0 && device_list != nullptr) || (num_devices > 0 && device_list == nullptr))
         // only 1 device supported
@@ -974,6 +988,10 @@ cl_int VC4CL_FUNC(clCompileProgram)(cl_program program, cl_uint num_devices, con
     const char* options, cl_uint num_input_headers, const cl_program* input_headers, const char** header_include_names,
     void(CL_CALLBACK* pfn_notify)(cl_program program, void* user_data), void* user_data)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clCompileProgram, "cl_program", program, "cl_uint", num_devices,
+        "const cl_device_id*", device_list, "const char*", options, "cl_uint", num_input_headers, "const cl_program*",
+        input_headers, "const char**", header_include_names, "void(CL_CALLBACK*)(cl_program program, void* user_data)",
+        pfn_notify, "void*", user_data);
     CHECK_PROGRAM(toType<Program>(program))
     toType<Program>(program)->buildInfo.status = CL_BUILD_IN_PROGRESS;
 
@@ -1091,6 +1109,10 @@ cl_program VC4CL_FUNC(clLinkProgram)(cl_context context, cl_uint num_devices, co
     const char* options, cl_uint num_input_programs, const cl_program* input_programs,
     void(CL_CALLBACK* pfn_notify)(cl_program program, void* user_data), void* user_data, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_program", clLinkProgram, "cl_context", context, "cl_uint", num_devices,
+        "const cl_device_id*", device_list, "const char*", options, "cl_uint", num_input_programs, "const cl_program*",
+        input_programs, "void(CL_CALLBACK*)(cl_program program, void* user_data)", pfn_notify, "void*", user_data,
+        "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
     if((num_devices == 0) != (device_list == nullptr))
         return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "No devices given!");
@@ -1143,6 +1165,7 @@ cl_program VC4CL_FUNC(clLinkProgram)(cl_context context, cl_uint num_devices, co
  */
 cl_int VC4CL_FUNC(clUnloadPlatformCompiler)(cl_platform_id platform)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clUnloadPlatformCompiler, "cl_platform_id", platform);
     // does nothing
     return CL_SUCCESS;
 }
@@ -1180,6 +1203,7 @@ cl_int VC4CL_FUNC(clUnloadPlatformCompiler)(cl_platform_id platform)
  */
 cl_int VC4CL_FUNC(clUnloadCompiler)(void)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clUnloadCompiler, "void", "");
     // does nothing
     return CL_SUCCESS;
 }
@@ -1220,6 +1244,8 @@ cl_int VC4CL_FUNC(clUnloadCompiler)(void)
 cl_int VC4CL_FUNC(clGetProgramInfo)(cl_program program, cl_program_info param_name, size_t param_value_size,
     void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetProgramInfo, "cl_program", program, "cl_program_info", param_name, "size_t",
+        param_value_size, "void*", param_value, "size_t*", param_value_size_ret);
     CHECK_PROGRAM(toType<Program>(program))
     return toType<Program>(program)->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }
@@ -1227,6 +1253,9 @@ cl_int VC4CL_FUNC(clGetProgramInfo)(cl_program program, cl_program_info param_na
 cl_int VC4CL_FUNC(clGetProgramBuildInfo)(cl_program program, cl_device_id device, cl_program_build_info param_name,
     size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetProgramBuildInfo, "cl_program", program, "cl_device_id", device,
+        "cl_program_build_info", param_name, "size_t", param_value_size, "void*", param_value, "size_t*",
+        param_value_size_ret);
     CHECK_PROGRAM(toType<Program>(program))
     CHECK_DEVICE(toType<Device>(device))
     return toType<Program>(program)->getBuildInfo(param_name, param_value_size, param_value, param_value_size_ret);

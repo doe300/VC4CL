@@ -91,6 +91,8 @@ Platform& Platform::getVC4CLPlatform()
  */
 cl_int VC4CL_FUNC(clGetPlatformIDs)(cl_uint num_entries, cl_platform_id* platforms, cl_uint* num_platforms)
 {
+    VC4CL_PRINT_API_CALL(
+        "cl_int", clGetPlatformIDs, "cl_uint", num_entries, "cl_platform_id*", platforms, "cl_uint*", num_platforms);
     if(platforms == nullptr && num_platforms == nullptr)
         // can't return anything
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Output parameters are empty!");
@@ -142,6 +144,8 @@ cl_int VC4CL_FUNC(clGetPlatformIDs)(cl_uint num_entries, cl_platform_id* platfor
 cl_int VC4CL_FUNC(clGetPlatformInfo)(cl_platform_id platform, cl_platform_info param_name, size_t param_value_size,
     void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetPlatformInfo, "cl_platform_id", platform, "cl_platform_info", param_name,
+        "size_t", param_value_size, "void*", param_value, "size_t*", param_value_size_ret);
     CHECK_PLATFORM(platform)
     return toType<Platform>(platform)->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }

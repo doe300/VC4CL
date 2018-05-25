@@ -725,6 +725,9 @@ bool equal_cl_image_format::operator()(const cl_image_format& f1, const cl_image
 cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const cl_image_format* image_format,
     const cl_image_desc* image_desc, void* host_ptr, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_mem", clCreateImage, "cl_context", context, "cl_mem_flags", flags,
+        "const cl_image_format*", image_format, "const cl_image_desc*", image_desc, "void*", host_ptr, "cl_int*",
+        errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_mem)
 #ifndef IMAGE_SUPPORT
     return returnError<cl_mem>(CL_INVALID_OPERATION, errcode_ret, __FILE__, __LINE__, "Image support is not enabled!");
@@ -903,6 +906,9 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
 cl_mem VC4CL_FUNC(clCreateImage2D)(cl_context context, cl_mem_flags flags, const cl_image_format* image_format,
     size_t image_width, size_t image_height, size_t image_row_pitch, void* host_ptr, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_mem", clCreateImage2D, "cl_context", context, "cl_mem_flags", flags,
+        "const cl_image_format*", image_format, "size_t", image_width, "size_t", image_height, "size_t",
+        image_row_pitch, "void*", host_ptr, "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_mem)
 
     cl_image_desc desc;
@@ -923,6 +929,9 @@ cl_mem VC4CL_FUNC(clCreateImage3D)(cl_context context, cl_mem_flags flags, const
     size_t image_width, size_t image_height, size_t image_depth, size_t image_row_pitch, size_t image_slice_pitch,
     void* host_ptr, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_mem", clCreateImage3D, "cl_context", context, "cl_mem_flags", flags,
+        "const cl_image_format*", image_format, "size_t", image_width, "size_t", image_height, "size_t", image_depth,
+        "size_t", image_row_pitch, "size_t", image_slice_pitch, "void*", host_ptr, "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_mem)
 
     cl_image_desc desc;
@@ -986,6 +995,9 @@ cl_mem VC4CL_FUNC(clCreateImage3D)(cl_context context, cl_mem_flags flags, const
 cl_int VC4CL_FUNC(clGetSupportedImageFormats)(cl_context context, cl_mem_flags flags, cl_mem_object_type image_type,
     cl_uint num_entries, cl_image_format* image_formats, cl_uint* num_image_formats)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetSupportedImageFormats, "cl_context", context, "cl_mem_flags", flags,
+        "cl_mem_object_type", image_type, "cl_uint", num_entries, "cl_image_format*", image_formats, "cl_uint*",
+        num_image_formats);
     CHECK_CONTEXT(toType<Context>(context))
 #ifndef IMAGE_SUPPORT
     return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Image support is not enabled!");
@@ -1111,6 +1123,9 @@ cl_int VC4CL_FUNC(clEnqueueReadImage)(cl_command_queue command_queue, cl_mem ima
     const size_t* origin, const size_t* region, size_t row_pitch, size_t slice_pitch, void* ptr,
     cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueReadImage, "cl_command_queue", command_queue, "cl_mem", image, "cl_bool",
+        blocking_read, "const size_t*", origin, "const size_t*", region, "size_t", row_pitch, "size_t", slice_pitch,
+        "void*", ptr, "cl_uint", num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Image>(image))
     CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
@@ -1223,6 +1238,10 @@ cl_int VC4CL_FUNC(clEnqueueWriteImage)(cl_command_queue command_queue, cl_mem im
     const size_t* origin, const size_t* region, size_t input_row_pitch, size_t input_slice_pitch, const void* ptr,
     cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueWriteImage, "cl_command_queue", command_queue, "cl_mem", image, "cl_bool",
+        blocking_write, "const size_t*", origin, "const size_t*", region, "size_t", input_row_pitch, "size_t",
+        input_slice_pitch, "const void*", ptr, "cl_uint", num_events_in_wait_list, "const cl_event*", event_wait_list,
+        "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Image>(image))
     CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
@@ -1321,6 +1340,9 @@ cl_int VC4CL_FUNC(clEnqueueCopyImage)(cl_command_queue command_queue, cl_mem src
     const size_t* src_origin, const size_t* dst_origin, const size_t* region, cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueCopyImage, "cl_command_queue", command_queue, "cl_mem", src_image, "cl_mem",
+        dst_image, "const size_t*", src_origin, "const size_t*", dst_origin, "const size_t*", region, "cl_uint",
+        num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Image>(src_image))
     CHECK_BUFFER(toType<Image>(dst_image))
@@ -1402,6 +1424,9 @@ cl_int VC4CL_FUNC(clEnqueueFillImage)(cl_command_queue command_queue, cl_mem ima
     const size_t* origin, const size_t* region, cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
     cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueFillImage, "cl_command_queue", command_queue, "cl_mem", image,
+        "const void*", fill_color, "const size_t*", origin, "const size_t*", region, "cl_uint", num_events_in_wait_list,
+        "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Image>(image))
     CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
@@ -1489,6 +1514,9 @@ cl_int VC4CL_FUNC(clEnqueueCopyImageToBuffer)(cl_command_queue command_queue, cl
     const size_t* src_origin, const size_t* region, size_t dst_offset, cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueCopyImageToBuffer, "cl_command_queue", command_queue, "cl_mem", src_image,
+        "cl_mem", dst_buffer, "const size_t*", src_origin, "const size_t*", region, "size_t", dst_offset, "cl_uint",
+        num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Image>(src_image))
     CHECK_BUFFER(toType<Buffer>(dst_buffer))
@@ -1579,6 +1607,9 @@ cl_int VC4CL_FUNC(clEnqueueCopyBufferToImage)(cl_command_queue command_queue, cl
     size_t src_offset, const size_t* dst_origin, const size_t* region, cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list, cl_event* event)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clEnqueueCopyBufferToImage, "cl_command_queue", command_queue, "cl_mem", src_buffer,
+        "cl_mem", dst_image, "size_t", src_offset, "const size_t*", dst_origin, "const size_t*", region, "cl_uint",
+        num_events_in_wait_list, "const cl_event*", event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_BUFFER(toType<Buffer>(src_buffer))
     CHECK_BUFFER(toType<Image>(dst_image))
@@ -1694,6 +1725,10 @@ void* VC4CL_FUNC(clEnqueueMapImage)(cl_command_queue command_queue, cl_mem image
     size_t* image_slice_pitch, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event,
     cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("void*", clEnqueueMapImage, "cl_command_queue", command_queue, "cl_mem", image, "cl_bool",
+        blocking_map, "cl_map_flags", map_flags, "const size_t*", origin, "const size_t*", region, "size_t*",
+        image_row_pitch, "size_t*", image_slice_pitch, "cl_uint", num_events_in_wait_list, "const cl_event*",
+        event_wait_list, "cl_event*", event, "cl_int*", errcode_ret);
     CHECK_COMMAND_QUEUE_ERROR_CODE(toType<CommandQueue>(command_queue), errcode_ret, void*)
     CHECK_BUFFER_ERROR_CODE(toType<Image>(image), errcode_ret, void*)
     CHECK_EVENT_WAIT_LIST_ERROR_CODE(event_wait_list, num_events_in_wait_list, errcode_ret, void*)
@@ -1732,6 +1767,8 @@ void* VC4CL_FUNC(clEnqueueMapImage)(cl_command_queue command_queue, cl_mem image
 cl_int VC4CL_FUNC(clGetImageInfo)(
     cl_mem image, cl_image_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetImageInfo, "cl_mem", image, "cl_image_info", param_name, "size_t",
+        param_value_size, "void*", param_value, "size_t*", param_value_size_ret);
     CHECK_BUFFER(toType<Image>(image))
     return toType<Image>(image)->getImageInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }
@@ -1771,6 +1808,8 @@ cl_int VC4CL_FUNC(clGetImageInfo)(
 cl_sampler VC4CL_FUNC(clCreateSampler)(cl_context context, cl_bool normalized_coords,
     cl_addressing_mode addressing_mode, cl_filter_mode filter_mode, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_sampler", clCreateSampler, "cl_context", context, "cl_bool", normalized_coords,
+        "cl_addressing_mode", addressing_mode, "cl_filter_mode", filter_mode, "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_sampler)
 #ifndef IMAGE_SUPPORT
     return returnError<cl_sampler>(
@@ -1827,6 +1866,8 @@ cl_sampler VC4CL_FUNC(clCreateSampler)(cl_context context, cl_bool normalized_co
 cl_sampler VC4CL_FUNC(clCreateSamplerWithProperties)(
     cl_context context, const cl_sampler_properties* sampler_properties, cl_int* errcode_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_sampler", clCreateSamplerWithProperties, "cl_context", context,
+        "const cl_sampler_properties*", sampler_properties, "cl_int*", errcode_ret);
     cl_bool normalized_coords = CL_TRUE;
     cl_addressing_mode addressing_mode = CL_ADDRESS_CLAMP;
     cl_filter_mode filter_mode = CL_FILTER_NEAREST;
@@ -1879,6 +1920,7 @@ cl_sampler VC4CL_FUNC(clCreateSamplerWithProperties)(
  */
 cl_int VC4CL_FUNC(clRetainSampler)(cl_sampler sampler)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clRetainSampler, "cl_sampler", sampler);
     CHECK_SAMPLER(toType<Sampler>(sampler))
     return toType<Sampler>(sampler)->retain();
 }
@@ -1899,6 +1941,7 @@ cl_int VC4CL_FUNC(clRetainSampler)(cl_sampler sampler)
  */
 cl_int VC4CL_FUNC(clReleaseSampler)(cl_sampler sampler)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clReleaseSampler, "cl_sampler", sampler);
     CHECK_SAMPLER(toType<Sampler>(sampler))
     return toType<Sampler>(sampler)->release();
 }
@@ -1935,6 +1978,8 @@ cl_int VC4CL_FUNC(clReleaseSampler)(cl_sampler sampler)
 cl_int VC4CL_FUNC(clGetSamplerInfo)(cl_sampler sampler, cl_sampler_info param_name, size_t param_value_size,
     void* param_value, size_t* param_value_size_ret)
 {
+    VC4CL_PRINT_API_CALL("cl_int", clGetSamplerInfo, "cl_sampler", sampler, "cl_sampler_info", param_name, "size_t",
+        param_value_size, "void*", param_value, "size_t*", param_value_size_ret);
     CHECK_SAMPLER(toType<Sampler>(sampler))
     return toType<Sampler>(sampler)->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }
