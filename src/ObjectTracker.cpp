@@ -83,6 +83,6 @@ void VC4CL_FUNC(clReportLiveObjectsAltera)(cl_platform_id platform,
     void* user_data)
 {
     VC4CL_PRINT_API_CALL("void", clReportLiveObjectsAltera, "cl_platform_id", platform,
-        "void(CL_CALLBACK*)(void*, void*, const char*, cl_uint)", report_fn, "void*", user_data);
+        "void(CL_CALLBACK*)(void*, void*, const char*, cl_uint)", &report_fn, "void*", user_data);
     liveObjectsTracker.iterateObjects(report_fn, user_data);
 }

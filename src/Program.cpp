@@ -141,9 +141,9 @@ static cl_int precompile_program(Program* program, const std::string& options,
     return status;
 }
 
-static cl_int link_programs(Program* program, const std::vector<Program*>& otherPrograms)
+static cl_int link_programs(Program* program, const std::vector<Program*>& otherPrograms, bool includeStandardLibrary)
 {
-    if(otherPrograms.empty())
+    if(otherPrograms.empty() && !includeStandardLibrary)
         return CL_SUCCESS;
 
     cl_int status = CL_SUCCESS;
@@ -174,7 +174,7 @@ static cl_int link_programs(Program* program, const std::vector<Program*>& other
         if(!vc4c::Precompiler::isLinkerAvailable(inputModules))
             return returnError(
                 CL_LINKER_NOT_AVAILABLE, __FILE__, __LINE__, "No linker available for this type of input modules!");
-        vc4c::Precompiler::linkSourceCode(inputModules, linkedCode);
+        vc4c::Precompiler::linkSourceCode(inputModules, linkedCode, includeStandardLibrary);
         program->intermediateCode.clear();
         uint8_t tmp;
         while(linkedCode.read(reinterpret_cast<char*>(&tmp), sizeof(uint8_t)))
@@ -291,7 +291,9 @@ cl_int Program::link(
             return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Program needs to be compiled first!");
 
         // link and compile program(s)
-        status = link_programs(this, programs);
+        // if the program is created from source, the standard-library has already been linked in
+        // if the program is created from machine code, this is never called
+        status = link_programs(this, programs, creationType == CreationType::INTERMEDIATE_LANGUAGE);
 
         if(status == CL_SUCCESS)
             status = compile_program(this, options);
@@ -882,7 +884,7 @@ cl_int VC4CL_FUNC(clBuildProgram)(cl_program program, cl_uint num_devices, const
     const char* options, void(CL_CALLBACK* pfn_notify)(cl_program program, void* user_data), void* user_data)
 {
     VC4CL_PRINT_API_CALL("cl_int", clBuildProgram, "cl_program", program, "cl_uint", num_devices, "const cl_device_id*",
-        device_list, "const char*", options, "void(CL_CALLBACK*)(cl_program program, void* user_data)", pfn_notify,
+        device_list, "const char*", options, "void(CL_CALLBACK*)(cl_program program, void* user_data)", &pfn_notify,
         "void*", user_data);
     CHECK_PROGRAM(toType<Program>(program))
     if(num_devices > 1 || (num_devices == 0 && device_list != nullptr) || (num_devices > 0 && device_list == nullptr))
@@ -991,7 +993,7 @@ cl_int VC4CL_FUNC(clCompileProgram)(cl_program program, cl_uint num_devices, con
     VC4CL_PRINT_API_CALL("cl_int", clCompileProgram, "cl_program", program, "cl_uint", num_devices,
         "const cl_device_id*", device_list, "const char*", options, "cl_uint", num_input_headers, "const cl_program*",
         input_headers, "const char**", header_include_names, "void(CL_CALLBACK*)(cl_program program, void* user_data)",
-        pfn_notify, "void*", user_data);
+        &pfn_notify, "void*", user_data);
     CHECK_PROGRAM(toType<Program>(program))
     toType<Program>(program)->buildInfo.status = CL_BUILD_IN_PROGRESS;
 
@@ -1111,7 +1113,7 @@ cl_program VC4CL_FUNC(clLinkProgram)(cl_context context, cl_uint num_devices, co
 {
     VC4CL_PRINT_API_CALL("cl_program", clLinkProgram, "cl_context", context, "cl_uint", num_devices,
         "const cl_device_id*", device_list, "const char*", options, "cl_uint", num_input_programs, "const cl_program*",
-        input_programs, "void(CL_CALLBACK*)(cl_program program, void* user_data)", pfn_notify, "void*", user_data,
+        input_programs, "void(CL_CALLBACK*)(cl_program program, void* user_data)", &pfn_notify, "void*", user_data,
         "cl_int*", errcode_ret);
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_program)
     if((num_devices == 0) != (device_list == nullptr))

@@ -1174,7 +1174,7 @@ cl_int VC4CL_FUNC(clEnqueueNativeKernel)(cl_command_queue command_queue, void(CL
     cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
     VC4CL_PRINT_API_CALL("cl_int", clEnqueueNativeKernel, "cl_command_queue", command_queue,
-        "void(CL_CALLBACK*)(void*)", user_func, "void*", args, "size_t", cb_args, "cl_uint", num_mem_objects,
+        "void(CL_CALLBACK*)(void*)", &user_func, "void*", args, "size_t", cb_args, "cl_uint", num_mem_objects,
         "const cl_mem*", mem_list, "const void**", args_mem_loc, "cl_uint", num_events_in_wait_list, "const cl_event*",
         event_wait_list, "cl_event*", event);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))

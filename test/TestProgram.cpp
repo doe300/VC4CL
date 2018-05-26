@@ -116,7 +116,12 @@ void TestProgram::testLinkProgram()
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
     cl_program program = VC4CL_FUNC(clLinkProgram)(context, 1, &device_id, nullptr, 1, &source_program, &build_callback, &data, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    TEST_ASSERT_EQUALS(source_program, program);
+    //clLinkProgram is specified to create a new program object
+    TEST_ASSERT(source_program != program);
+    
+    VC4CL_FUNC(clReleaseProgram)(source_program);
+    // this pointer is used for further access
+    source_program = program;
 }
 
 void TestProgram::testUnloadPlatformCompiler()
@@ -176,9 +181,10 @@ void TestProgram::testGetProgramInfo()
     TEST_ASSERT_EQUALS(sizeof(cl_device_id), info_size);
     TEST_ASSERT_EQUALS(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), *reinterpret_cast<cl_device_id*>(buffer));
     
-    state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_SOURCE, 128, buffer, &info_size);
-    TEST_ASSERT_EQUALS(CL_INVALID_VALUE, state);   //buffer-size!
-    TEST_ASSERT(info_size > 0u);
+    //XXX not valid anymore, source_program is not the original source_program
+    // state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_SOURCE, 128, buffer, &info_size);
+    // TEST_ASSERT_EQUALS(CL_INVALID_VALUE, state);   //buffer-size!
+    // TEST_ASSERT(info_size > 0u);
     
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_SOURCE, 2048, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -192,7 +198,8 @@ void TestProgram::testGetProgramInfo()
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(size_t), info_size);
     
-    state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_BINARIES, 1024, buffer, &info_size);
+    auto ptr = reinterpret_cast<void*>(buffer);
+    state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_BINARIES, 1024, &ptr, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_NUM_KERNELS, 1024, buffer, &info_size);

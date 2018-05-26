@@ -10,6 +10,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <numeric>
 #include <sstream>
 
 using namespace vc4cl;
@@ -50,19 +51,24 @@ cl_int vc4cl::returnString(const std::string& string, size_t output_size, void* 
 CHECK_RETURN cl_int vc4cl::returnBuffers(const std::vector<void*>& buffers, const std::vector<size_t>& sizes,
     size_t type_size, size_t output_size, void* output, size_t* output_size_ret)
 {
+    if(buffers.size() != sizes.size())
+        return CL_INVALID_VALUE;
+    auto inputSize = std::accumulate(sizes.begin(), sizes.end(), 0);
     if(output != nullptr)
     {
-        if(output_size < buffers.size() * type_size)
+        if(output_size < inputSize)
+            // TODO is this true or is output_size only the size of the array of pointers?!
             // not enough space on output parameter
             return CL_INVALID_VALUE;
         // copy the single buffers
         for(std::size_t i = 0; i < buffers.size(); ++i)
         {
-            if(buffers.at(i) != nullptr)
+            if(buffers.at(i) != nullptr && reinterpret_cast<void**>(output)[i] != nullptr)
                 memcpy(reinterpret_cast<void**>(output)[i], buffers.at(i), sizes.at(i));
         }
     }
     if(output_size_ret != nullptr)
-        *output_size_ret = buffers.size() * type_size;
+        // TODO or *output_size_ret = buffers.size() * type_size; ??
+        *output_size_ret = inputSize;
     return CL_SUCCESS;
 }

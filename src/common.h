@@ -8,6 +8,7 @@
 
 #include "types.h"
 
+#include <cstring>
 #include <exception>
 #include <iostream>
 #include <memory>
@@ -222,13 +223,18 @@ namespace vc4cl
     inline std::ostream& printAPICallInternal<const char*>(
         std::ostream& s, const char* const paramName, const char* param)
     {
-        return s << paramName << " " << (param == nullptr ? "(null)" : param);
+        if(param == nullptr)
+            return s << paramName << " (null)";
+        else if(strlen(param) == 0)
+            return s << paramName << " " << reinterpret_cast<const void*>(param);
+        else
+            return s << paramName << " \"" << param << '"';
     }
 
     template <typename T, typename... U>
     std::ostream& printAPICallInternal(std::ostream& s, const char* const paramName, T param, U... args)
     {
-        printAPICallInternal(s, paramName, param) << ",";
+        printAPICallInternal(s, paramName, param) << ", ";
         return printAPICallInternal(s, args...);
     }
 

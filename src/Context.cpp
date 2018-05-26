@@ -152,7 +152,7 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
 {
     VC4CL_PRINT_API_CALL("cl_context", clCreateContext, "const cl_context_properties*", properties, "cl_uint",
         num_devices, "const cl_device_id*", devices,
-        "void(CL_CALLBACK*)(const char* errinfo, const void* private_info, size_t cb, void* user_data)", pfn_notify,
+        "void(CL_CALLBACK*)(const char* errinfo, const void* private_info, size_t cb, void* user_data)", &pfn_notify,
         "void*", user_data, "cl_int*", errcode_ret);
     ContextProperty explicitProperties = ContextProperty::NONE;
     cl_platform_id platform = Platform::getVC4CLPlatform().toBase();
@@ -258,7 +258,7 @@ cl_context VC4CL_FUNC(clCreateContextFromType)(const cl_context_properties* prop
 {
     VC4CL_PRINT_API_CALL("cl_context", clCreateContextFromType, "const cl_context_properties*", properties,
         "cl_device_type", device_type,
-        "void(CL_CALLBACK*)(const char* errinfo, const void* private_info, size_t cb, void* user_data)", pfn_notify,
+        "void(CL_CALLBACK*)(const char* errinfo, const void* private_info, size_t cb, void* user_data)", &pfn_notify,
         "void*", user_data, "cl_int*", errcode_ret);
     cl_uint num_devices = 0;
     cl_device_id device;

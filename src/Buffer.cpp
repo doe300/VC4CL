@@ -1783,7 +1783,7 @@ cl_int VC4CL_FUNC(clSetMemObjectDestructorCallback)(
     cl_mem memobj, void(CL_CALLBACK* pfn_notify)(cl_mem memobj, void* user_data), void* user_data)
 {
     VC4CL_PRINT_API_CALL("cl_int", clSetMemObjectDestructorCallback, "cl_mem", memobj,
-        "void(CL_CALLBACK*)(cl_mem memobj, void* user_data)", pfn_notify, "void*", user_data);
+        "void(CL_CALLBACK*)(cl_mem memobj, void* user_data)", &pfn_notify, "void*", user_data);
     CHECK_BUFFER(toType<Buffer>(memobj))
     return toType<Buffer>(memobj)->setDestructorCallback(pfn_notify, user_data);
 }

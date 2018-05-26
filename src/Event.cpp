@@ -33,6 +33,7 @@ cl_int Event::setUserEventStatus(cl_int execution_status)
     if(userStatusSet)
         return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "User status has already been set!");
 
+    std::lock_guard<std::mutex> guard(statusLock);
     status = execution_status;
     userStatusSet = true;
 
@@ -54,7 +55,10 @@ cl_int Event::getInfo(
         return returnValue<cl_command_type>(
             static_cast<cl_command_type>(type), param_value_size, param_value, param_value_size_ret);
     case CL_EVENT_COMMAND_EXECUTION_STATUS:
+    {
+        std::lock_guard<std::mutex> guard(statusLock);
         return returnValue<cl_int>(status, param_value_size, param_value, param_value_size_ret);
+    }
     case CL_EVENT_REFERENCE_COUNT:
         return returnValue<cl_uint>(referenceCount, param_value_size, param_value, param_value_size_ret);
     }
@@ -71,7 +75,27 @@ cl_int Event::setCallback(cl_int command_exec_callback_type, EventCallback callb
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
             buildString("Invalid type for event callback: %d!", command_exec_callback_type));
 
-    callbacks.emplace_back(command_exec_callback_type, callback, user_data);
+    std::lock_guard<std::mutex> guard(statusLock);
+    if(status > command_exec_callback_type)
+        callbacks.emplace_back(command_exec_callback_type, callback, user_data);
+    else
+        /*
+         * The status at which the callback is be notified has already been triggered -> call immediately
+         *
+         * OpenCL 1.2, page 186: "All callbacks registered for an event object must be called"
+         * And further:
+         *   "If the callback is called as the result of the command associated with event being abnormally terminated,
+         * an appropriate error code for the error that caused the termination will be passed to
+         * event_command_exec_status instead."
+         *
+         * Also intel/beignet and pocl both do the same mechanism:
+         * https://github.com/intel/beignet/blob/591d387327ce35f03a6152d4c823415729e221f2/src/cl_event.c#L346
+         * https://github.com/pocl/pocl/blob/3f5a44a64ab7c7d5907c8cbf385ad7f13eff659a/lib/CL/clSetEventCallback.c#L39
+         */
+        // XXX intel/beignet sets the actual current status of the event, pocl the status for which the callback is
+        // registered
+        callback(toBase(), status < 0 /* error? */ ? status : command_exec_callback_type, user_data);
+
     return CL_SUCCESS;
 }
 
@@ -116,12 +140,14 @@ cl_int Event::waitFor() const
 
 bool Event::isFinished() const
 {
+    std::lock_guard<std::mutex> guard(statusLock);
     // an event is finished, if it has a state of CL_COMPLETE or any negative value (error-states)
     return status == CL_COMPLETE || status < 0;
 }
 
 cl_int Event::getStatus() const
 {
+    std::lock_guard<std::mutex> guard(statusLock);
     return status;
 }
 
@@ -138,6 +164,7 @@ void Event::fireCallbacks()
 
 void Event::updateStatus(cl_int status, bool fireCallbacks)
 {
+    std::lock_guard<std::mutex> guard(statusLock);
     this->status = status;
     if(status == CL_SUBMITTED)
         setTime(profile.submit_time);
@@ -438,7 +465,7 @@ cl_int VC4CL_FUNC(clSetEventCallback)(cl_event event, cl_int command_exec_callba
     void* user_data)
 {
     VC4CL_PRINT_API_CALL("cl_int", clSetEventCallback, "cl_event", event, "cl_int", command_exec_callback_type,
-        "void(CL_CALLBACK*)(cl_event event, cl_int event_command_exec_status, void* user_data)", pfn_event_notify,
+        "void(CL_CALLBACK*)(cl_event event, cl_int event_command_exec_status, void* user_data)", &pfn_event_notify,
         "void*", user_data);
     CHECK_EVENT(toType<Event>(event))
     return toType<Event>(event)->setCallback(command_exec_callback_type, pfn_event_notify, user_data);

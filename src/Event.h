@@ -12,6 +12,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -145,6 +146,8 @@ namespace vc4cl
 
     private:
         object_wrapper<CommandQueue> queue;
+        // required to synchronize parallel access to the status
+        mutable std::mutex statusLock;
 
         cl_int status;
         bool userStatusSet;
