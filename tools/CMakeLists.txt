@@ -1,14 +1,17 @@
 add_executable(v3d_info "")
 target_link_libraries(v3d_info VC4CL ${SYSROOT_LIBRARY_FLAGS})
 target_include_directories(v3d_info PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+target_include_directories(v3d_info PRIVATE ${OpenCL_INCLUDE_DIRS})
 
 add_executable(v3d_profile "")
 target_link_libraries(v3d_profile VC4CL ${SYSROOT_LIBRARY_FLAGS})
 target_include_directories(v3d_profile PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+target_include_directories(v3d_profile PRIVATE ${OpenCL_INCLUDE_DIRS})
 
 add_executable(vc4cl_dump_analyzer "")
 target_link_libraries(vc4cl_dump_analyzer VC4CL ${SYSROOT_LIBRARY_FLAGS})
 target_include_directories(vc4cl_dump_analyzer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+target_include_directories(vc4cl_dump_analyzer PRIVATE ${OpenCL_INCLUDE_DIRS})
 
 target_compile_definitions(v3d_info PRIVATE -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
 target_compile_definitions(v3d_profile PRIVATE -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")

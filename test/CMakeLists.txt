@@ -12,6 +12,7 @@ if(NOT TARGET cpptest-lite)
 endif()
 target_link_libraries(TestVC4CL VC4CL cpptest-lite ${SYSROOT_LIBRARY_FLAGS})
 target_compile_definitions(TestVC4CL PRIVATE -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
+target_include_directories(TestVC4CL PRIVATE ${OpenCL_INCLUDE_DIRS})
 
 if(BUILD_DEBUG)
         target_compile_definitions(TestVC4CL PRIVATE DEBUG_MODE=1)
@@ -38,3 +39,4 @@ add_test(NAME Programs COMMAND ./build/test/TestVC4CL --programs WORKING_DIRECTO
 add_test(NAME Kernel COMMAND ./build/test/TestVC4CL --kernels WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 add_test(NAME Events COMMAND ./build/test/TestVC4CL --events WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 add_test(NAME Extensions COMMAND ./build/test/TestVC4CL --extensions WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+

@@ -24,7 +24,7 @@ using namespace vc4cl;
 // timeout in ms
 // to allow hanging kernels to time-out, set this to a non-infinite, but high enough value, so no valid kernel takes
 // that long (e.g. 1min)
-static const std::chrono::milliseconds KERNEL_TIMEOUT{60 * 1000};
+static const std::chrono::milliseconds KERNEL_TIMEOUT{30 * 1000};
 // maximum number of work-groups to run in a single execution
 // since all UNIFORMs (at least need to be re-loaded for every iteration, this number should not be too high
 static const size_t MAX_ITERATIONS = 8;
