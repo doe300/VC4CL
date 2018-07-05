@@ -49,11 +49,11 @@ add_definitions(-DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
 
 # append usage of C++ to compiler flags, also optimize for speed and enable all warnings
 if(BUILD_DEBUG)
-	LIST(APPEND CMAKE_CXX_FLAGS " -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
 	SET(CMAKE_BUILD_TYPE 		Debug)
 	add_definitions(-DDEBUG_MODE=1)
 else()
-	LIST(APPEND CMAKE_CXX_FLAGS " -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
+	set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -O3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
 	SET(CMAKE_BUILD_TYPE 		Release)
 endif()
 
