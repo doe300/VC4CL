@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.1)
 find_package(PkgConfig)
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+include(CheckSymbolExists)
 
 ####
 # General configuration
@@ -125,6 +126,14 @@ if(BUILD_ICD)
 		message(STATUS "Found Khronos ICD Loader in version ${OCL_ICD_VERSION} in ${OCL_ICD_LIBDIR}")
 		include_directories(${OCL_ICD_INCLUDEDIR})
 	endif()
+
+	# Check clCreateProgramWithIL exist or not
+	set(CMAKE_REQUIRED_LIBRARIES OpenCL)
+	check_symbol_exists(clCreateProgramWithIL ${SYSROOT_CROSS}/usr/include/CL/cl.h AVAIL_clCreateProgramWithIL)
+	if(NOT AVAIL_clCreateProgramWithIL)
+		message(WARNING "clCreateProgramWithIL not found, strongly recommend to upgrade package opencl-headers!")
+	endif()
+	set(CMAKE_REQUIRED_LIBRARIES)
 endif()
 
 # Enable experimental image support
