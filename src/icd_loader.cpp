@@ -201,21 +201,20 @@ _cl_icd_dispatch vc4cl_dispatch = {
 #endif
     nullptr,                       /* clCreatePipe */
     nullptr,                       /* clGetPipeInfo */
-    &VC4CL_clSVMAllocARM,          /* clSVMAlloc */
-    &VC4CL_clSVMFreeARM,           /* clSVMFree */
-    &VC4CL_clEnqueueSVMFreeARM,    /* clEnqueueSVMFree */
-    &VC4CL_clEnqueueSVMMemcpyARM,  /* clEnqueueSVMMemcpy */
-    &VC4CL_clEnqueueSVMMemFillARM, /* clEnqueueSVMMemFill */
-    &VC4CL_clEnqueueSVMMapARM,     /* clEnqueueSVMMap */
-    &VC4CL_clEnqueueSVMUnmapARM,   /* clEnqueueSVMUnmap */
+    nullptr,                        /* clSVMAlloc */
+    nullptr,                        /* clSVMFree */
+    nullptr,                        /* clEnqueueSVMFree */
+    nullptr,                        /* clEnqueueSVMMemcpy */
+    nullptr,                        /* clEnqueueSVMMemFill */
+    nullptr,                        /* clEnqueueSVMMap */
+    nullptr,                        /* clEnqueueSVMUnmap */
 #ifdef CL_VERSION_2_0
     &VC4CL_clCreateSamplerWithProperties, /* clCreateSamplerWithProperties */
 #else
     nullptr, /* clCreateSamplerWithProperties */
 #endif
-    &VC4CL_clSetKernelArgSVMPointerARM, /* clSetKernelArgSVMPointer */
-    &VC4CL_clSetKernelExecInfoARM,      /* clSetKernelExecInfo */
-
+    nullptr,                            /* clSetKernelArgSVMPointer */
+    nullptr,                            /* clSetKernelExecInfo */
     /* cl_khr_sub_groups */
     nullptr, /* clGetKernelSubGroupInfoKHR */
 
