@@ -9,7 +9,7 @@
 	#include COMPILER_HEADER
 #endif
 
-#include "src/Program.h"
+#include "Program.h"
 
 #include <cstring>
 #include <fstream>

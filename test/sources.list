@@ -1,0 +1,31 @@
+target_sources(TestVC4CL
+  PRIVATE
+    TestBuffer.cpp
+    TestBuffer.h
+    TestBuiltins.cpp
+    TestBuiltins.h
+    TestCommandQueue.cpp
+    TestCommandQueue.h
+    TestContext.cpp
+    TestContext.h
+    test.cpp
+    TestDevice.cpp
+    TestDevice.h
+    TestEvent.cpp
+    TestEvent.h
+    TestExecutions.cpp
+    TestExecutions.h
+    TestExtension.cpp
+    TestExtension.h
+    TestImage.cpp
+    TestImage.h
+    TestKernel.cpp
+    TestKernel.h
+    TestPlatform.cpp
+    TestPlatform.h
+    TestProgram.cpp
+    TestProgram.h
+    TestSystem.cpp
+    TestSystem.h
+    util.h
+)

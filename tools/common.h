@@ -7,7 +7,7 @@
 #ifndef TOOLS_COMMON_H_
 #define TOOLS_COMMON_H_
 
-#include "src/V3D.h"
+#include "V3D.h"
 
 std::string getErrors()
 {

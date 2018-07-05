@@ -1,14 +1,34 @@
-include_directories(..)
-include_directories(../include)
-
-add_executable(v3d_info V3DInfo.cpp)
+add_executable(v3d_info "")
 target_link_libraries(v3d_info VC4CL ${SYSROOT_LIBRARY_FLAGS})
+target_include_directories(v3d_info PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
-add_executable(v3d_profile V3DProfile.cpp)
+add_executable(v3d_profile "")
 target_link_libraries(v3d_profile VC4CL ${SYSROOT_LIBRARY_FLAGS})
+target_include_directories(v3d_profile PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
-add_executable(vc4cl_dump_analyzer DumpAnalyzer.cpp)
+add_executable(vc4cl_dump_analyzer "")
 target_link_libraries(vc4cl_dump_analyzer VC4CL ${SYSROOT_LIBRARY_FLAGS})
+target_include_directories(vc4cl_dump_analyzer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+
+target_compile_definitions(v3d_info PRIVATE -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
+target_compile_definitions(v3d_profile PRIVATE -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
+target_compile_definitions(vc4cl_dump_analyzer PRIVATE -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
+
+if(BUILD_ICD)
+  target_compile_definitions(v3d_info PRIVATE -Dcl_khr_icd=1 -Duse_cl_khr_icd=1)
+  target_compile_definitions(v3d_profile PRIVATE -Dcl_khr_icd=1 -Duse_cl_khr_icd=1)
+  target_compile_definitions(vc4cl_dump_analyzer PRIVATE -Dcl_khr_icd=1 -Duse_cl_khr_icd=1)
+endif()
+
+if(IMAGE_SUPPORT)
+	target_compile_definitions(v3d_info PRIVATE -DIMAGE_SUPPORT=1)
+endif()
+
+if(REGISTER_POKE_KERNELS)
+	target_compile_definitions(v3d_info PRIVATE -DREGISTER_POKE_KERNELS=1)
+endif()
+
+include(sources.list)
 ##
 # Installation targets
 ##

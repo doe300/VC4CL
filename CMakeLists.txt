@@ -43,25 +43,15 @@ endif()
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_FLAGS_DEBUG "-g3 -rdynamic")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 project (VC4CL VERSION 0.4)
-add_definitions(-DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
 
-# append usage of C++ to compiler flags, also optimize for speed and enable all warnings
 if(BUILD_DEBUG)
-	LIST(APPEND CMAKE_CXX_FLAGS " -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
-	SET(CMAKE_BUILD_TYPE 		Debug)
-	add_definitions(-DDEBUG_MODE=1)
+	SET(CMAKE_BUILD_TYPE Debug)
 else()
-	LIST(APPEND CMAKE_CXX_FLAGS " -g3 -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-ignored-attributes -fno-strict-aliasing -pthread")
-	SET(CMAKE_BUILD_TYPE 		Release)
-endif()
-
-# Enable additional warnings, if available
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-shadow -Wno-padded -Wno-shadow-field-in-constructor -Wno-global-constructors -Wno-exit-time-destructors -Wno-missing-prototypes -Wno-gnu-anonymous-struct -Wno-nested-anon-types -Wno-documentation -Wno-unused-command-line-argument -Wno-unused-member-function -Wno-gnu-zero-variadic-macro-arguments -Wno-covered-switch-default -Wno-switch-enum -Wswitch")
-elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "6.0.0")
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wdouble-promotion -fdelete-null-pointer-checks -Wnull-dereference -Wuninitialized -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=format -Wsuggest-override -Wconversion -Wzero-as-null-pointer-constant")
+	SET(CMAKE_BUILD_TYPE Release)
 endif()
 
 ####
@@ -81,7 +71,6 @@ endif()
 # Check for OpenCL headers
 find_package(OpenCL REQUIRED)
 message(STATUS "Found headers for OpenCL up to version ${OpenCL_VERSION_STRING} located in ${OpenCL_INCLUDE_DIRS}")
-include_directories(${OpenCL_INCLUDE_DIRS})
 
 if(INCLUDE_COMPILER)
 	if(NOT VC4C_HEADER_PATH)
@@ -101,41 +90,29 @@ if(INCLUDE_COMPILER)
 	if(VC4C_HEADER_PATH)
 		find_file(VC4C_TOOLS_HEADER_PATH "tools.h" HINTS "${PROJECT_SOURCE_DIR}/lib/vc4c/include" "${PROJECT_SOURCE_DIR}/../VC4C/include" "/usr/local/include/vc4cc" "/usr/include/vc4cc")
 		message(STATUS "VC4C compiler header found at: ${VC4C_HEADER_PATH}")
-		add_definitions(-DCOMPILER_HEADER="${VC4C_HEADER_PATH}")
-		add_definitions(-DVC4C_TOOLS_HEADER="${VC4C_TOOLS_HEADER_PATH}")
-		add_definitions(-DVC4C_ROOT_PATH="${}") # TODO
-		add_definitions(-DHAS_COMPILER=1)
-
 	else()
-		message(STATUS "No VC4C compiler header found!")
-		add_definitions(-DHAS_COMPILER=0)
+		message(WARNING "No VC4C compiler header found!")
 	endif()
 endif()
 
 # Enable Khronos ICD loader
 if(BUILD_ICD)
-	# To be exact, this enables the methods for the cl_khr_icd extension to be exported as publicly accessible
-	add_definitions(-Dcl_khr_icd=1)
-	add_definitions(-Duse_cl_khr_icd=1)
 	message(STATUS "Building with ICD support")
 
 	if(NOT CROSS_COMPILE)
 		# accoding to pocl, pkg-config doesn't work with cross-compiling
 		pkg_search_module(OCL_ICD REQUIRED ocl-icd>=1.3)
 		message(STATUS "Found Khronos ICD Loader in version ${OCL_ICD_VERSION} in ${OCL_ICD_LIBDIR}")
-		include_directories(${OCL_ICD_INCLUDEDIR})
 	endif()
 endif()
 
 # Enable experimental image support
 if(IMAGE_SUPPORT)
-	add_definitions(-DIMAGE_SUPPORT=1)
 	message(STATUS "Building with experimental image support")
 endif()
 
 # Enable register poking for kernels
 if(REGISTER_POKE_KERNELS)
-	add_definitions(-DREGISTER_POKE_KERNELS=1)
 	message(STATUS "Enabling register-poking to run kernels")
 endif()
 

@@ -7,7 +7,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include "src/Mailbox.h"
+#include "Mailbox.h"
 #include "common.h"
 
 using namespace vc4cl;

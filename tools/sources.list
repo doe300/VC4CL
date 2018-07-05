@@ -1,0 +1,17 @@
+target_sources(v3d_info
+  PRIVATE
+    common.h
+    V3DInfo.cpp
+)
+
+target_sources(v3d_profile
+  PRIVATE
+    common.h
+    V3DProfile.cpp
+)
+
+target_sources(vc4cl_dump_analyzer
+  PRIVATE
+    common.h
+    DumpAnalyzer.cpp
+)
