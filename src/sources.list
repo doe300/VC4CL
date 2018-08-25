@@ -36,8 +36,6 @@ target_sources(VC4CL
     Program.h
     queue_handler.cpp
     queue_handler.h
-    SVM.cpp
-    SVM.h
     TextureConfiguration.h
     TextureFormat.cpp
     TextureFormat.h

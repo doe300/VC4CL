@@ -383,6 +383,10 @@ cl_int Device::getInfo(
             return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Error reading mailbox-info device temperature!");
         return returnValue<cl_int>(msg.getContent(1) / 1000, param_value_size, param_value, param_value_size_ret);
     }
+    case CL_DEVICE_COMPUTE_UNITS_BITFIELD_ARM:
+        // cl_arm_core_id - https://www.khronos.org/registry/OpenCL/extensions/arm/cl_arm_get_core_id.txt
+        // "returns a bitfield where each bit set represents the presence of compute unit whose ID is the bit position."
+        return returnValue<cl_ulong>(1, param_value_size, param_value, param_value_size_ret);
     default:
         // invalid parameter-name
         return returnError(

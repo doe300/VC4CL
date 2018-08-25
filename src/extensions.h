@@ -90,94 +90,6 @@ cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* 
 #endif
 
 /*
- * ARM Shared Virtual Memory (SVM) (cl_arm_shared_virtual_memory)
- * https://www.khronos.org/registry/OpenCL/extensions/arm/cl_arm_shared_virtual_memory.txt
- *
- * Ports shared virtual memory to OpenCL < 2.0.
- * VC4CL supports this, because (as apparently several ARM devices), the Raspberry Pi has a shared memory, which can be
- * accessed anyway directly by both host and GPU
- *
- * See OpenCL 2.0, sections 5.6 and 5.9.2
- */
-typedef cl_bitfield cl_svm_mem_flags_arm;
-typedef cl_uint cl_kernel_exec_info_arm;
-typedef cl_bitfield cl_device_svm_capabilities_arm;
-// To be used by clGetDeviceInfo
-#ifndef CL_DEVICE_SVM_CAPABILITIES_ARM
-#define CL_DEVICE_SVM_CAPABILITIES_ARM 0x40B6
-#endif
-
-#ifndef CL_MEM_USES_SVM_POINTER_ARM
-#define CL_MEM_USES_SVM_POINTER_ARM 0x40B7
-#endif
-
-// To be used by clSetKernelExecInfoARM:
-#ifndef CL_KERNEL_EXEC_INFO_SVM_PTRS_ARM
-#define CL_KERNEL_EXEC_INFO_SVM_PTRS_ARM 0x40B8
-#endif
-#ifndef CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM_ARM
-#define CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM_ARM 0x40B9
-#endif
-
-// To be used by clGetEventInfo:
-#ifndef CL_COMMAND_SVM_FREE_ARM
-#define CL_COMMAND_SVM_FREE_ARM 0x40BA
-#endif
-#ifndef CL_COMMAND_SVM_MEMCPY_ARM
-#define CL_COMMAND_SVM_MEMCPY_ARM 0x40BB
-#endif
-#ifndef CL_COMMAND_SVM_MEMFILL_ARM
-#define CL_COMMAND_SVM_MEMFILL_ARM 0x40BC
-#endif
-#ifndef CL_COMMAND_SVM_MAP_ARM
-#define CL_COMMAND_SVM_MAP_ARM 0x40BD
-#endif
-#ifndef CL_COMMAND_SVM_UNMAP_ARM
-#define CL_COMMAND_SVM_UNMAP_ARM 0x40BE
-#endif
-
-// Flag values returned by clGetDeviceInfo with CL_DEVICE_SVM_CAPABILITIES_ARM as the param_name.
-#ifndef CL_DEVICE_SVM_COARSE_GRAIN_BUFFER_ARM
-#define CL_DEVICE_SVM_COARSE_GRAIN_BUFFER_ARM (1 << 0)
-#endif
-#ifndef CL_DEVICE_SVM_FINE_GRAIN_BUFFER_ARM
-#define CL_DEVICE_SVM_FINE_GRAIN_BUFFER_ARM (1 << 1)
-#endif
-#ifndef CL_DEVICE_SVM_FINE_GRAIN_SYSTEM_ARM
-#define CL_DEVICE_SVM_FINE_GRAIN_SYSTEM_ARM (1 << 2)
-#endif
-#ifndef CL_DEVICE_SVM_ATOMICS_ARM
-#define CL_DEVICE_SVM_ATOMICS_ARM (1 << 3)
-#endif
-
-// Flag values used by clSVMAllocARM:
-#ifndef CL_MEM_SVM_FINE_GRAIN_BUFFER_ARM
-#define CL_MEM_SVM_FINE_GRAIN_BUFFER_ARM (1 << 10)
-#endif
-#ifndef CL_MEM_SVM_ATOMICS_ARM
-#define CL_MEM_SVM_ATOMICS_ARM (1 << 11)
-#endif
-
-void* VC4CL_FUNC(clSVMAllocARM)(cl_context context, cl_svm_mem_flags_arm flags, size_t size, cl_uint alignment);
-void VC4CL_FUNC(clSVMFreeARM)(cl_context context, void* svm_pointer);
-cl_int VC4CL_FUNC(clEnqueueSVMFreeARM)(cl_command_queue command_queue, cl_uint num_svm_pointers, void* svm_pointers[],
-    void(CL_CALLBACK* pfn_free_func)(cl_command_queue, cl_uint, void* [], void*), void* user_data,
-    cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event);
-cl_int VC4CL_FUNC(clEnqueueSVMMemcpyARM)(cl_command_queue command_queue, cl_bool blocking_copy, void* dst_ptr,
-    const void* src_ptr, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
-    cl_event* event);
-cl_int VC4CL_FUNC(clEnqueueSVMMemFillARM)(cl_command_queue command_queue, void* svm_ptr, const void* pattern,
-    size_t pattern_size, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
-    cl_event* event);
-cl_int VC4CL_FUNC(clEnqueueSVMMapARM)(cl_command_queue command_queue, cl_bool blocking_map, cl_map_flags map_flags,
-    void* svm_ptr, size_t size, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event);
-cl_int VC4CL_FUNC(clEnqueueSVMUnmapARM)(cl_command_queue command_queue, void* svm_ptr, cl_uint num_events_in_wait_list,
-    const cl_event* event_wait_list, cl_event* event);
-cl_int VC4CL_FUNC(clSetKernelArgSVMPointerARM)(cl_kernel kernel, cl_uint arg_index, const void* arg_value);
-cl_int VC4CL_FUNC(clSetKernelExecInfoARM)(
-    cl_kernel kernel, cl_kernel_exec_info_arm param_name, size_t param_value_size, const void* param_value);
-
-/*
  * Support for packed yuv images (cl_intel_packed_yuv)
  * https://www.khronos.org/registry/OpenCL/extensions/intel/cl_intel_packed_yuv.txt
  *
@@ -240,6 +152,19 @@ void VC4CL_FUNC(clReportLiveObjectsAltera)(cl_platform_id platform,
     void(CL_CALLBACK* report_fn)(
         void* /* user_data */, void* /* obj_ptr */, const char* /* type_name */, cl_uint /* refcount */),
     void* user_data);
+
+/*
+ * ARM_core_id (cl_arm_core_id)
+ * https://www.khronos.org/registry/OpenCL/extensions/arm/cl_arm_get_core_id.txt
+ *
+ * Introduces OpenCL C function to query compute unit id and host-side device query fir present compute units.
+ *
+ * Implementation and usage notes:
+ * - we only have a single compute unit with the constant id zero
+ */
+#ifndef CL_DEVICE_COMPUTE_UNITS_BITFIELD_ARM
+#define CL_DEVICE_COMPUTE_UNITS_BITFIELD_ARM 0x40BF
+#endif
 
 /*
  * VC4CL performance counters (cl_vc4cl_performance_counters)

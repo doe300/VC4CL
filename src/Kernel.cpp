@@ -8,7 +8,6 @@
 
 #include "Buffer.h"
 #include "Device.h"
-#include "SVM.h"
 #include "V3D.h"
 #include "extensions.h"
 
@@ -63,7 +62,7 @@ Kernel::Kernel(Program* program, const KernelInfo& info) : program(program), inf
 
 Kernel::~Kernel() {}
 
-cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value, const bool isSVMPointer)
+cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
 {
 #ifdef DEBUG_MODE
     std::cout << "[VC4CL] Set kernel arg " << arg_index << " for kernel '" << info.name << "' to " << arg_value << " ("
@@ -153,35 +152,26 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value,
         DevicePointer pointer_arg(reinterpret_cast<uintptr_t>(nullptr));
         if(arg_value != nullptr && *static_cast<const void* const*>(arg_value) != nullptr)
         {
-            if(isSVMPointer)
+            //"If the argument is a memory object, the size is the size of the buffer or image object type."
+            if(arg_size != sizeof(cl_mem))
             {
-                // SVM pointers are passed as direct GPU pointers (and are checked before), so the usual check for valid
-                // Buffer does not apply here
-                pointer_arg = DevicePointer(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(arg_value)));
+                return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__,
+                    buildString("Invalid arg size for buffers: %d, must be %u", arg_size, sizeof(cl_mem)));
             }
-            else
-            {
-                //"If the argument is a memory object, the size is the size of the buffer or image object type."
-                if(arg_size != sizeof(cl_mem))
-                {
-                    return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__,
-                        buildString("Invalid arg size for buffers: %d, must be %u", arg_size, sizeof(cl_mem)));
-                }
 
-                const cl_mem buffer = *static_cast<const cl_mem*>(arg_value);
-                CHECK_BUFFER(toType<Buffer>(buffer))
-                if(toType<Buffer>(buffer)->context() != program->context())
-                    return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
-                        buildString("Contexts of buffer and program do not match: %p != %p",
-                            toType<Buffer>(buffer)->context(), program->context()));
-                if(info.params[arg_index].getOutput() && !toType<Buffer>(buffer)->writeable)
-                    return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
-                        "Setting a non-writeable buffer as output parameter!");
-                if(info.params[arg_index].getInput() && !toType<Buffer>(buffer)->readable)
-                    return returnError(
-                        CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-readable buffer as input parameter!");
-                pointer_arg = toType<Buffer>(buffer)->deviceBuffer->qpuPointer;
-            }
+            const cl_mem buffer = *static_cast<const cl_mem*>(arg_value);
+            CHECK_BUFFER(toType<Buffer>(buffer))
+            if(toType<Buffer>(buffer)->context() != program->context())
+                return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
+                    buildString("Contexts of buffer and program do not match: %p != %p",
+                        toType<Buffer>(buffer)->context(), program->context()));
+            if(info.params[arg_index].getOutput() && !toType<Buffer>(buffer)->writeable)
+                return returnError(
+                    CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-writeable buffer as output parameter!");
+            if(info.params[arg_index].getInput() && !toType<Buffer>(buffer)->readable)
+                return returnError(
+                    CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-readable buffer as input parameter!");
+            pointer_arg = toType<Buffer>(buffer)->deviceBuffer->qpuPointer;
         }
         /*
          * For __local pointer parameters, the memory-area is not passed as cl_mem,
@@ -1181,119 +1171,5 @@ cl_int VC4CL_FUNC(clEnqueueNativeKernel)(cl_command_queue command_queue, void(CL
     CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
 
     // no native kernels are supported
-    return CL_INVALID_OPERATION;
-}
-
-/*!
- * OpenCL 2.0 specification, pages 218+:
- *  Sets a SVM pointer as the argument value for a specific argument of a kernel.
- *
- *  \param kernel is a valid kernel object.
- *
- *  \param arg_index is the argument index.  Arguments to the kernel are referred by indices that go from 0 for the
- * leftmost argument to n-1, where n is the total number of arguments declared by a kernel.
- *
- *  \param arg_value is the SVM pointer that should be used as the argument value for argument specified by arg_index.
- *  The SVM pointer specified is the value used by all API calls that enqueue kernel(clEnqueueNDRangeKernel) until the
- * argument value is changed by a call to clSetKernelArgSVMPointer for kernel. The SVM pointer can only be used for
- * arguments that are declared to be a pointer to global or constant memory. The SVM pointer value must be aligned
- * according to the argument’s type. For example, if the argument is declared to be global float4 *p, the SVM pointer
- * value passed for p must be at a minimum aligned to a float4. The SVM pointer value specified as the argument value
- * can be the pointer returned by clSVMAlloc or can be a pointer + offset into the SVM region.
- *
- *  \return clSetKernelArgSVMPointer returns CL_SUCCESS if the function was executed successfully. Otherwise, it returns
- * one of the following errors:
- *  - CL_INVALID_KERNEL if kernel is not a valid kernel object.
- *  - CL_INVALID_ARG_INDEX if arg_index is not a valid argument index.
- *  - CL_INVALID_ARG_VALUE if arg_value specified is not a valid value.
- *  - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the
- * device.
- *  - CL_OUT_OF_HOST_MEMORY if there is a failure to allocate resources required by the OpenCL implementation on the
- * host.
- */
-cl_int VC4CL_FUNC(clSetKernelArgSVMPointerARM)(cl_kernel kernel, cl_uint arg_index, const void* arg_value)
-{
-    CHECK_KERNEL(toType<Kernel>(kernel))
-
-    SharedVirtualMemory* svm = SharedVirtualMemory::findSVM(arg_value);
-    if(svm == nullptr)
-        return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "SVM pointer is NULL");
-    cl_int offset = svm->getHostOffset(arg_value);
-    if(offset < 0)
-        return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "SVM pointer does not point to any SVM object");
-
-    return toType<Kernel>(kernel)->setArg(arg_index, sizeof(void*), svm->getDevicePointer(offset), true);
-}
-
-/*!
- * OpenCL 2.0 specification, pages 219+:
- *  Pass additional information other than argument values to a kernel.
- *
- *  \param kernel specifies the kernel object being queried.
- *
- *  \param param_name specifies the information to be passed to kernel. The list of supported param_name types and the
- * corresponding values passed in param_value is described in table 5.19
- *
- *  \param param_value_size specifies the size in bytes of the memory pointed to by param_value.
- *
- *  \param param_value is a pointer to memory where the appropriate values determined by param_name are specified.
- *
- *  \return clSetKernelExecInfo returns CL_SUCCESS if the function is executed successfully.  Otherwise, it returns one
- * of the following errors:
- *  - CL_INVALID_KERNEL if kernel is a not a valid kernel object.
- *  - CL_INVALID_VALUE if param_name is not valid, if param_value is NULL or if the size specified by param_value_size
- * is not valid.
- *  - CL_INVALID_OPERATION if param_name = CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM and param_value = CL_TRUE but no
- * devices in context associated with kernel support fine-grain system SVM allocations.
- *  - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the
- * device.
- *  - CL_OUT_OF_HOST_MEMORY if there is a failure to allocate resources required by the OpenCL implementation on the
- * host.
- *
- *  NOTES
- *  1. Coarse-grain or fine-grain buffer SVM pointers used by a kernel which are not passed as a kernel arguments must
- * be specified using clSetKernelExecInfo with CL_KERNEL_EXEC_INFO_SVM_PTRS. For example, if SVM buffer A contains a
- * pointer to another SVM buffer B, and the kernel dereferences that pointer, then a pointer to B must either be passed
- * as an argument in the call to that kernel or it must be made available to the kernel using clSetKernelExecInfo. When
- * calling clSetKernelExecInfo with CL_KERNEL_EXEC_INFO_SVM_PTRS to specify pointers to non-argument SVM buffers as
- * extra arguments to a kernel, each of these pointers can be the SVM pointer returned by clSVMAlloc or can be a pointer
- * + offset into the SVM region.It is sufficient to provide one pointer for each SVM buffer used.
- *
- *  2. CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM is used to indicate whether SVM pointers used by a kernel will refer to
- * system allocations or not. CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM = CL_FALSE indicates that the OpenCL
- * implementation may assume that system pointers are not passed as kernel arguments and are not stored inside SVM
- * allocations passed as kernel arguments. CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM = CL_TRUE indicates that the OpenCL
- * implementation must assume that system pointers might be passed as kernel arguments and/or stored inside SVM
- * allocations passed as kernel arguments. In this case, if the device to which the kernel is enqueued does not support
- * system SVM pointers, clEnqueueNDRangeKernel will return a CL_INVALID_OPERATION error. If none of the devices in the
- * context associated with kernel support fine-grain system SVM allocations, clSetKernelExecInfo will return a
- * CL_INVALID_OPERATION error.
- *
- *  If clSetKernelExecInfo has not been called with a value for CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM, the default
- * value is used for this kernel attribute.  The default value depends on whether the device on which the kernel is
- *  enqueued supports fine-grain system SVM allocations.  If so, the default value used is CL_TRUE (system pointers
- * might be passed); otherwise, the default is CL_FALSE.
- *
- *  3. A call to clSetKernelExecInfo for a given value of param_name replaces any prior value passed for that value of
- * param_name. Only one param_value will be stored for each value of param_name.
- */
-cl_int VC4CL_FUNC(clSetKernelExecInfoARM)(
-    cl_kernel kernel, cl_kernel_exec_info_arm param_name, size_t param_value_size, const void* param_value)
-{
-    CHECK_KERNEL(toType<Kernel>(kernel))
-
-    // CL_KERNEL_EXEC_INFO_SVM_PTRS sets "pointers used by a kernel which are not passed as a kernel arguments"
-    // All kernels already can access all buffers
-    // CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM set "whether the kernel uses pointers that are fine grain system SVM
-    // allocations"
-
-    if(param_name != CL_KERNEL_EXEC_INFO_SVM_PTRS_ARM && param_name != CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM_ARM)
-        return CL_INVALID_VALUE;
-    if(param_name == CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM_ARM &&
-        *static_cast<const cl_bool*>(param_value) == CL_TRUE)
-        // we do not support system allocations!
-        return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "System SVM allocations are not supported");
-
-    // TODO we need to convert host-pointer into device-pointer, for every pointer in buffers!!
     return CL_INVALID_OPERATION;
 }

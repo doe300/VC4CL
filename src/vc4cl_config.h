@@ -44,9 +44,6 @@ namespace vc4cl
             "cl_altera_device_temperature",
             // supports additional functions to query all currently live OpenCL objects
             "cl_altera_live_object_tracking",
-        // supports OpenCL 2.x SVM for OpenCL < 2.0
-        // This is actually not true, we share the physical but not the virtual memory!
-        //"cl_arm_shared_virtual_memory",
 #if use_cl_khr_icd
             // supports being used by the Khronos ICD loader
             "cl_khr_icd",
@@ -107,7 +104,10 @@ namespace vc4cl
             // atomic_inc/atomic_dec
             "cl_ext_atomic_counters_32",
             // allows local/private memory to be initialized with zeroes before kernel execution
-            "cl_khr_initialize_memory"};
+            "cl_khr_initialize_memory",
+            // adds a list of integer dot products
+            "cl_arm_integer_dot_product_int8", "cl_arm_integer_dot_product_accumulate_int8",
+            "cl_arm_integer_dot_product_accumulate_int16"};
 
         /*
          * "The work-items in a given work-group execute concurrently on the processing elements of a single compute

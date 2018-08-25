@@ -33,26 +33,6 @@ void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platfo
     if(strcmp("clCreateProgramWithILKHR", funcname) == 0)
         return reinterpret_cast<void*>(&(VC4CL_FUNC(clCreateProgramWithILKHR)));
 
-    // cl_arm_shared_virtual_memory
-    if(strcmp("clSVMAllocARM", funcname) == 0)
-        return reinterpret_cast<void*>((&VC4CL_FUNC(clSVMAllocARM)));
-    if(strcmp("clSVMFreeARM", funcname) == 0)
-        return reinterpret_cast<void*>(&(VC4CL_FUNC(clSVMFreeARM)));
-    if(strcmp("clEnqueueSVMFreeARM", funcname) == 0)
-        return reinterpret_cast<void*>(&(VC4CL_FUNC(clEnqueueSVMFreeARM)));
-    if(strcmp("clEnqueueSVMMemcpyARM", funcname) == 0)
-        return reinterpret_cast<void*>(&(VC4CL_FUNC(clEnqueueSVMMemcpyARM)));
-    if(strcmp("clEnqueueSVMMemFillARM", funcname) == 0)
-        return reinterpret_cast<void*>(&(VC4CL_FUNC(clEnqueueSVMMemFillARM)));
-    if(strcmp("clEnqueueSVMMapARM", funcname) == 0)
-        return reinterpret_cast<void*>(&(VC4CL_FUNC(clEnqueueSVMMapARM)));
-    if(strcmp("clEnqueueSVMUnmapARM", funcname) == 0)
-        return reinterpret_cast<void*>(&(VC4CL_FUNC(clEnqueueSVMUnmapARM)));
-    if(strcmp("clSetKernelArgSVMPointerARM", funcname) == 0)
-        return reinterpret_cast<void*>(&(VC4CL_FUNC(clSetKernelArgSVMPointerARM)));
-    if(strcmp("clSetKernelExecInfoARM", funcname) == 0)
-        return reinterpret_cast<void*>(&(VC4CL_FUNC(clSetKernelExecInfoARM)));
-
     // cl_altera_live_object_tracking
     if(strcmp("clTrackLiveObjectsAltera", funcname) == 0)
         return reinterpret_cast<void*>(&(VC4CL_FUNC(clTrackLiveObjectsAltera)));

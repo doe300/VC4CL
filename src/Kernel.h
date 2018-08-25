@@ -49,8 +49,7 @@ namespace vc4cl
         Kernel(Program* program, const KernelInfo& info);
         ~Kernel() override;
 
-        CHECK_RETURN cl_int setArg(
-            cl_uint arg_index, size_t arg_size, const void* arg_value, bool isSVMPointer = false);
+        CHECK_RETURN cl_int setArg(cl_uint arg_index, size_t arg_size, const void* arg_value);
         CHECK_RETURN cl_int getInfo(
             cl_kernel_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
         CHECK_RETURN cl_int getWorkGroupInfo(cl_kernel_work_group_info param_name, size_t param_value_size,
