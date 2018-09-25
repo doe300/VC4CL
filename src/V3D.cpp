@@ -141,12 +141,12 @@ void V3D::resetCounterValue(uint8_t counterIndex)
 // Confirmed this detection
 static const uint32_t POWEROFF_VALUE = 0xdeadbeef;
 
-int32_t V3D::getCounter(uint8_t counterIndex) const
+int64_t V3D::getCounter(uint8_t counterIndex) const
 {
     uint32_t val = v3dBasePointer[V3D_COUNTER_VALUE_BASE + counterIndex * V3D_COUNTER_INCREMENT];
     if(val == POWEROFF_VALUE)
-        return -1;
-    return static_cast<int>(val);
+        return static_cast<int64_t>(-1);
+    return static_cast<int64_t>(val);
 }
 
 void V3D::disableCounter(uint8_t counterIndex)

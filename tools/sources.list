@@ -4,11 +4,13 @@ target_sources(v3d_info
     V3DInfo.cpp
 )
 
-target_sources(v3d_profile
-  PRIVATE
-    common.h
-    V3DProfile.cpp
-)
+if(CURSES_FOUND)
+  target_sources(v3d_profile
+    PRIVATE
+      common.h
+      V3DProfile.cpp
+  )
+endif()
 
 target_sources(vc4cl_dump_analyzer
   PRIVATE

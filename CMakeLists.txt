@@ -125,6 +125,12 @@ if(REGISTER_POKE_KERNELS)
 	message(STATUS "Enabling register-poking to run kernels")
 endif()
 
+set(CURSES_NEED_NCURSES TRUE)
+find_package(Curses)
+if(NOT CURSES_FOUND)
+	message(STATUS "NCurses not found on this machine, the V3D profiler will not be built")
+endif()
+
 ####
 # Main files
 ####

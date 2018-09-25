@@ -49,6 +49,10 @@ namespace vc4cl
         UNIFORM_CACHE_HITS = 22,
         //"QPU Total uniforms cache misses for all slices"
         UNIFORM_CACHE_MISSES = 23,
+        //"TMU Total texture quads processed"
+        TMU_TOTAL_QUADS = 24, /* TODO also used for generic loads? */
+        //"TMU Total texture cache misses (number of fetches from memory/L2cache)"
+        TMU_CACHE_MISSES = 25,
         //"VPM Total clock cycles VDW is stalled waiting for VPM access"
         VPW_STALL_CYCES = 26,
         //"VPM Total clock cycles VCD is stalled waiting for VPM access"
@@ -78,6 +82,7 @@ namespace vc4cl
     {
         //"L2C AXI Receive Fifo Overrun error"
         L2CARE = 15,
+        //"VCD Idle"
         VCD_IDLE = 12,
         //"VCD error - FIFO pointers out of sync"
         VCD_OOS = 11,
@@ -112,7 +117,7 @@ namespace vc4cl
 
         CHECK_RETURN bool setCounter(uint8_t counterIndex, CounterType type);
         void resetCounterValue(uint8_t counterIndex);
-        int32_t getCounter(uint8_t counterIndex) const __attribute__((pure));
+        int64_t getCounter(uint8_t counterIndex) const __attribute__((pure));
         void disableCounter(uint8_t counterIndex);
 
         CHECK_RETURN bool setReservation(uint8_t qpu, QPUReservation val);
