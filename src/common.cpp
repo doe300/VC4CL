@@ -53,12 +53,12 @@ CHECK_RETURN cl_int vc4cl::returnBuffers(const std::vector<void*>& buffers, cons
 {
     if(buffers.size() != sizes.size())
         return CL_INVALID_VALUE;
-    auto inputSize = std::accumulate(sizes.begin(), sizes.end(), 0);
+    // the parameter size is the size of the pointer array, not the size of the actual data
+    auto inputSize = sizeof(void*) * sizes.size();
     if(output != nullptr)
     {
         if(output_size < inputSize)
-            // TODO is this true or is output_size only the size of the array of pointers?!
-            // not enough space on output parameter
+            // not enough space on output parameter (for the pointer, the pointed-to data is not checked for size!)
             return CL_INVALID_VALUE;
         // copy the single buffers
         for(std::size_t i = 0; i < buffers.size(); ++i)
@@ -68,7 +68,6 @@ CHECK_RETURN cl_int vc4cl::returnBuffers(const std::vector<void*>& buffers, cons
         }
     }
     if(output_size_ret != nullptr)
-        // TODO or *output_size_ret = buffers.size() * type_size; ??
         *output_size_ret = inputSize;
     return CL_SUCCESS;
 }
