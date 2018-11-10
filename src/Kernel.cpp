@@ -165,12 +165,20 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                 return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
                     buildString("Contexts of buffer and program do not match: %p != %p",
                         toType<Buffer>(buffer)->context(), program->context()));
-            if(info.params[arg_index].getOutput() && !toType<Buffer>(buffer)->writeable)
+            /*
+             * "CL_INVALID_ARG_VALUE if the argument is an image declared with the read_only qualifier and arg_value
+             * refers to an image object created with cl_mem_flags of CL_MEM_WRITE or if the image argument is declared
+             * with the write_only qualifier and arg_value refers to an image object created with cl_mem_flags of
+             * CL_MEM_READ."
+             */
+            if(info.params[arg_index].getImage() && info.params[arg_index].isReadOnly() &&
+                !toType<Buffer>(buffer)->readable)
                 return returnError(
-                    CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-writeable buffer as output parameter!");
-            if(info.params[arg_index].getInput() && !toType<Buffer>(buffer)->readable)
+                    CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-readable image as input parameter!");
+            if(info.params[arg_index].getImage() && info.params[arg_index].isWriteOnly() &&
+                !toType<Buffer>(buffer)->writeable)
                 return returnError(
-                    CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-readable buffer as input parameter!");
+                    CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-writeable image as output parameter!");
             pointer_arg = toType<Buffer>(buffer)->deviceBuffer->qpuPointer;
         }
         /*

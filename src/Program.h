@@ -102,10 +102,12 @@ namespace vc4cl
         // the parameter's address space, only valid for pointers
         // OpenCL default address space is "private"
         BITFIELD_ENTRY(AddressSpace, AddressSpace, 52, Quadruple)
-        // whether this parameter is being read, only valid for pointers
+        // whether this parameter is being read, only valid for pointers and images
         BITFIELD_ENTRY(Input, bool, 56, Bit)
-        // whether this parameter is being written, only valid for pointers
+        // whether this parameter is being written, only valid for pointersand images
         BITFIELD_ENTRY(Output, bool, 57, Bit)
+        // whether this parameter is an image
+        BITFIELD_ENTRY(Image, bool, 59, Bit)
         // whether this parameter is a pointer to data
         BITFIELD_ENTRY(Pointer, bool, 60, Bit)
         // whether the parameter type is a floating-point type (e.g. float, half, double)
@@ -119,6 +121,16 @@ namespace vc4cl
         std::string name;
         // the parameter type-name, e.g. "<16 x i32>*"
         std::string type;
+
+        inline bool isReadOnly() const
+        {
+            return getInput() && !getOutput();
+        }
+
+        inline bool isWriteOnly() const
+        {
+            return getOutput() && !getInput();
+        }
     };
 
     /*
