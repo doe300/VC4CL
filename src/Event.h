@@ -72,7 +72,7 @@ namespace vc4cl
         // prohibit copying or moving, since it might screw up with the manual reference counts
         EventAction(const EventAction&) = delete;
         EventAction(EventAction&&) = delete;
-        virtual ~EventAction() __attribute__((const));
+        virtual ~EventAction();
 
         EventAction& operator=(const EventAction&) = delete;
         EventAction& operator=(EventAction&&) = delete;
@@ -103,7 +103,7 @@ namespace vc4cl
     {
         const cl_int status;
         explicit NoAction(cl_int status = CL_SUCCESS) : status(status) {}
-        ~NoAction() override __attribute__((const));
+        ~NoAction() override;
 
         cl_int operator()(Event* event) override
         {

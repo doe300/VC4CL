@@ -23,6 +23,11 @@ if(CURSES_FOUND)
 endif()
 target_compile_definitions(vc4cl_dump_analyzer PRIVATE -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
 
+if(INCLUDE_COMPILER AND EXISTS "${VC4C_HEADER_PATH}")
+	target_compile_definitions(vc4cl_dump_analyzer PRIVATE -DCOMPILER_HEADER="${VC4C_HEADER_PATH}" -DVC4C_TOOLS_HEADER="${VC4C_TOOLS_HEADER_PATH}" -DHAS_COMPILER=1)
+	target_link_libraries(vc4cl_dump_analyzer ${VC4CC_LIBRARY} ${SYSROOT_LIBRARY_FLAGS})
+endif()
+
 if(BUILD_ICD)
   target_compile_definitions(v3d_info PRIVATE -Dcl_khr_icd=1 -Duse_cl_khr_icd=1)
   if(CURSES_FOUND)

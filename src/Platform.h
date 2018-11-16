@@ -16,7 +16,7 @@ namespace vc4cl
     public:
         Platform(const Platform&) = delete;
         Platform(Platform&&) = delete;
-        ~Platform() override __attribute__((const));
+        ~Platform() override;
 
         Platform& operator=(const Platform&) = delete;
         Platform& operator=(Platform&&) = delete;
