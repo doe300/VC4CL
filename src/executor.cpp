@@ -325,7 +325,7 @@ cl_int executeKernel(Event* event)
 
 #ifdef DEBUG_MODE
     {
-        static const std::string dumpFile("/tmp/vc4cl-dump.bin");
+        const std::string dumpFile("/tmp/vc4cl-dump-" + kernel->info.name + "-" + std::to_string(rand()) + ".bin");
         std::cout << "[VC4CL] Dumping kernel buffer to " << dumpFile << std::endl;
         std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
         // add additional pointers for the dump-analyzer

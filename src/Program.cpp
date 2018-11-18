@@ -11,6 +11,7 @@
 #include "extensions.h"
 
 #include <cstdlib>
+#include <fstream>
 #include <iterator>
 #include <sstream>
 
@@ -49,6 +50,7 @@ Program::Program(Context* context, const std::vector<char>& code, CreationType t
 
 Program::~Program() {}
 
+#if HAS_COMPILER
 static cl_int extractLog(std::string& log, std::wstringstream& logStream)
 {
     /*
@@ -72,7 +74,6 @@ static cl_int extractLog(std::string& log, std::wstringstream& logStream)
     return CL_SUCCESS;
 }
 
-#if HAS_COMPILER
 static cl_int precompile_program(Program* program, const std::string& options,
     const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders)
 {
@@ -90,6 +91,13 @@ static cl_int precompile_program(Program* program, const std::string& options,
     program->buildInfo.options = options;
 #ifdef DEBUG_MODE
     std::cout << "[VC4CL] Precompiling source with: " << program->buildInfo.options << std::endl;
+    {
+        const std::string dumpFile("/tmp/vc4cl-source-" + std::to_string(rand()) + ".cl");
+        std::cout << "[VC4CL] Dumping program sources to " << dumpFile << std::endl;
+        std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc);
+        f << sourceCode.str();
+        f.close();
+    }
 #endif
 
     cl_int status = CL_SUCCESS;

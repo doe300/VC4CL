@@ -28,19 +28,19 @@ jobs:
           command: sudo dpkg-deb -x /tmp/vc4cl-stdlib.deb / && sudo dpkg-deb -x /tmp/vc4c.deb /
       - run:
           name: configure
-          command: cmake . -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
+          command: mkdir build && cd build && cmake ../ -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
       - run:
           name: build
-          command: make -j`nproc`
+          command: cd build && make -j`nproc`
       - run:
           name: deb-packing
-          command: cpack -G DEB
+          command: cd build && cpack -G DEB
       - store_artifacts:
-          path: build/libVC4CL.so.0.4
+          path: build/src/libVC4CL.so.0.4
           distination: libVC4CL.so.0.4
       - store_artifacts:
           path: build/test/TestVC4CL
           distination: TestVC4CL
       - store_artifacts:
-          path: vc4cl-0.4-Linux.deb
+          path: build/vc4cl-0.4-Linux.deb
           distination: vc4cl-0.4-Linux.deb

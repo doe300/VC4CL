@@ -40,14 +40,15 @@ if(CROSS_COMPILE)
 	message(STATUS "Cross compiling for Raspbian with compiler: ${CMAKE_CXX_COMPILER}")
 endif()
 
+project (VC4CL VERSION 0.4)
+
 # Set C++ standard to C++14 without any extensions (e.g. GNU)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS_DEBUG "-g3 -rdynamic")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-
-project (VC4CL VERSION 0.4)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(BUILD_DEBUG)
 	SET(CMAKE_BUILD_TYPE Debug)
@@ -59,9 +60,7 @@ endif()
 # Dependencies
 ####
 
-# To allow off-line build, check if off-line and if so, disable updating of dependencies
-execute_process(COMMAND ping -c 1 -W 10 github.com RESULT_VARIABLE PING_ERROR)
-if(PING_ERROR)
+if(BUILD_OFFLINE)
 	# A result of != 0 is an error, so disable updating
 	set_property(DIRECTORY ${VC4C_SOURCE_DIR} PROPERTY EP_UPDATE_DISCONNECTED 1)
 	message(WARNING "Building in off-line mode, some dependencies might not be up-to-date!")
@@ -81,7 +80,7 @@ if(INCLUDE_COMPILER)
 		endif()
 	endif()
 	if(NOT VC4CC_LIBRARY)
-		find_library(VC4CC_LIBRARY NAMES VC4CC libVC4CC HINTS "${PROJECT_SOURCE_DIR}/lib/vc4c/build" "${PROJECT_SOURCE_DIR}/../VC4C/build" "/usr/local/lib/" "/usr/lib")
+		find_library(VC4CC_LIBRARY NAMES VC4CC libVC4CC HINTS "${PROJECT_SOURCE_DIR}/lib/vc4c/build" "${PROJECT_SOURCE_DIR}/lib/vc4c/build/src" "${PROJECT_SOURCE_DIR}/../VC4C/build" "${PROJECT_SOURCE_DIR}/../VC4C/build/src" "/usr/local/lib/" "/usr/lib")
 	endif()
 	if(VC4CC_LIBRARY)
 		message(STATUS "VC4C library found: ${VC4CC_LIBRARY}")
@@ -135,15 +134,15 @@ endif()
 # Main files
 ####
 #build all from ./src into ./build
-add_subdirectory(./src build)
-add_subdirectory(./tools build/tools)
+add_subdirectory(src)
+add_subdirectory(tools)
 
 if (BUILD_TESTING)
 	enable_testing()
 	if(NOT TARGET cpptest-lite)
 		# only build cpptest-lite, if it doesn't exist yet (e.g. built by VC4CC)
 		ExternalProject_Add(cpptest-lite-project
-			PREFIX 				${CMAKE_BINARY_DIR}/build/cpptest-lite
+			PREFIX 				${CMAKE_BINARY_DIR}/cpptest-lite
 			SOURCE_DIR 			${CMAKE_SOURCE_DIR}/lib/cpptest-lite
 			GIT_REPOSITORY		https://github.com/doe300/cpptest-lite.git
 			UPDATE_COMMAND 		git pull -f https://github.com/doe300/cpptest-lite.git
@@ -157,7 +156,7 @@ if (BUILD_TESTING)
 
 		)
 	endif()
-	add_subdirectory(test build/test)
+	add_subdirectory(test)
 endif (BUILD_TESTING)
 
 ##
@@ -174,7 +173,7 @@ add_custom_command(
 if(BUILD_ICD)
 	add_custom_target(generate_icd DEPENDS VC4CL.icd)
 	add_dependencies(VC4CL generate_icd)
-	install(FILES VC4CL.icd DESTINATION "/etc/OpenCL/vendors")
+	install(FILES ${PROJECT_BINARY_DIR}/VC4CL.icd DESTINATION "/etc/OpenCL/vendors")
 endif()
 
 if (BUILD_DEB_PACKAGE)

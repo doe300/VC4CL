@@ -1,12 +1,5 @@
-CMakeFiles/
+# Default Build folder
 build/
-CMakeCache.txt
-Makefile
-cmake_install.cmake
-cmake_uninstall.cmake
-CPackConfig.cmake
-CPackSourceConfig.cmake
-/compile_commands.json
 
 #Eclipse
 .cproject
@@ -18,14 +11,7 @@ CPackSourceConfig.cmake
 dist/
 nbproject/
 
-
 # Other
-.dep.inc
 lib/
 testResult.log
 testing/
-/VC4CL.icd
-
-#CTest
-/CTestTestfile.cmake
-/Testing

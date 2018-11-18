@@ -12,8 +12,10 @@ if(CURSES_FOUND)
   )
 endif()
 
-target_sources(vc4cl_dump_analyzer
-  PRIVATE
-    common.h
-    DumpAnalyzer.cpp
-)
+if(VC4CL_BUILD_DUMP_ANALYZER)
+  target_sources(vc4cl_dump_analyzer
+    PRIVATE
+      common.h
+      DumpAnalyzer.cpp
+  )
+endif()

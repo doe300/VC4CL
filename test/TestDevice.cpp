@@ -71,7 +71,11 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_COMPILER_AVAILABLE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_bool), info_size);
-    TEST_ASSERT_EQUALS(static_cast<cl_bool>(HAS_COMPILER), *reinterpret_cast<cl_bool*>(buffer));
+#ifdef HAS_COMPILER
+    TEST_ASSERT_EQUALS(static_cast<cl_bool>(CL_TRUE), *reinterpret_cast<cl_bool*>(buffer));
+#else
+    TEST_ASSERT_EQUALS(static_cast<cl_bool>(CL_FALSE), *reinterpret_cast<cl_bool*>(buffer));
+#endif
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_DOUBLE_FP_CONFIG, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -133,7 +137,11 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_LINKER_AVAILABLE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_bool), info_size);
-    TEST_ASSERT_EQUALS(static_cast<cl_bool>(HAS_COMPILER), *reinterpret_cast<cl_bool*>(buffer));
+#ifdef HAS_COMPILER
+    TEST_ASSERT_EQUALS(static_cast<cl_bool>(CL_TRUE), *reinterpret_cast<cl_bool*>(buffer));
+#else
+    TEST_ASSERT_EQUALS(static_cast<cl_bool>(CL_FALSE), *reinterpret_cast<cl_bool*>(buffer));
+#endif
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_LOCAL_MEM_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);

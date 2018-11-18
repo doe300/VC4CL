@@ -1,6 +1,6 @@
 add_library( VC4CL SHARED "")
-target_compile_definitions(VC4CL PRIVATE -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
-target_include_directories(VC4CL PRIVATE ${OpenCL_INCLUDE_DIRS})
+target_compile_definitions(VC4CL PUBLIC -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
+target_include_directories(VC4CL PUBLIC ${OpenCL_INCLUDE_DIRS})
 
 # append usage of C++ to compiler flags, also optimize for speed and enable all warnings
 set(VC4CL_ENABLED_WARNINGS -Wall -Wextra -Wold-style-cast -Wno-unused-parameter -Wno-missing-field-initializers -Wno-write-strings)
@@ -20,7 +20,7 @@ endif(BUILD_DEBUG)
 include(sources.list)
 
 if(INCLUDE_COMPILER AND EXISTS "${VC4C_HEADER_PATH}")
-	target_compile_definitions(VC4CL PRIVATE -DCOMPILER_HEADER="${VC4C_HEADER_PATH}" -DVC4C_TOOLS_HEADER="${VC4C_TOOLS_HEADER_PATH}" -DHAS_COMPILER=1)
+	target_compile_definitions(VC4CL PUBLIC -DCOMPILER_HEADER="${VC4C_HEADER_PATH}" -DVC4C_TOOLS_HEADER="${VC4C_TOOLS_HEADER_PATH}" -DHAS_COMPILER=1)
 	target_link_libraries(VC4CL ${VC4CC_LIBRARY} ${SYSROOT_LIBRARY_FLAGS})
 endif()
 
@@ -35,7 +35,7 @@ endif()
 
 if(BUILD_ICD)
 	# To be exact, this enables the methods for the cl_khr_icd extension to be exported as publicly accessible
-	target_compile_definitions(VC4CL PRIVATE -Dcl_khr_icd=1 -Duse_cl_khr_icd=1)
+	target_compile_definitions(VC4CL PUBLIC -Dcl_khr_icd=1 -Duse_cl_khr_icd=1)
 
 	if(NOT CROSS_COMPILE)
 		target_include_directories(VC4CL PRIVATE ${OCL_ICD_INCLUDEDIR})
@@ -43,11 +43,11 @@ if(BUILD_ICD)
 endif()
 
 if(IMAGE_SUPPORT)
-	target_compile_definitions(VC4CL PRIVATE -DIMAGE_SUPPORT=1)
+	target_compile_definitions(VC4CL PUBLIC -DIMAGE_SUPPORT=1)
 endif()
 
 if(REGISTER_POKE_KERNELS)
-	target_compile_definitions(VC4CL PRIVATE -DREGISTER_POKE_KERNELS=1)
+	target_compile_definitions(VC4CL PUBLIC -DREGISTER_POKE_KERNELS=1)
 endif()
 
 # "For shared libraries VERSION and SOVERSION can be used to specify the build version and API version respectively."
