@@ -221,7 +221,7 @@ namespace vc4cl
         static constexpr unsigned messageSize = contentSize + 6;
         static constexpr MailboxTag tag = Tag;
 
-        std::array<unsigned, messageSize> buffer;
+        std::array<unsigned, messageSize> buffer = {0};
 
         explicit MailboxMessage(std::array<unsigned, requestSize> request)
         {

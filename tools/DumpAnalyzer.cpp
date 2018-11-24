@@ -138,6 +138,47 @@ static void printUniforms(std::istream& in, std::ostream& out, unsigned globalDa
 	out << std::endl;
 }
 
+static void skipQPUPointers(std::istream& in)
+{
+	uint32_t word;
+	while(in.read(reinterpret_cast<char*>(&word), sizeof(word))) {
+		if(word == 0)
+			return;
+	}
+}
+
+static void printParameters(std::istream& in, std::ostream& out)
+{
+	out << "//Parameter data segment:" << std::endl;
+	unsigned numParam = 0;
+	uint32_t word;
+	while(in.read(reinterpret_cast<char*>(&word), sizeof(word))) {
+		if(word == 0) {
+			// writing the whole memory buffer inserts padding bytes (a lot, zero-filled).
+			// This simply skips them
+			continue;
+		}
+		bool isPointer = word >> 31;
+		auto numWords = word & 0x7FFFFFFF;
+		out << "//Parameter " << numParam << " with " << numWords << " words of " << (isPointer ? "memory" : "data") << ": " << std::endl;
+		for(unsigned i = 0; i < numWords; ++i) {
+			if(!in.read(reinterpret_cast<char*>(&word), sizeof(word))) {
+				out << "//EOF while reading parameter, " << (numWords - i) << " words left to read!" << std::endl;
+				break;
+			}
+			out << "0x" << std::hex << word << std::dec;
+			// group 8 words per line
+			if(i % 8 == 7)
+				out << std::endl;
+			else
+				out << " ";
+		}
+		if(numWords % 8 != 0) /*i has already been incremented from test above */
+			out << std::endl;
+		++numParam;
+	}
+}
+
 int main(int argc, char** argv)
 {
 	if(argc != 2 || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0 )
@@ -168,6 +209,13 @@ int main(int argc, char** argv)
 	 * |  QPU0 Uniform --------------+ |
 	 * |  QPU0 Start   ----------------+
 	 * +------------------------+
+	 * |  0 word separator      |
+	 * +------------------------+
+	 * |  pointer-bit | # words |
+	 * |  parameter data words  |
+	 * +------------------------+
+	 * |  [next parameter]      |
+	 * +------------------------+
 	 */
 
 	unsigned qpuBasePointer;
@@ -194,6 +242,8 @@ int main(int argc, char** argv)
 	printGlobalData(f, std::cout, globalDataSize);
 	printInstructions(f, std::cout, numInstructions);
 	printUniforms(f, std::cout, qpuBasePointer, qpuCodePointer, qpuUniformPointer, numUniformsPerIteration, numIterations, uniformsSet);
+	skipQPUPointers(f);
+	printParameters(f, std::cout);
 
 #else
 	std::cerr << "For the dump analyzer to work, VC4CL needs to be compiled with VC4C support!" << std::endl;

@@ -12,6 +12,7 @@
 
 #include <CL/opencl.h>
 
+#include <atomic>
 #include <cstring>
 #include <string>
 
@@ -32,7 +33,7 @@ namespace vc4cl
         const char* const typeName;
 
     protected:
-        cl_uint referenceCount;
+        std::atomic<uint32_t> referenceCount;
 
         friend class ObjectTracker;
     };
@@ -53,7 +54,7 @@ namespace vc4cl
         {
             if(!checkReferences())
                 return returnError(invalidObjectCode, __FILE__, __LINE__, "Object reference check failed!");
-            referenceCount += 1;
+            ++referenceCount;
             return CL_SUCCESS;
         }
 
@@ -61,7 +62,7 @@ namespace vc4cl
         {
             if(!checkReferences())
                 return returnError(invalidObjectCode, __FILE__, __LINE__, "Object reference check failed!");
-            referenceCount -= 1;
+            --referenceCount;
             if(referenceCount == 0)
                 ObjectTracker::removeObject(this);
             return CL_SUCCESS;

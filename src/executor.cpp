@@ -8,6 +8,7 @@
 #include "Kernel.h"
 #include "Mailbox.h"
 #include "V3D.h"
+#include "Buffer.h"
 
 #include <CL/opencl.h>
 
@@ -284,7 +285,8 @@ cl_int executeKernel(Event* event)
                 kernel->info.uniformsUsed);
             for(unsigned u = 0; u < kernel->info.params.size(); ++u)
             {
-                KernelArgument& arg = kernel->args.at(u);
+                // we need to copy here, since we set to local buffers, which might not exist in next execution
+                KernelArgument arg = kernel->args.at(u);
                 if(localBuffers.find(u) != localBuffers.end())
                 {
                     // there exists a temporary buffer for the __local parameter, so set its address as kernel argument
@@ -345,8 +347,73 @@ cl_int executeKernel(Event* event)
         tmp = static_cast<unsigned>(kernel->info.uniformsUsed.value);
         f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
         // write buffer contents
-        f.write(reinterpret_cast<char*>(buffer->hostPointer), buffer_size);
-        f.close();
+        f.write(reinterpret_cast<char*>(buffer->hostPointer), static_cast<uint32_t>(buffer_size));
+        // append additionally the kernel parameter for this execution
+        // append 0-word as border between sections
+        tmp = 0;
+        f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+        // parameter have this format: pointer-bit| # words | <data (direct or buffer contents)>
+        for(std::size_t i = 0; i < kernel->args.size(); ++i)
+        {
+            const auto& info = kernel->info.params[i];
+            const auto& arg = kernel->args[i];
+            if(info.getPointer() && arg.scalarValues.at(0).getUnsigned() == global_data)
+            {
+                tmp = 0x80000000 | static_cast<uint32_t>(data_length / sizeof(unsigned));
+                f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                f.write(reinterpret_cast<const char*>(buffer->hostPointer), data_length);
+            }
+            else if(info.getPointer())
+            {
+                printf("Argument: 0x%x\n", arg.scalarValues.front().getUnsigned());
+                // search for local buffers allocated by the kernel execution
+                const DeviceBuffer* buffer = nullptr;
+                if(localBuffers.find(i) != localBuffers.end())
+                    buffer = localBuffers[i].get();
+                else
+                {
+                    // fall back to global memory objects
+                    auto tmpBuffer = static_cast<const Buffer*>(
+                        ObjectTracker::findTrackedObject([&](const BaseObject& base) -> bool {
+                            if(base.typeName == _cl_mem::TYPE_NAME || strcmp(base.typeName, _cl_mem::TYPE_NAME) == 0)
+                            {
+                                const auto& buffer = static_cast<const vc4cl::Buffer&>(base);
+                                const auto& devBuffer = buffer.deviceBuffer;
+                                return devBuffer &&
+                                    static_cast<uint32_t>(devBuffer->qpuPointer) ==
+                                    arg.scalarValues.at(0).getUnsigned();
+                            }
+                            return false;
+                        }));
+                    if(tmpBuffer)
+                        buffer = tmpBuffer->deviceBuffer.get();
+                }
+                if(buffer == nullptr)
+                {
+                    tmp = 1;
+                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                    tmp = arg.scalarValues.front().getUnsigned();
+                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                }
+                else
+                {
+                    tmp = 0x80000000 | static_cast<uint32_t>(buffer->size / sizeof(unsigned));
+                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                    f.write(reinterpret_cast<const char*>(buffer->hostPointer), buffer->size);
+                }
+            }
+            else
+            {
+                tmp = static_cast<uint32_t>(arg.scalarValues.size());
+                f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                for(const auto elem : arg.scalarValues)
+                {
+                    tmp = elem.getUnsigned();
+                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                }
+            }
+        }
+        // TODO also dump memory afterwards
     }
 #endif
 

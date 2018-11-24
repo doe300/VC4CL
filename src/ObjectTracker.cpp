@@ -63,12 +63,24 @@ void ObjectTracker::removeObject(BaseObject* obj)
 
 void ObjectTracker::iterateObjects(ReportFunction func, void* userData)
 {
-    std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
+    std::lock_guard<std::recursive_mutex> guard(trackerMutex);
 
     for(const auto& obj : liveObjects)
     {
         func(userData, obj->getBasePointer(), obj->typeName, obj->referenceCount);
     }
+}
+
+const BaseObject* ObjectTracker::findTrackedObject(const std::function<bool(const BaseObject&)>& predicate)
+{
+    std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
+
+    for(const auto& obj : liveObjectsTracker.liveObjects)
+    {
+        if(predicate(*obj))
+            return obj.get();
+    }
+    return nullptr;
 }
 
 void VC4CL_FUNC(clTrackLiveObjectsAltera)(cl_platform_id platform)

@@ -141,6 +141,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
     }
     else
     {
+        // TODO are sub-buffers allowed? Are they handled correctly?
         // argument is pointer to object, e.g. buffer, image (which too is a buffer), sampler
         //"If the argument is a memory object (buffer, image or image array), the arg_value entry will be a pointer to
         // the appropriate buffer [...]" "If the argument is a buffer object, the arg_value pointer can be NULL or point
@@ -203,7 +204,8 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
         }
         args[arg_index].addScalar(pointer_arg);
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Setting kernel-argument " << arg_index << " to " << pointer_arg << std::endl;
+        std::cout << "[VC4CL] Setting kernel-argument " << arg_index << " to 0x" << std::hex << pointer_arg << std::dec
+                  << std::endl;
 #endif
     }
 

@@ -9,6 +9,7 @@
 
 #include "types.h"
 
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -31,13 +32,17 @@ namespace vc4cl
 
         void iterateObjects(ReportFunction func, void* userData);
 
+        /**
+         * Tries to find the VC4CL object matching the given criteria
+         */
+        static const BaseObject* findTrackedObject(const std::function<bool(const BaseObject&)>& predicate);
+
     private:
         std::set<std::unique_ptr<BaseObject>> liveObjects;
         // recursive-mutex required, since a #removeObject() can cause #removeObject() to be called multiple times (e.g.
         // for last CommandQueue also releasing the Context)
         std::recursive_mutex trackerMutex;
     };
-
 } /* namespace vc4cl */
 
 #endif /* VC4CL_OBJECT_TRACKER_H */

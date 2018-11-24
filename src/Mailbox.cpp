@@ -117,7 +117,7 @@ DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentIn
         void* hostPointer = mapmem(V3D::busAddressToPhysicalAddress(static_cast<unsigned>(qpuPointer)), sizeInBytes);
 #ifdef DEBUG_MODE
         std::cout << "[VC4CL] Allocated " << sizeInBytes << " bytes of buffer: handle " << handle << ", device address "
-                  << qpuPointer << ", host address " << hostPointer << std::endl;
+                  << std::hex << "0x" << qpuPointer << ", host address " << hostPointer << std::dec << std::endl;
 #endif
         return new DeviceBuffer(handle, qpuPointer, hostPointer, sizeInBytes);
     }
@@ -136,7 +136,8 @@ bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer) const
             return false;
 #ifdef DEBUG_MODE
         std::cout << "[VC4CL] Deallocated " << buffer->size << " bytes of buffer: handle " << buffer->memHandle
-                  << ", device address " << buffer->qpuPointer << ", host address " << buffer->hostPointer << std::endl;
+                  << ", device address " << std::hex << "0x" << buffer->qpuPointer << ", host address "
+                  << buffer->hostPointer << std::dec << std::endl;
 #endif
     }
     return true;
@@ -191,8 +192,10 @@ int Mailbox::mailboxCall(void* buffer) const
     unsigned* p = reinterpret_cast<unsigned*>(buffer);
     unsigned size = *p;
     std::cout << "[VC4CL] Mailbox buffer before:" << std::endl;
+    printf("[VC4CL]");
     for(unsigned i = 0; i < size / 4; ++i)
-        printf("[VC4CL] %04zx: 0x%08x\n", i * sizeof *p, p[i]);
+        printf(" 0x%08x", p[i]);
+    printf("\n");
 #endif
 
     int ret_val = ioctl(fd, IOCTL_MBOX_PROPERTY, buffer);
@@ -205,8 +208,10 @@ int Mailbox::mailboxCall(void* buffer) const
 
 #ifdef DEBUG_MODE
     std::cout << "[VC4CL] Mailbox buffer after:" << std::endl;
+    printf("[VC4CL]");
     for(unsigned i = 0; i < size / 4; ++i)
-        printf("[VC4CL] %04zx: 0x%08x\n", i * sizeof *p, p[i]);
+        printf(" 0x%08x", p[i]);
+    printf("\n");
     std::cout << std::endl;
 #endif
     return ret_val;

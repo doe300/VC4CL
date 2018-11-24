@@ -126,6 +126,7 @@ Buffer* Buffer::createSubBuffer(
             subBuffer->deviceBuffer = deviceBuffer;
         }
     }
+    // TODO if region is nullptr, sub-buffer has no device buffer. On purpose? Can this happen?
     subBuffer->setHostSize();
 
     return subBuffer;
@@ -603,7 +604,12 @@ cl_int Buffer::copyIntoHostBuffer(size_t offset, size_t size)
     /*
      * Copies the data from the device-buffer into the host-buffer, if the buffer was created with CL_MEM_USE_HOST_PTR
      *
-     * TODO when does this need to be called? After every kernel writing this buffer, after write-buffer, ...?
+     * XXX when does this need to be called? After every kernel writing this buffer, after write-buffer, ...?
+     * Intel Beignet as well as Intel compute-runtime (the successor of Beignet) copy the memory the same places VC4CL
+     * does:
+     * * Once the buffer is created with the CL_MEM_USE_HOST_PTR flag (host -> GPU)
+     * * If memory created with the CL_MEM_USE_HOST_PTR flag is mapped (GPU -> host)
+     * * if memory created with the CL_MEM_USE_HOST_PTR flag is unmapped (host -> GPU)
      */
     if(!useHostPtr)
         return CL_SUCCESS;
@@ -652,6 +658,10 @@ BufferMapping::BufferMapping(Buffer* buffer, void* hostPtr, bool unmap) : buffer
 
 cl_int BufferMapping::operator()(Event* event)
 {
+    /*
+     * Despite the clEnqueueMapBuffer and clEnqueueUnmapMemObject functions being called with sub-areas of the buffer
+     * (offset + size), we always copy the whole buffer from/to host memory.
+     */
     cl_int status = CL_SUCCESS;
     if(unmap)
     {
