@@ -656,7 +656,7 @@ BufferMapping::BufferMapping(Buffer* buffer, void* hostPtr, bool unmap) : buffer
 {
 }
 
-cl_int BufferMapping::operator()(Event* event)
+cl_int BufferMapping::operator()()
 {
     /*
      * Despite the clEnqueueMapBuffer and clEnqueueUnmapMemObject functions being called with sub-areas of the buffer
@@ -686,7 +686,7 @@ BufferAccess::BufferAccess(Buffer* buffer, void* hostPtr, std::size_t numBytes, 
 {
 }
 
-cl_int BufferAccess::operator()(Event* event)
+cl_int BufferAccess::operator()()
 {
     if(hostPtr == buffer->deviceBuffer->hostPointer && bufferOffset == hostOffset)
         return CL_SUCCESS;
@@ -707,7 +707,7 @@ BufferRectAccess::BufferRectAccess(Buffer* buffer, void* hostPtr, const std::siz
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
 
-cl_int BufferRectAccess::operator()(Event* event)
+cl_int BufferRectAccess::operator()()
 {
     // copied from POCL (https://github.com/pocl/pocl/blob/master/lib/CL/devices/basic/basic.c), functions
     // pocl_basic_write_rect and pocl_basic_read_rect
@@ -745,7 +745,7 @@ BufferFill::BufferFill(Buffer* buffer, const void* pattern, std::size_t patternS
     memcpy(this->pattern.data(), pattern, patternSize);
 }
 
-cl_int BufferFill::operator()(Event* event)
+cl_int BufferFill::operator()()
 {
     uintptr_t start = reinterpret_cast<uintptr_t>(buffer->deviceBuffer->hostPointer) + bufferOffset;
     uintptr_t end = start + numBytes;
@@ -762,7 +762,7 @@ BufferCopy::BufferCopy(Buffer* src, Buffer* dest, std::size_t numBytes) :
 {
 }
 
-cl_int BufferCopy::operator()(Event* event)
+cl_int BufferCopy::operator()()
 {
     uintptr_t src = reinterpret_cast<uintptr_t>(sourceBuffer->deviceBuffer->hostPointer) + sourceOffset;
     uintptr_t dest = reinterpret_cast<uintptr_t>(destBuffer->deviceBuffer->hostPointer) + destOffset;
@@ -777,7 +777,7 @@ BufferRectCopy::BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t regi
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
 
-cl_int BufferRectCopy::operator()(Event* event)
+cl_int BufferRectCopy::operator()()
 {
     // copied from POCL (https://github.com/pocl/pocl/blob/master/lib/CL/devices/basic/basic.c), function
     // pocl_basic_copy_rect

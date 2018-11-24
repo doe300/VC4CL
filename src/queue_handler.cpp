@@ -89,7 +89,7 @@ static void runEventQueue()
             event->updateStatus(CL_RUNNING);
             if(event->action)
             {
-                cl_int status = event->action->operator()(event);
+                cl_int status = event->action->operator()();
                 if(status != CL_SUCCESS)
                     event->updateStatus(status);
                 else

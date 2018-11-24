@@ -13,7 +13,7 @@
 
 using namespace vc4cl;
 
-extern cl_int executeKernel(Event* event);
+extern cl_int executeKernel(KernelExecution&);
 
 static_assert(sizeof(KernelArgument::ScalarValue) == sizeof(uint32_t), "ScalarValue has wrong size!");
 
@@ -539,9 +539,9 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 
 KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), numDimensions(0) {}
 
-cl_int KernelExecution::operator()(Event* event)
+cl_int KernelExecution::operator()()
 {
-    return executeKernel(event);
+    return executeKernel(*this);
 }
 
 /*!

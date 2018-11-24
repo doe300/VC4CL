@@ -177,7 +177,7 @@ namespace vc4cl
         ImageAccess(
             Image* image, void* hostPtr, bool writeImage, const std::size_t origin[3], const std::size_t region[3]);
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
     struct ImageCopy : public EventAction
@@ -191,7 +191,7 @@ namespace vc4cl
         ImageCopy(Image* src, Image* dst, const std::size_t srcOrigin[3], const std::size_t dstOrigin[3],
             const std::size_t region[3]);
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
     struct ImageFill : public EventAction
@@ -203,7 +203,7 @@ namespace vc4cl
 
         ImageFill(Image* img, const void* color, const std::size_t origin[3], const std::size_t region[3]);
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
     struct ImageCopyBuffer : public EventAction
@@ -218,7 +218,7 @@ namespace vc4cl
         ImageCopyBuffer(Image* image, Buffer* buffer, bool copyIntoImage, const std::size_t imgOrigin[3],
             const std::size_t region[3], size_t bufferOffset);
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
     struct ImageMapping : public BufferMapping

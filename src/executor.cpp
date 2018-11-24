@@ -143,10 +143,8 @@ static bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> controlA
 #endif
 }
 
-cl_int executeKernel(Event* event)
+cl_int executeKernel(KernelExecution& args)
 {
-    CHECK_EVENT(event)
-    KernelExecution& args = dynamic_cast<KernelExecution&>(*event->action.get());
     Kernel* kernel = args.kernel.get();
     CHECK_KERNEL(kernel)
 

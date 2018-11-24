@@ -78,7 +78,7 @@ namespace vc4cl
         explicit KernelExecution(Kernel* kernel);
         ~KernelExecution() override = default;
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
 } /* namespace vc4cl */

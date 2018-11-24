@@ -112,7 +112,7 @@ namespace vc4cl
 
         BufferMapping(Buffer* buffer, void* hostPtr, bool unmap);
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
     struct BufferAccess : public EventAction
@@ -126,7 +126,7 @@ namespace vc4cl
 
         BufferAccess(Buffer* buffer, void* hostPtr, std::size_t numBytes, bool writeBuffer);
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
     struct BufferRectAccess : public BufferAccess
@@ -141,7 +141,7 @@ namespace vc4cl
 
         BufferRectAccess(Buffer* buffer, void* hostPtr, const std::size_t region[3], bool writeBuffer);
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
     struct BufferFill : public EventAction
@@ -153,7 +153,7 @@ namespace vc4cl
 
         BufferFill(Buffer* buffer, const void* pattern, std::size_t patternSize, std::size_t numBytes);
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
     struct BufferCopy : public EventAction
@@ -166,7 +166,7 @@ namespace vc4cl
 
         BufferCopy(Buffer* src, Buffer* dest, std::size_t numBytes);
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
     struct BufferRectCopy : public EventAction
@@ -183,7 +183,7 @@ namespace vc4cl
 
         BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t region[3]);
 
-        cl_int operator()(Event* event) override;
+        cl_int operator()() override;
     };
 
 } /* namespace vc4cl */

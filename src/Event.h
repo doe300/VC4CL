@@ -77,7 +77,7 @@ namespace vc4cl
         EventAction& operator=(const EventAction&) = delete;
         EventAction& operator=(EventAction&&) = delete;
 
-        CHECK_RETURN virtual cl_int operator()(Event* event) = 0;
+        CHECK_RETURN virtual cl_int operator()() = 0;
     };
 
     /*
@@ -85,14 +85,14 @@ namespace vc4cl
      */
     struct CustomAction : public EventAction
     {
-        const std::function<cl_int(Event*)> func;
+        const std::function<cl_int()> func;
 
-        explicit CustomAction(const std::function<cl_int(Event*)>& callback) : func(callback) {}
+        explicit CustomAction(const std::function<cl_int()>& callback) : func(callback) {}
         ~CustomAction() override;
 
-        cl_int operator()(Event* event) override
+        cl_int operator()() override
         {
-            return func(event);
+            return func();
         }
     };
 
@@ -105,7 +105,7 @@ namespace vc4cl
         explicit NoAction(cl_int status = CL_SUCCESS) : status(status) {}
         ~NoAction() override;
 
-        cl_int operator()(Event* event) override
+        cl_int operator()() override
         {
             return status;
         }

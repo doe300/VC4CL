@@ -565,7 +565,7 @@ ImageAccess::ImageAccess(
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
 
-cl_int ImageAccess::operator()(Event* event)
+cl_int ImageAccess::operator()()
 {
     if(writeToImage)
         image->accessor->writePixelData(origin, region, hostPointer, hostRowPitch, hostSlicePitch);
@@ -584,7 +584,7 @@ ImageCopy::ImageCopy(Image* src, Image* dst, const std::size_t srcOrigin[3], con
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
 
-cl_int ImageCopy::operator()(Event* event)
+cl_int ImageCopy::operator()()
 {
     if(TextureAccessor::copyPixelData(
            *source->accessor.get(), *destination->accessor.get(), sourceOrigin, destOrigin, region))
@@ -605,7 +605,7 @@ ImageFill::ImageFill(Image* img, const void* color, const std::size_t origin[3],
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
 
-cl_int ImageFill::operator()(Event* event)
+cl_int ImageFill::operator()()
 {
     image->accessor->fillPixelData(origin, region, fillColor.data());
     return CL_SUCCESS;
@@ -620,7 +620,7 @@ ImageCopyBuffer::ImageCopyBuffer(Image* image, Buffer* buffer, bool copyIntoImag
     memcpy(this->imageRegion.data(), region, 3 * sizeof(size_t));
 }
 
-cl_int ImageCopyBuffer::operator()(Event* event)
+cl_int ImageCopyBuffer::operator()()
 {
     uintptr_t hostPtr = reinterpret_cast<uintptr_t>(buffer->deviceBuffer->hostPointer) + bufferOffset;
     // OpenCL 1.2 specifies the region copied to be width [* height] [* depth], therefore the pitches match the sizes
