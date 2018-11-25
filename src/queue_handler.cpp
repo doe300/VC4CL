@@ -42,14 +42,20 @@ void vc4cl::pushEventToQueue(Event* event)
     eventAvailable.notify_all();
 }
 
-Event* popEventFromQueue()
+Event* peekQueue()
 {
     std::lock_guard<std::mutex> guard(bufferMutex);
     if(eventBuffer.empty())
         return nullptr;
-    Event* event = eventBuffer.front();
+    return eventBuffer.front();
+}
+
+void popFromEventQueue()
+{
+    std::lock_guard<std::mutex> guard(bufferMutex);
+    if(eventBuffer.empty())
+        return;
     eventBuffer.pop_front();
-    return event;
 }
 
 Event* vc4cl::peekQueue(CommandQueue* queue)
@@ -82,7 +88,7 @@ static void runEventQueue()
     prctl(PR_SET_NAME, "VC4CL Queue Handler", 0, 0, 0);
     while(numCommandQueues != 0)
     {
-        Event* event = popEventFromQueue();
+        Event* event = peekQueue();
         if(event != nullptr)
         {
             event->updateStatus(CL_SUBMITTED);
@@ -105,6 +111,9 @@ static void runEventQueue()
             if(status != CL_SUCCESS)
                 event->updateStatus(status, false);
             eventProcessed.notify_all();
+            // we need to leave the event in the queue until it is finished processing to allow CommandQueue#finish() to
+            // track it
+            popFromEventQueue();
         }
         else
         {
