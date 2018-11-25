@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdio>
 #include <fcntl.h>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -64,6 +65,7 @@ DeviceBuffer::~DeviceBuffer()
 
 void DeviceBuffer::dumpContent() const
 {
+    // TODO rewrite
     for(unsigned i = 0; i < size / sizeof(unsigned); ++i)
     {
         if((i % 8) == 0)
@@ -116,8 +118,8 @@ DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentIn
         DevicePointer qpuPointer = memLock(handle);
         void* hostPointer = mapmem(V3D::busAddressToPhysicalAddress(static_cast<unsigned>(qpuPointer)), sizeInBytes);
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Allocated " << sizeInBytes << " bytes of buffer: handle " << handle << ", device address "
-                  << std::hex << "0x" << qpuPointer << ", host address " << hostPointer << std::dec << std::endl;
+        LOG(std::cout << "Allocated " << sizeInBytes << " bytes of buffer: handle " << handle << ", device address "
+                      << std::hex << "0x" << qpuPointer << ", host address " << hostPointer << std::dec << std::endl)
 #endif
         return new DeviceBuffer(handle, qpuPointer, hostPointer, sizeInBytes);
     }
@@ -135,9 +137,9 @@ bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer) const
         if(!memFree(buffer->memHandle))
             return false;
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Deallocated " << buffer->size << " bytes of buffer: handle " << buffer->memHandle
-                  << ", device address " << std::hex << "0x" << buffer->qpuPointer << ", host address "
-                  << buffer->hostPointer << std::dec << std::endl;
+        LOG(std::cout << "Deallocated " << buffer->size << " bytes of buffer: handle " << buffer->memHandle
+                      << ", device address " << std::hex << "0x" << buffer->qpuPointer << ", host address "
+                      << buffer->hostPointer << std::dec << std::endl)
 #endif
     }
     return true;
@@ -159,7 +161,7 @@ bool Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> contro
     if(timeout.count() > 0xFFFFFFFF)
     {
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Timeout is too big, needs fit into a 32-bit integer: " << timeout.count() << std::endl;
+        LOG(std::cout << "Timeout is too big, needs fit into a 32-bit integer: " << timeout.count() << std::endl)
         return false;
 #endif
     }
@@ -191,28 +193,23 @@ int Mailbox::mailboxCall(void* buffer) const
 #ifdef DEBUG_MODE
     unsigned* p = reinterpret_cast<unsigned*>(buffer);
     unsigned size = *p;
-    std::cout << "[VC4CL] Mailbox buffer before:" << std::endl;
-    printf("[VC4CL]");
-    for(unsigned i = 0; i < size / 4; ++i)
-        printf(" 0x%08x", p[i]);
-    printf("\n");
+    LOG(std::cout << "Mailbox buffer before:"; for(unsigned i = 0; i < size / 4; ++i) std::cout
+        << ' ' << std::hex << std::setfill('0') << std::setw(8) << p[i] << std::dec;
+        std::cout << std::endl)
 #endif
 
     int ret_val = ioctl(fd, IOCTL_MBOX_PROPERTY, buffer);
     if(ret_val < 0)
     {
-        std::cout << "[VC4CL] ioctl_set_msg failed: " << ret_val << std::endl;
+        LOG(std::cout << "ioctl_set_msg failed: " << ret_val << std::endl)
         perror("[VC4CL] Error in mbox_property");
         throw std::system_error(errno, std::system_category(), "Failed to set mailbox property");
     }
 
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Mailbox buffer after:" << std::endl;
-    printf("[VC4CL]");
-    for(unsigned i = 0; i < size / 4; ++i)
-        printf(" 0x%08x", p[i]);
-    printf("\n");
-    std::cout << std::endl;
+    LOG(std::cout << "Mailbox buffer after:"; for(unsigned i = 0; i < size / 4; ++i) std::cout
+        << ' ' << std::hex << std::setfill('0') << std::setw(8) << p[i] << std::dec;
+        std::cout << std::endl)
 #endif
     return ret_val;
 }
@@ -270,14 +267,14 @@ CHECK_RETURN bool Mailbox::checkReturnValue(unsigned value) const
     // 0x80000000 on success
     // 0x80000001 on failure
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Mailbox request: " << (((value & 0x1) == 0x1) ? "failed" : "succeeded") << std::endl;
+        LOG(std::cout << "Mailbox request: " << (((value & 0x1) == 0x1) ? "failed" : "succeeded") << std::endl)
 #endif
         return value == 0x80000000;
     }
     else
     {
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Unknown return code: " << value << std::endl;
+        LOG(std::cout << "Unknown return code: " << value << std::endl)
 #endif
         return false;
     }

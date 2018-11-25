@@ -12,6 +12,7 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -24,6 +25,14 @@
 
 namespace vc4cl
 {
+    std::unique_lock<std::mutex> lockLog();
+
+#define LOG(param)                                                                                                     \
+    {                                                                                                                  \
+        auto lock = lockLog();                                                                                         \
+        param;                                                                                                         \
+    }
+
     CHECK_RETURN std::string joinStrings(const std::vector<std::string>& strings, const std::string& delim = " ");
 
     CHECK_RETURN cl_int returnValue(const void* value, size_t value_size, size_t value_count, size_t output_size,
@@ -46,8 +55,8 @@ namespace vc4cl
         cl_int error, cl_int* errcode_ret, const std::string& file, unsigned line, const std::string& reason)
     {
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Error in '" << file << ":" << line << "', returning status " << error << ":" << reason
-                  << std::endl;
+        LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ":" << reason
+                      << std::endl)
 #endif
         if(errcode_ret != nullptr)
             *errcode_ret = error;
@@ -58,8 +67,8 @@ namespace vc4cl
         cl_int error, const std::string& file, unsigned line, const std::string& reason)
     {
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Error in '" << file << ":" << line << "', returning status " << error << ":" << reason
-                  << std::endl;
+        LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ":" << reason
+                      << std::endl)
 #endif
         return error;
     }
@@ -71,7 +80,7 @@ namespace vc4cl
     // the reason is for documentation only
 #ifdef DEBUG_MODE
         if(state != CL_SUCCESS)
-            std::cout << "[VC4CL] Error in '" << file << ":" << line << "', returning status " << state << std::endl;
+            LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << state << std::endl);
 #endif
     }
 
@@ -248,8 +257,8 @@ namespace vc4cl
 #endif
         if(printAPICalls)
         {
-            std::cout << "[VC4CL] API call: " << retType << " " << funcName << "(";
-            printAPICallInternal(std::cout, args...) << ")" << std::endl;
+            LOG(std::cout << "API call: " << retType << " " << funcName << "(";
+                printAPICallInternal(std::cout, args...) << ")" << std::endl)
         }
     }
 

@@ -116,7 +116,7 @@ static void runEventQueue()
         }
     }
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Queue handler thread stopped" << std::endl;
+    LOG(std::cout << "Queue handler thread stopped" << std::endl)
 #endif
 }
 
@@ -127,7 +127,7 @@ void vc4cl::initEventQueue()
     if(!eventHandler.joinable())
     {
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Starting queue handler thread..." << std::endl;
+        LOG(std::cout << "Starting queue handler thread..." << std::endl)
 #endif
         eventHandler = std::thread(runEventQueue);
     }
@@ -140,7 +140,7 @@ void vc4cl::deinitEventQueue()
     if(numCommandQueues == 0 && eventHandler.joinable())
     {
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Stopping queue handler thread..." << std::endl;
+        LOG(std::cout << "Stopping queue handler thread..." << std::endl)
 #endif
         // wake up event handler, so we can stop it
         eventAvailable.notify_all();

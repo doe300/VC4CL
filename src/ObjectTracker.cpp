@@ -41,7 +41,7 @@ void ObjectTracker::addObject(BaseObject* obj)
     std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
     liveObjectsTracker.liveObjects.emplace(obj);
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Tracking live-time of object: " << obj->typeName << std::endl;
+    LOG(std::cout << "Tracking live-time of object: " << obj->typeName << std::endl)
 #endif
 }
 
@@ -49,7 +49,7 @@ void ObjectTracker::removeObject(BaseObject* obj)
 {
     std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Releasing live-time of object: " << obj->typeName << std::endl;
+    LOG(std::cout << "Releasing live-time of object: " << obj->typeName << std::endl)
 #endif
     auto it = std::find_if(liveObjectsTracker.liveObjects.begin(), liveObjectsTracker.liveObjects.end(),
         [obj](const std::unique_ptr<BaseObject>& ptr) -> bool { return ptr.get() == obj; });
@@ -57,7 +57,7 @@ void ObjectTracker::removeObject(BaseObject* obj)
         liveObjectsTracker.liveObjects.erase(it);
 #ifdef DEBUG_MODE
     else
-        std::cout << "[VC4CL] Removing object not previously tracked: " << obj->typeName << std::endl;
+        LOG(std::cout << "Removing object not previously tracked: " << obj->typeName << std::endl)
 #endif
 }
 

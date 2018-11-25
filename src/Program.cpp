@@ -90,10 +90,10 @@ static cl_int precompile_program(Program* program, const std::string& options,
 
     program->buildInfo.options = options;
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Precompiling source with: " << program->buildInfo.options << std::endl;
+    LOG(std::cout << "Precompiling source with: " << program->buildInfo.options << std::endl)
     {
         const std::string dumpFile("/tmp/vc4cl-source-" + std::to_string(rand()) + ".cl");
-        std::cout << "[VC4CL] Dumping program sources to " << dumpFile << std::endl;
+        LOG(std::cout << "Dumping program sources to " << dumpFile << std::endl)
         std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc);
         f << sourceCode.str();
         f.close();
@@ -133,7 +133,7 @@ static cl_int precompile_program(Program* program, const std::string& options,
     catch(vc4c::CompilationError& e)
     {
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Compilation error: " << e.what() << std::endl;
+        LOG(std::cout << "Compilation error: " << e.what() << std::endl)
 #endif
         status = CL_COMPILE_PROGRAM_FAILURE;
     }
@@ -141,9 +141,9 @@ static cl_int precompile_program(Program* program, const std::string& options,
     extractLog(program->buildInfo.log, logStream);
 
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Precompilation complete with status: " << status << std::endl;
+    LOG(std::cout << "Precompilation complete with status: " << status << std::endl)
     if(!program->buildInfo.log.empty())
-        std::cout << "[VC4CL] Compilation log: " << program->buildInfo.log << std::endl;
+        LOG(std::cout << "Compilation log: " << program->buildInfo.log << std::endl)
 #endif
 
     return status;
@@ -191,7 +191,7 @@ static cl_int link_programs(Program* program, const std::vector<Program*>& other
     catch(vc4c::CompilationError& e)
     {
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Compilation error: " << e.what() << std::endl;
+        LOG(std::cout << "Compilation error: " << e.what() << std::endl)
 #endif
         status = CL_LINK_PROGRAM_FAILURE;
     }
@@ -199,9 +199,9 @@ static cl_int link_programs(Program* program, const std::vector<Program*>& other
     extractLog(program->buildInfo.log, logStream);
 
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Linking complete with status: " << status << std::endl;
+    LOG(std::cout << "Linking complete with status: " << status << std::endl)
     if(!program->buildInfo.log.empty())
-        std::cout << "[VC4CL] Compilation log: " << program->buildInfo.log << std::endl;
+        LOG(std::cout << "Compilation log: " << program->buildInfo.log << std::endl)
 #endif
 
     return status;
@@ -228,7 +228,7 @@ static cl_int compile_program(Program* program, const std::string& options)
 
     program->buildInfo.options = options;
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Compiling source with: " << program->buildInfo.options << std::endl;
+    LOG(std::cout << "Compiling source with: " << program->buildInfo.options << std::endl)
 #endif
 
     cl_int status = CL_SUCCESS;
@@ -246,7 +246,7 @@ static cl_int compile_program(Program* program, const std::string& options)
     catch(vc4c::CompilationError& e)
     {
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Compilation error: " << e.what() << std::endl;
+        LOG(std::cout << "Compilation error: " << e.what() << std::endl)
 #endif
         status = CL_BUILD_PROGRAM_FAILURE;
     }
@@ -254,9 +254,9 @@ static cl_int compile_program(Program* program, const std::string& options)
     extractLog(program->buildInfo.log, logStream);
 
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Compilation complete with status: " << status << std::endl;
+    LOG(std::cout << "Compilation complete with status: " << status << std::endl)
     if(!program->buildInfo.log.empty())
-        std::cout << "[VC4CL] Compilation log: " << program->buildInfo.log << std::endl;
+        LOG(std::cout << "Compilation log: " << program->buildInfo.log << std::endl)
 #endif
 
     return status;

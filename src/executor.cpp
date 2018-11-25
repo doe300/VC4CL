@@ -4,11 +4,11 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
+#include "Buffer.h"
 #include "Event.h"
 #include "Kernel.h"
 #include "Mailbox.h"
 #include "V3D.h"
-#include "Buffer.h"
 
 #include <CL/opencl.h>
 
@@ -58,19 +58,19 @@ static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions,
     const unsigned iterationIndex, const KernelUniforms& uniformsUsed)
 {
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Setting work-item infos:" << std::endl;
-    std::cout << "\t" << num_dimensions << " dimensions with offsets: " << global_offsets[0] << ", "
-              << global_offsets[1] << ", " << global_offsets[2] << std::endl;
-    std::cout << "\tGlobal IDs (sizes): " << (group_indices[0] + iterationIndex) * local_sizes[0] + local_indices[0]
-              << "(" << global_sizes[0] << "), " << group_indices[1] * local_sizes[1] + local_indices[1] << "("
-              << global_sizes[1] << "), " << group_indices[2] * local_sizes[2] + local_indices[2] << "("
-              << global_sizes[2] << ")" << std::endl;
-    std::cout << "\tLocal IDs (sizes): " << local_indices[0] << "(" << local_sizes[0] << "), " << local_indices[1]
-              << "(" << local_sizes[1] << "), " << local_indices[2] << "(" << local_sizes[2] << ")" << std::endl;
-    std::cout << "\tGroup IDs (sizes): " << (group_indices[0] + iterationIndex) << "("
-              << (global_sizes[0] / local_sizes[0]) << "), " << group_indices[1] << "("
-              << (global_sizes[1] / local_sizes[1]) << "), " << group_indices[2] << "("
-              << (global_sizes[2] / local_sizes[2]) << ")" << std::endl;
+    LOG(std::cout << "Setting work-item infos:" << std::endl;
+        std::cout << "\t" << num_dimensions << " dimensions with offsets: " << global_offsets[0] << ", "
+                  << global_offsets[1] << ", " << global_offsets[2] << std::endl;
+        std::cout << "\tGlobal IDs (sizes): " << (group_indices[0] + iterationIndex) * local_sizes[0] + local_indices[0]
+                  << "(" << global_sizes[0] << "), " << group_indices[1] * local_sizes[1] + local_indices[1] << "("
+                  << global_sizes[1] << "), " << group_indices[2] * local_sizes[2] + local_indices[2] << "("
+                  << global_sizes[2] << ")" << std::endl;
+        std::cout << "\tLocal IDs (sizes): " << local_indices[0] << "(" << local_sizes[0] << "), " << local_indices[1]
+                  << "(" << local_sizes[1] << "), " << local_indices[2] << "(" << local_sizes[2] << ")" << std::endl;
+        std::cout << "\tGroup IDs (sizes): " << (group_indices[0] + iterationIndex) << "("
+                  << (global_sizes[0] / local_sizes[0]) << "), " << group_indices[1] << "("
+                  << (global_sizes[1] / local_sizes[1]) << "), " << group_indices[2] << "("
+                  << (global_sizes[2] / local_sizes[2]) << ")" << std::endl)
 #endif
     // composes UNIFORMS for the values
     if(uniformsUsed.getWorkDimensionsUsed())
@@ -190,22 +190,20 @@ cl_int executeKernel(KernelExecution& args)
                 memset(localBuffers.at(i)->hostPointer, '\0', arg.sizeToAllocate);
             }
 #ifdef DEBUG_MODE
-            std::cout << "[VC4CL] Reserved " << arg.sizeToAllocate
-                      << " bytes of buffer for local parameter: " << kernel->info.params.at(i).type << " "
-                      << kernel->info.params.at(i).name << std::endl;
+            LOG(std::cout << "Reserved " << arg.sizeToAllocate << " bytes of buffer for local parameter: "
+                          << kernel->info.params.at(i).type << " " << kernel->info.params.at(i).name << std::endl)
 #endif
         }
     }
 
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Running kernel '" << kernel->info.name << "' with " << kernel->info.getLength()
-              << " instructions..." << std::endl;
-    std::cout << "[VC4CL] Local sizes: " << args.localSizes[0] << " " << args.localSizes[1] << " " << args.localSizes[2]
-              << " -> " << num_qpus << " QPUs" << std::endl;
-    std::cout << "[VC4CL] Global sizes: " << args.globalSizes[0] << " " << args.globalSizes[1] << " "
-              << args.globalSizes[2] << " -> "
-              << (args.globalSizes[0] * args.globalSizes[1] * args.globalSizes[2]) / num_qpus << " work-groups ("
-              << numIterations << " run at once)" << std::endl;
+    LOG(std::cout << "Running kernel '" << kernel->info.name << "' with " << kernel->info.getLength()
+                  << " instructions..." << std::endl)
+    LOG(std::cout << "Local sizes: " << args.localSizes[0] << " " << args.localSizes[1] << " " << args.localSizes[2]
+                  << " -> " << num_qpus << " QPUs" << std::endl)
+    LOG(std::cout << "Global sizes: " << args.globalSizes[0] << " " << args.globalSizes[1] << " " << args.globalSizes[2]
+                  << " -> " << (args.globalSizes[0] * args.globalSizes[1] * args.globalSizes[2]) / num_qpus
+                  << " work-groups (" << numIterations << " run at once)" << std::endl)
 #endif
 
     //
@@ -246,15 +244,15 @@ cl_int executeKernel(KernelExecution& args)
     memcpy(p, data_start, data_length);
     p += data_length / sizeof(unsigned);
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Copied " << data_length << " bytes of global data to device buffer" << std::endl;
+    LOG(std::cout << "Copied " << data_length << " bytes of global data to device buffer" << std::endl)
 #endif
 
     // Reserve space for stack-frames and fill it with zeros (e.g. for cl_khr_initialize_memory extension)
     uint32_t maxQPUS = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
     uint32_t stackFrameSize = kernel->program->moduleInfo.getStackFrameSize() * sizeof(uint64_t);
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Reserving space for " << maxQPUS << " stack-frames of " << stackFrameSize << " bytes each"
-              << std::endl;
+    LOG(std::cout << "Reserving space for " << maxQPUS << " stack-frames of " << stackFrameSize << " bytes each"
+                  << std::endl)
 #endif
     if(kernel->program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_PRIVATE_KHR))
         memset(p, '\0', maxQPUS * stackFrameSize);
@@ -266,8 +264,8 @@ cl_int executeKernel(KernelExecution& args)
     memcpy(p, code_start, kernel->info.getLength() * sizeof(uint64_t));
     p += kernel->info.getLength() * sizeof(uint64_t) / sizeof(unsigned);
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Copied " << kernel->info.getLength() * sizeof(uint64_t)
-              << " bytes of kernel code to device buffer" << std::endl;
+    LOG(std::cout << "Copied " << kernel->info.getLength() * sizeof(uint64_t)
+                  << " bytes of kernel code to device buffer" << std::endl)
 #endif
 
     std::array<std::array<unsigned*, MAX_ITERATIONS>, 16> uniformPointers;
@@ -292,8 +290,8 @@ cl_int executeKernel(KernelExecution& args)
                     arg.addScalar(localBuffers.at(u)->qpuPointer);
                 }
 #ifdef DEBUG_MODE
-                std::cout << "[VC4CL] Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u) << " to "
-                          << arg.to_string() << std::endl;
+                LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u) << " to "
+                              << arg.to_string() << std::endl)
 #endif
                 for(cl_uchar i = 0; i < kernel->info.params[u].getElements(); ++i)
                     *p++ = arg.scalarValues.at(i).getUnsigned();
@@ -303,10 +301,9 @@ cl_int executeKernel(KernelExecution& args)
             *p++ = static_cast<unsigned>(iteration);
         }
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] "
-                  << numIterations *
+        LOG(std::cout << numIterations *
                 (kernel->info.uniformsUsed.countUniforms() + 1 /* re-run flag */ + kernel->info.params.size())
-                  << " parameters set." << std::endl;
+                      << " parameters set." << std::endl)
 #endif
         increment_index(local_indices, args.localSizes, 1);
     }
@@ -326,7 +323,7 @@ cl_int executeKernel(KernelExecution& args)
 #ifdef DEBUG_MODE
     {
         const std::string dumpFile("/tmp/vc4cl-dump-" + kernel->info.name + "-" + std::to_string(rand()) + ".bin");
-        std::cout << "[VC4CL] Dumping kernel buffer to " << dumpFile << std::endl;
+        LOG(std::cout << "Dumping kernel buffer to " << dumpFile << std::endl)
         std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
         // add additional pointers for the dump-analyzer
         // qpu base-pointer (global-data pointer) | qpu code-pointer | qpu UNIFORM-pointer | num uniforms per iteration
@@ -363,7 +360,6 @@ cl_int executeKernel(KernelExecution& args)
             }
             else if(info.getPointer())
             {
-                printf("Argument: 0x%x\n", arg.scalarValues.front().getUnsigned());
                 // search for local buffers allocated by the kernel execution
                 const DeviceBuffer* buffer = nullptr;
                 if(localBuffers.find(i) != localBuffers.end())
@@ -411,7 +407,6 @@ cl_int executeKernel(KernelExecution& args)
                 }
             }
         }
-        // TODO also dump memory afterwards
     }
 #endif
 
@@ -419,14 +414,14 @@ cl_int executeKernel(KernelExecution& args)
         // EXECUTION
         //
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Running work-group " << group_indices[0] << ", " << group_indices[1] << ", "
-              << group_indices[2] << std::endl;
+    LOG(std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", " << group_indices[2]
+                  << std::endl)
 #endif
     // on first execution, flush code cache
     bool result = executeQPU(static_cast<unsigned>(num_qpus),
         std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), true, KERNEL_TIMEOUT);
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Execution: " << (result ? "successful" : "failed") << std::endl;
+    LOG(std::cout << "Execution: " << (result ? "successful" : "failed") << std::endl)
 #endif
     if(!result)
         return CL_OUT_OF_RESOURCES;
@@ -445,14 +440,14 @@ cl_int executeKernel(KernelExecution& args)
             increment_index(local_indices, args.localSizes, 1);
         }
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Running work-group " << group_indices[0] << ", " << group_indices[1] << ", "
-                  << group_indices[2] << std::endl;
+        LOG(std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", "
+                      << group_indices[2] << std::endl)
 #endif
         // all following executions, don't flush cache
         result = executeQPU(static_cast<unsigned>(num_qpus),
             std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), false, KERNEL_TIMEOUT);
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Execution: " << (result ? "successful" : "failed") << std::endl;
+        LOG(std::cout << "Execution: " << (result ? "successful" : "failed") << std::endl)
 #endif
         if(!result)
             return CL_OUT_OF_RESOURCES;

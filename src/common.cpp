@@ -10,8 +10,10 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <iomanip>
 #include <numeric>
 #include <sstream>
+#include <sys/prctl.h>
 
 using namespace vc4cl;
 
@@ -70,4 +72,18 @@ CHECK_RETURN cl_int vc4cl::returnBuffers(const std::vector<void*>& buffers, cons
     if(output_size_ret != nullptr)
         *output_size_ret = inputSize;
     return CL_SUCCESS;
+}
+
+static std::mutex logMutex;
+
+std::unique_lock<std::mutex> vc4cl::lockLog()
+{
+    static const thread_local auto threadName = []() -> std::string {
+        char buffer[32] = {0};
+        prctl(PR_GET_NAME, buffer, 0, 0, 0);
+        return buffer;
+    }();
+    std::unique_lock<std::mutex> lock(logMutex);
+    std::cout << "[VC4CL](" << std::setfill(' ') << std::setw(15) << threadName << "): ";
+    return lock;
 }

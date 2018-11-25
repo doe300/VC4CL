@@ -65,12 +65,12 @@ Kernel::~Kernel() {}
 cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
 {
 #ifdef DEBUG_MODE
-    std::cout << "[VC4CL] Set kernel arg " << arg_index << " for kernel '" << info.name << "' to " << arg_value << " ("
-              << (arg_value == nullptr ? 0x0 : *reinterpret_cast<const int*>(arg_value)) << ") with size " << arg_size
-              << std::endl;
-    std::cout << "[VC4CL] Kernel arg " << arg_index << " for kernel '" << info.name << "' is "
-              << info.params[arg_index].type << " '" << info.params[arg_index].name << "' with size "
-              << static_cast<size_t>(info.params[arg_index].getSize()) << std::endl;
+    LOG(std::cout << "Set kernel arg " << arg_index << " for kernel '" << info.name << "' to " << arg_value << " ("
+                  << (arg_value == nullptr ? 0x0 : *reinterpret_cast<const int*>(arg_value)) << ") with size "
+                  << arg_size << std::endl)
+    LOG(std::cout << "Kernel arg " << arg_index << " for kernel '" << info.name << "' is "
+                  << info.params[arg_index].type << " '" << info.params[arg_index].name << "' with size "
+                  << static_cast<size_t>(info.params[arg_index].getSize()) << std::endl)
 #endif
 
     if(arg_index >= info.params.size())
@@ -135,8 +135,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
             }
         }
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Setting kernel-argument " << arg_index << " to " << args[arg_index].to_string()
-                  << std::endl;
+        LOG(std::cout << "Setting kernel-argument " << arg_index << " to " << args[arg_index].to_string() << std::endl)
 #endif
     }
     else
@@ -204,8 +203,8 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
         }
         args[arg_index].addScalar(pointer_arg);
 #ifdef DEBUG_MODE
-        std::cout << "[VC4CL] Setting kernel-argument " << arg_index << " to 0x" << std::hex << pointer_arg << std::dec
-                  << std::endl;
+        LOG(std::cout << "Setting kernel-argument " << arg_index << " to 0x" << std::hex << pointer_arg << std::dec
+                      << std::endl)
 #endif
     }
 
@@ -392,10 +391,10 @@ static cl_int split_global_work_size(const std::array<std::size_t, kernel_config
             {
             // we found an acceptable distribution
 #ifdef DEBUG_MODE
-                std::cout << "[VC4CL] Splitting " << global_sizes[0] << " * " << global_sizes[1] << " * "
-                          << global_sizes[2] << " work-items into " << local_sizes[0] << " * " << local_sizes[1]
-                          << " * " << local_sizes[2] << ", using " << work_group_size << " of " << max_group_size
-                          << " QPUs" << std::endl;
+                LOG(std::cout << "Splitting " << global_sizes[0] << " * " << global_sizes[1] << " * " << global_sizes[2]
+                              << " work-items into " << local_sizes[0] << " * " << local_sizes[1] << " * "
+                              << local_sizes[2] << ", using " << work_group_size << " of " << max_group_size << " QPUs"
+                              << std::endl)
 #endif
                 return CL_SUCCESS;
             }
