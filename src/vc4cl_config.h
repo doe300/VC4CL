@@ -139,7 +139,7 @@ namespace vc4cl
          * Parameter configuration
          */
         // the number of UNIFORMS seems to be unlimited, see official documentation, page 91, table 67.
-        // But since we load all parameters at start-up, we can only hold 64 (with 64 registers)
+        // But loading more than 64 puts to much pressure on registers (and why would someone need that many anyway?)
         static constexpr cl_uint MAX_PARAMETER_COUNT = 64;
         // the maximum size of images(per dimension)
         // minimum is 2048 (width, height, buffer-size) or 256 (array-size)

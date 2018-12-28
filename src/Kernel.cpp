@@ -45,6 +45,15 @@ void KernelArgument::addScalar(DevicePointer ptr)
     scalarValues.push_back(v);
 }
 
+void KernelArgument::setDirectData(const void* data, std::size_t numBytes)
+{
+    while(numBytes % sizeof(ScalarValue) != 0)
+        ++numBytes;
+    scalarValues.resize(numBytes / sizeof(ScalarValue));
+    memcpy(scalarValues.data(), data, numBytes);
+    sizeToAllocate = static_cast<unsigned>(numBytes);
+}
+
 std::string KernelArgument::to_string() const
 {
     std::string res;
@@ -83,19 +92,30 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
     args[arg_index] = KernelArgument();
 
     const ParamInfo& paramInfo = info.params[arg_index];
-    if(!paramInfo.getPointer())
+    if(!paramInfo.getPointer() || paramInfo.getByValue())
     {
-        // literal (scalar or vector) argument
+        // literal (scalar, vector or struct) argument
         if(arg_size != paramInfo.getSize())
         {
             return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__,
                 buildString("Invalid arg size: %u, must be %d", arg_size, paramInfo.getSize()));
         }
-        const size_t elementSize = arg_size / paramInfo.getElements();
-        for(cl_uchar i = 0; i < paramInfo.getElements(); ++i)
+        const size_t elementSize = arg_size / paramInfo.getVectorElements();
+        for(cl_uchar i = 0; i < paramInfo.getVectorElements(); ++i)
         {
+            if(paramInfo.getByValue())
+            {
+                // handle literal struct parameters which are treated on kernel-side as pointers
+                if(i != 0)
+                {
+                    // there should be only 1 vector element
+                    return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
+                        "Multiple vector elements for literal struct arguments are not supported");
+                }
+                args[arg_index].setDirectData(arg_value, arg_size);
+            }
             // arguments are all 32-bit, since UNIFORMS are always 32-bit
-            if(elementSize == 1 /* [u]char-types */)
+            else if(elementSize == 1 /* [u]char-types */)
             {
                 // expand 8-bit to 32-bit
                 if(!paramInfo.getFloatingType() && paramInfo.getSigned())
@@ -645,7 +665,7 @@ cl_int VC4CL_FUNC(clCreateKernelsInProgram)(
         return returnError(CL_INVALID_PROGRAM_EXECUTABLE, __FILE__, __LINE__,
             "No kernel-info found, maybe program was not yet compiled!");
 
-    if(kernels != NULL && num_kernels < toType<Program>(program)->moduleInfo.kernelInfos.size())
+    if(kernels != nullptr && num_kernels < toType<Program>(program)->moduleInfo.kernelInfos.size())
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
             buildString("Output parameter cannot hold all %d kernels",
                 toType<Program>(program)->moduleInfo.kernelInfos.size()));

@@ -172,25 +172,34 @@ cl_int executeKernel(KernelExecution& args)
     }
 
     /*
-     * Allocate buffers for __local parameters
+     * Allocate buffers for __local/struct parameters
      *
      * The buffers are automatically cleaned up with leaving this function
      * and thus after the kernel has finished executing.
      */
-    std::map<unsigned, std::unique_ptr<DeviceBuffer>> localBuffers;
+    std::map<unsigned, std::unique_ptr<DeviceBuffer>> tmpBuffers;
     for(unsigned i = 0; i < kernel->args.size(); ++i)
     {
         const KernelArgument& arg = kernel->args.at(i);
         if(arg.sizeToAllocate > 0)
         {
-            localBuffers.emplace(i, std::unique_ptr<DeviceBuffer>(mailbox().allocateBuffer(arg.sizeToAllocate)));
-            if(kernel->program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR))
+            auto bufIt =
+                tmpBuffers.emplace(i, std::unique_ptr<DeviceBuffer>(mailbox().allocateBuffer(arg.sizeToAllocate)))
+                    .first;
+            if(arg.isByValueParameter())
+            {
+                // copy the parameter values to the buffer
+                memcpy(bufIt->second->hostPointer, arg.scalarValues.data(),
+                    std::min(static_cast<unsigned>(arg.scalarValues.size() * sizeof(KernelArgument::ScalarValue)),
+                        arg.sizeToAllocate));
+            }
+            else if(kernel->program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR))
             {
                 // we need to initialize the local memory to zero
-                memset(localBuffers.at(i)->hostPointer, '\0', arg.sizeToAllocate);
+                memset(bufIt->second->hostPointer, '\0', arg.sizeToAllocate);
             }
 #ifdef DEBUG_MODE
-            LOG(std::cout << "Reserved " << arg.sizeToAllocate << " bytes of buffer for local parameter: "
+            LOG(std::cout << "Reserved " << arg.sizeToAllocate << " bytes of buffer for local/struct parameter: "
                           << kernel->info.params.at(i).type << " " << kernel->info.params.at(i).name << std::endl)
 #endif
         }
@@ -281,19 +290,20 @@ cl_int executeKernel(KernelExecution& args)
                 kernel->info.uniformsUsed);
             for(unsigned u = 0; u < kernel->info.params.size(); ++u)
             {
-                // we need to copy here, since we set to local buffers, which might not exist in next execution
+                // we need to copy here, since we set to buffers which might not exist in next execution
                 KernelArgument arg = kernel->args.at(u);
-                if(localBuffers.find(u) != localBuffers.end())
+                if(tmpBuffers.find(u) != tmpBuffers.end())
                 {
-                    // there exists a temporary buffer for the __local parameter, so set its address as kernel argument
+                    // there exists a temporary buffer for the __local/struct parameter, so set its address as kernel
+                    // argument
                     arg.scalarValues.clear();
-                    arg.addScalar(localBuffers.at(u)->qpuPointer);
+                    arg.addScalar(tmpBuffers.at(u)->qpuPointer);
                 }
 #ifdef DEBUG_MODE
                 LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u) << " to "
                               << arg.to_string() << std::endl)
 #endif
-                for(cl_uchar i = 0; i < kernel->info.params[u].getElements(); ++i)
+                for(cl_uchar i = 0; i < kernel->info.params[u].getVectorElements(); ++i)
                     *p++ = arg.scalarValues.at(i).getUnsigned();
             }
             //"Kernel Loop Optimization" to repeat kernel for several work-groups
@@ -321,8 +331,9 @@ cl_int executeKernel(KernelExecution& args)
     }
 
 #ifdef DEBUG_MODE
+    const std::string dumpFile("/tmp/vc4cl-dump-" + kernel->info.name + "-" + std::to_string(rand()) + ".bin");
+    std::map<unsigned, const DeviceBuffer*> bufferArguments;
     {
-        const std::string dumpFile("/tmp/vc4cl-dump-" + kernel->info.name + "-" + std::to_string(rand()) + ".bin");
         LOG(std::cout << "Dumping kernel buffer to " << dumpFile << std::endl)
         std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
         // add additional pointers for the dump-analyzer
@@ -348,7 +359,7 @@ cl_int executeKernel(KernelExecution& args)
         tmp = 0;
         f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
         // parameter have this format: pointer-bit| # words | <data (direct or buffer contents)>
-        for(std::size_t i = 0; i < kernel->args.size(); ++i)
+        for(unsigned i = 0; i < kernel->args.size(); ++i)
         {
             const auto& info = kernel->info.params[i];
             const auto& arg = kernel->args[i];
@@ -360,10 +371,10 @@ cl_int executeKernel(KernelExecution& args)
             }
             else if(info.getPointer())
             {
-                // search for local buffers allocated by the kernel execution
+                // search for local/struct buffers allocated by the kernel execution
                 const DeviceBuffer* buffer = nullptr;
-                if(localBuffers.find(i) != localBuffers.end())
-                    buffer = localBuffers[i].get();
+                if(tmpBuffers.find(i) != tmpBuffers.end())
+                    buffer = tmpBuffers[i].get();
                 else
                 {
                     // fall back to global memory objects
@@ -391,6 +402,7 @@ cl_int executeKernel(KernelExecution& args)
                 }
                 else
                 {
+                    bufferArguments.emplace(i, buffer);
                     tmp = 0x80000000 | static_cast<uint32_t>(buffer->size / sizeof(unsigned));
                     f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
                     f.write(reinterpret_cast<const char*>(buffer->hostPointer), buffer->size);
@@ -452,6 +464,56 @@ cl_int executeKernel(KernelExecution& args)
         if(!result)
             return CL_OUT_OF_RESOURCES;
     }
+
+#if 0
+    {
+        std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+        // append additionally the kernel parameter for this execution
+        // append all-bits-set-word as border between sections
+        unsigned tmp = 0xFFFFFFFF;
+        f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+        // parameter have this format: pointer-bit| # words | <data (direct or buffer contents)>
+        for(unsigned i = 0; i < kernel->args.size(); ++i)
+        {
+            const auto& info = kernel->info.params[i];
+            const auto& arg = kernel->args[i];
+            if(info.getPointer() && arg.scalarValues.at(0).getUnsigned() == global_data)
+            {
+                tmp = 0x80000000 | static_cast<uint32_t>(data_length / sizeof(unsigned));
+                f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                f.write(reinterpret_cast<const char*>(buffer->hostPointer), data_length);
+            }
+            else if(info.getPointer())
+            {
+                auto bufferIt = bufferArguments.find(i);
+                if(bufferIt == bufferArguments.end())
+                {
+                    tmp = 1;
+                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                    tmp = arg.scalarValues.front().getUnsigned();
+                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                }
+                else
+                {
+                    //FIXME SEGFAULTS if buffer already freed! -> error in client
+                    tmp = 0x80000000 | static_cast<uint32_t>(bufferIt->second->size / sizeof(unsigned));
+                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                    f.write(reinterpret_cast<const char*>(bufferIt->second->hostPointer), bufferIt->second->size);
+                }
+            }
+            else
+            {
+                tmp = static_cast<uint32_t>(arg.scalarValues.size());
+                f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                for(const auto elem : arg.scalarValues)
+                {
+                    tmp = elem.getUnsigned();
+                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+                }
+            }
+        }
+    }
+#endif
 
     //
     // CLEANUP

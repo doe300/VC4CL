@@ -50,7 +50,8 @@ namespace vc4cl
         //"QPU Total uniforms cache misses for all slices"
         UNIFORM_CACHE_MISSES = 23,
         //"TMU Total texture quads processed"
-        TMU_TOTAL_QUADS = 24, /* TODO also used for generic loads? */
+        // This is the number of words loaded via the TMU
+        TMU_TOTAL_QUADS = 24,
         //"TMU Total texture cache misses (number of fetches from memory/L2cache)"
         TMU_CACHE_MISSES = 25,
         //"VPM Total clock cycles VDW is stalled waiting for VPM access"

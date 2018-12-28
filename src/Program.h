@@ -87,25 +87,34 @@ namespace vc4cl
         explicit ParamInfo(uint64_t val = 0) noexcept : Bitfield(val) {}
 
         // the size of this parameter in bytes (e.g. 4 for pointers)
-        BITFIELD_ENTRY(Size, uint8_t, 0, Byte)
+        BITFIELD_ENTRY(Size, uint16_t, 0, Tredecuple)
         // the number of components for vector-parameters
-        BITFIELD_ENTRY(Elements, uint8_t, 8, Byte)
-        BITFIELD_ENTRY(NameLength, uint16_t, 16, Short)
-        BITFIELD_ENTRY(TypeNameLength, uint16_t, 32, Short)
+        BITFIELD_ENTRY(VectorElements, uint8_t, 13, Quintuple)
+        BITFIELD_ENTRY(NameLength, uint16_t, 18, Duodecuple)
+        BITFIELD_ENTRY(TypeNameLength, uint16_t, 30, Duodecuple)
+        // whether this parameter is being read, only valid for pointers and images
+        BITFIELD_ENTRY(Input, bool, 42, Bit)
+        // whether this parameter is being written, only valid for pointers and images
+        BITFIELD_ENTRY(Output, bool, 43, Bit)
+
+        //// ZERO_EXTEND and SIGN_EXTEND are not used
+
         // whether this parameter is constant, only valid for pointers
-        BITFIELD_ENTRY(Constant, bool, 48, Bit)
+        BITFIELD_ENTRY(Constant, bool, 46, Bit)
         // whether the memory behind this parameter is guaranteed to not be aligned (overlap with other memory areas),
         // only valid for pointers
-        BITFIELD_ENTRY(Restricted, bool, 49, Bit)
+        BITFIELD_ENTRY(Restricted, bool, 47, Bit)
         // whether the memory behind this parameter is volatile, only valid for pointers
-        BITFIELD_ENTRY(Volatile, bool, 50, Bit)
+        BITFIELD_ENTRY(Volatile, bool, 48, Bit)
+        // whether the "pointer" parameter will be passed by value to clSetKernelArg
+        BITFIELD_ENTRY(ByValue, bool, 49, Bit)
+
+        //// 2 Bits of decoration currently unused
+        //// 3 Bits unused
+
         // the parameter's address space, only valid for pointers
         // OpenCL default address space is "private"
-        BITFIELD_ENTRY(AddressSpace, AddressSpace, 52, Quadruple)
-        // whether this parameter is being read, only valid for pointers and images
-        BITFIELD_ENTRY(Input, bool, 56, Bit)
-        // whether this parameter is being written, only valid for pointersand images
-        BITFIELD_ENTRY(Output, bool, 57, Bit)
+        BITFIELD_ENTRY(AddressSpace, AddressSpace, 55, Quadruple)
         // whether this parameter is an image
         BITFIELD_ENTRY(Image, bool, 59, Bit)
         // whether this parameter is a pointer to data

@@ -127,6 +127,7 @@ bool V3D::setCounter(uint8_t counterIndex, const CounterType type)
     v3dBasePointer[V3D_COUNTER_MAPPING_BASE + counterIndex * V3D_COUNTER_INCREMENT] =
         static_cast<uint32_t>(type) & 0x1F;
     // 3. reset counter
+    // TODO difference between reset here and reset in resetCounterValue??
     v3dBasePointer[V3D_COUNTER_VALUE_BASE + counterIndex * V3D_COUNTER_INCREMENT] = 0;
 
     return true;

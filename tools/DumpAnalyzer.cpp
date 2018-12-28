@@ -158,6 +158,12 @@ static void printParameters(std::istream& in, std::ostream& out)
 			// This simply skips them
 			continue;
 		}
+		if(word == 0xFFFFFFFF) {
+			//This handles the border between parameters before and after
+			out << "//Parameters after:" << std::endl;
+			numParam = 0;
+			continue;
+		}
 		bool isPointer = word >> 31;
 		auto numWords = word & 0x7FFFFFFF;
 		out << "//Parameter " << numParam << " with " << numWords << " words of " << (isPointer ? "memory" : "data") << ": " << std::endl;
@@ -166,7 +172,7 @@ static void printParameters(std::istream& in, std::ostream& out)
 				out << "//EOF while reading parameter, " << (numWords - i) << " words left to read!" << std::endl;
 				break;
 			}
-			out << "0x" << std::hex << word << std::dec;
+			out << "0x" << std::setfill('0') << std::setw(8) << std::hex << word << std::dec;
 			// group 8 words per line
 			if(i % 8 == 7)
 				out << std::endl;
@@ -198,6 +204,7 @@ int main(int argc, char** argv)
 	 * | QPU code pointer       |----------+ |
 	 * | QPU UNIFORM pointer    |--------+ | |
 	 * | #UNIFORMS | iterations |        | | |
+	 * | UNIFORMS set bitmask   |        | | |
 	 * +------------------------+<-------|-|-+
 	 * |  Data Segment          |        | |
 	 * +------------------------+ <----+-|-+
@@ -210,8 +217,15 @@ int main(int argc, char** argv)
 	 * |  QPU0 Start   ----------------+
 	 * +------------------------+
 	 * |  0 word separator      |
+	 * +------------------------+ <- parameters (direct or memory buffer)
+	 * |  pointer-bit | # words |    before execution
+	 * |  parameter data words  |
 	 * +------------------------+
-	 * |  pointer-bit | # words |
+	 * |  [next parameter]      |
+	 * +------------------------+
+	 * |  FFFFFFFF separator    |
+	 * +------------------------+ <- parameters (direct or memory buffer)
+	 * |  pointer-bit | # words |    after execution
 	 * |  parameter data words  |
 	 * +------------------------+
 	 * |  [next parameter]      |

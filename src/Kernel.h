@@ -28,7 +28,7 @@ namespace vc4cl
         };
         std::vector<ScalarValue> scalarValues;
         /*
-         * Only valid for __local pointers, this specifies the buffer-size to allocate.
+         * This specifies the buffer-size to allocate, e.g. for __local pointers or direct struct parameters.
          *
          * NOTE: __local parameters are not passed a buffer, but the buffer-size to automatically allocate and
          * deallocate again after the kernel-execution.
@@ -39,8 +39,27 @@ namespace vc4cl
         void addScalar(uint32_t u);
         void addScalar(int32_t s);
         void addScalar(DevicePointer ptr);
+        void setDirectData(const void* data, std::size_t numBytes);
 
         std::string to_string() const;
+
+        inline bool isLocalParameter() const
+        {
+            return sizeToAllocate > 0 && scalarValues.empty();
+        }
+
+        /*
+         * Passing non-trivial (e.g. struct) parameters directly to a kernel function generates pointers with
+         * byval attribute set in LLVM. From the kernel side, they are treated as any other pointer parameter,
+         * but on host side, they are set by directly passing the data, similar to direct vector parameters.
+         *
+         * We handle them by creating a buffer (similar to local memory), copying the data into this buffer and
+         * passing the pointer to the kernel.
+         */
+        inline bool isByValueParameter() const
+        {
+            return sizeToAllocate > 0 && !scalarValues.empty();
+        }
     };
 
     class Kernel : public Object<_cl_kernel, CL_INVALID_KERNEL>

@@ -138,7 +138,7 @@ namespace vc4cl
             return *this;
         }
 
-        object_wrapper& operator=(object_wrapper&& other)
+        object_wrapper& operator=(object_wrapper&& other) noexcept
         {
             if(ref == other.ref)
                 return *this;

@@ -182,6 +182,8 @@ namespace vc4cl
         GET_CLOCK_STATE = 0x00030001,
         SET_CLOCK_STATE = 0x00038001,
         GET_CLOCK_RATE = 0x00030002,
+        // clock rate actually measured from the hardware
+        GET_CLOCK_RATE_MEASURED = 0x00030047,
         SET_CLOCK_RATE = 0x00038002,
         GET_MAX_CLOCK_RATE = 0x00030004,
         GET_MIN_CLOCK_RATE = 0x00030007,
@@ -199,7 +201,8 @@ namespace vc4cl
         RELEASE_MEMORY = 0x0003000F,
         EXECUTE_CODE = 0x00030010,
         EXECUTE_QPU = 0x00030011,
-        ENABLE_QPU = 0x00030012
+        ENABLE_QPU = 0x00030012,
+        GET_THROTTLED = 0x00030046
     };
 
     /*
