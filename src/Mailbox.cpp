@@ -34,17 +34,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Mailbox.h"
 
 #include "V3D.h"
+#include "hal.h"
 
-#include <cstdio>
-#include <fcntl.h>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
 #include <system_error>
-#include <unistd.h>
 
 using namespace vc4cl;
 
@@ -79,7 +75,7 @@ static int mbox_open()
     int file_desc;
 
     // open a char device file used for communicating with kernel mbox driver
-    file_desc = open(DEVICE_FILE_NAME, 0);
+    file_desc = open_mailbox(DEVICE_FILE_NAME, 0);
     if(file_desc < 0)
     {
         std::cout << "[VC4CL] Can't open device file: " << DEVICE_FILE_NAME << std::endl;
@@ -103,7 +99,7 @@ Mailbox::~Mailbox()
 {
     ignoreReturnValue(enableQPU(false) ? CL_SUCCESS : CL_OUT_OF_RESOURCES, __FILE__, __LINE__,
         "There is no way of handling an error here");
-    close(fd);
+    close_mailbox(fd);
 #ifdef DEBUG_MODE
     std::cout << "[VC4CL] Mailbox file descriptor closed: " << fd << std::endl;
 #endif
@@ -198,7 +194,7 @@ int Mailbox::mailboxCall(void* buffer) const
         std::cout << std::endl)
 #endif
 
-    int ret_val = ioctl(fd, IOCTL_MBOX_PROPERTY, buffer);
+    int ret_val = ioctl_mailbox(fd, IOCTL_MBOX_PROPERTY, buffer);
     if(ret_val < 0)
     {
         LOG(std::cout << "ioctl_set_msg failed: " << ret_val << std::endl)

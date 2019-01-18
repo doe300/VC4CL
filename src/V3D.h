@@ -142,18 +142,4 @@ namespace vc4cl
     void unmapmem(void* addr, unsigned size);
 
 } /* namespace vc4cl */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// see "/opt/vc/include/bcm_host.h"
-void bcm_host_init(void);
-void bcm_host_deinit(void);
-unsigned bcm_host_get_peripheral_address(void);
-
-#ifdef __cplusplus
-}
-#endif
-
 #endif /* VC4CL_V3D */

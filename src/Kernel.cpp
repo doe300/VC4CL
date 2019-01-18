@@ -309,12 +309,16 @@ cl_int Kernel::getArgInfo(cl_uint arg_index, cl_kernel_arg_info param_name, size
     switch(param_name)
     {
     case CL_KERNEL_ARG_ADDRESS_QUALIFIER:
-        return (paramInfo.getAddressSpace() == AddressSpace::CONSTANT ?
+    {
+        auto val = (paramInfo.getAddressSpace() == AddressSpace::CONSTANT ?
                 CL_KERNEL_ARG_ADDRESS_CONSTANT :
                 (paramInfo.getAddressSpace() == AddressSpace::GLOBAL ?
                         CL_KERNEL_ARG_ADDRESS_GLOBAL :
                         (paramInfo.getAddressSpace() == AddressSpace::LOCAL ? CL_KERNEL_ARG_ADDRESS_LOCAL :
                                                                               CL_KERNEL_ARG_ADDRESS_PRIVATE)));
+        return returnValue<cl_kernel_arg_address_qualifier>(
+            static_cast<cl_kernel_arg_address_qualifier>(val), param_value_size, param_value, param_value_size_ret);
+    }
     case CL_KERNEL_ARG_ACCESS_QUALIFIER:
         //"If argument is not an image type, CL_KERNEL_ARG_ACCESS_NONE is returned"
         return returnValue<cl_kernel_arg_access_qualifier>(
@@ -322,9 +326,13 @@ cl_int Kernel::getArgInfo(cl_uint arg_index, cl_kernel_arg_info param_name, size
     case CL_KERNEL_ARG_TYPE_NAME:
         return returnString(paramInfo.type, param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_ARG_TYPE_QUALIFIER:
-        return (paramInfo.getConstant() ? CL_KERNEL_ARG_TYPE_CONST : 0) |
+    {
+        auto val = (paramInfo.getConstant() ? CL_KERNEL_ARG_TYPE_CONST : 0) |
             (paramInfo.getRestricted() ? CL_KERNEL_ARG_TYPE_RESTRICT : 0) |
             (paramInfo.getVolatile() ? CL_KERNEL_ARG_TYPE_VOLATILE : 0);
+        return returnValue<cl_kernel_arg_type_qualifier>(
+            static_cast<cl_kernel_arg_type_qualifier>(val), param_value_size, param_value, param_value_size_ret);
+    }
     case CL_KERNEL_ARG_NAME:
         return returnString(paramInfo.name, param_value_size, param_value, param_value_size_ret);
     }
