@@ -171,7 +171,9 @@ void TestKernel::testGetKernelArgInfo()
     TEST_ASSERT_EQUALS(CL_INVALID_ARG_INDEX, state);
     
     state = VC4CL_FUNC(clGetKernelArgInfo)(kernel, 0, CL_KERNEL_ARG_ADDRESS_QUALIFIER, 1024, buffer, &info_size);
-    TEST_ASSERT_EQUALS(CL_KERNEL_ARG_ADDRESS_GLOBAL, state);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    TEST_ASSERT_EQUALS(sizeof(cl_kernel_arg_address_qualifier), info_size);
+    TEST_ASSERT_EQUALS(static_cast<cl_kernel_arg_address_qualifier>(CL_KERNEL_ARG_ADDRESS_GLOBAL), *reinterpret_cast<cl_kernel_arg_address_qualifier*>(buffer));
 
     state = VC4CL_FUNC(clGetKernelArgInfo)(kernel, 0, CL_KERNEL_ARG_ACCESS_QUALIFIER, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -182,7 +184,9 @@ void TestKernel::testGetKernelArgInfo()
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
     state = VC4CL_FUNC(clGetKernelArgInfo)(kernel, 0, CL_KERNEL_ARG_TYPE_QUALIFIER, 1024, buffer, &info_size);
-    TEST_ASSERT_EQUALS(CL_KERNEL_ARG_TYPE_CONST, state);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    TEST_ASSERT_EQUALS(sizeof(cl_kernel_arg_type_qualifier), info_size);
+    TEST_ASSERT_EQUALS(static_cast<cl_kernel_arg_type_qualifier>(CL_KERNEL_ARG_TYPE_CONST), *reinterpret_cast<cl_kernel_arg_type_qualifier*>(buffer));
     
     state = VC4CL_FUNC(clGetKernelArgInfo)(kernel, 0, CL_KERNEL_ARG_NAME, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);

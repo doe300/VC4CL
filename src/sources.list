@@ -44,3 +44,10 @@ target_sources(VC4CL
     V3D.h
     vc4cl_config.h
 )
+
+if(MOCK_HAL)
+target_sources(VC4CL
+  PRIVATE
+    hal.cpp
+)
+endif(MOCK_HAL)

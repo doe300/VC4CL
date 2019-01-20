@@ -260,7 +260,7 @@ static cl_int compile_program(Program* program, const std::string& options)
         LOG(std::cout << "Compilation log: " << program->buildInfo.log << std::endl)
     }
     {
-        const std::string dumpFile("/tmp/vc4cl-binary-" + std::to_string(rand()) + ".cl");
+        const std::string dumpFile("/tmp/vc4cl-binary-" + std::to_string(rand()) + ".bin");
         LOG(std::cout << "Dumping program sources to " << dumpFile << std::endl)
         std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
         f.write(reinterpret_cast<char*>(program->binaryCode.data()), program->binaryCode.size() * sizeof(uint64_t));

@@ -27,6 +27,8 @@ endif()
 if(CROSS_COMPILE OR EXISTS "/opt/vc/include/bcm_host.h")
 	find_library(BCMHOST_LIBRARY NAMES bcm_host libbcm_host HINTS "/opt/vc/lib")
 	target_link_libraries(VC4CL ${BCMHOST_LIBRARY} ${SYSROOT_LIBRARY_FLAGS})
+elseif(MOCK_HAL)
+	target_compile_definitions(VC4CL PRIVATE -DMOCK_HAL=1)
 endif()
 
 if(CROSS_COMPILE)
