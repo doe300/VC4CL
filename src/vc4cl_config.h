@@ -40,6 +40,8 @@ namespace vc4cl
             // SPIR is supported by both supported LLVM version ("default" and SPIRV-LLVM)
             "cl_khr_spir",
 #endif
+            // supports creating of command queue with properties for OpenCL 1.x
+            "cl_khr_create_command_queue",
             // supports querying the device temperature with clGetDeviceInfo
             "cl_altera_device_temperature",
             // supports additional functions to query all currently live OpenCL objects

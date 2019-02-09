@@ -197,7 +197,7 @@ _cl_icd_dispatch vc4cl_dispatch = {
 #ifdef CL_VERSION_2_0
     &VC4CL_clCreateCommandQueueWithProperties, /* clCreateCommandQueueWithProperties */
 #else
-    nullptr, /* clCreateCommandQueueWithProperties */
+    &VC4CL_clCreateCommandQueueWithPropertiesKHR, /* clCreateCommandQueueWithProperties */
 #endif
     nullptr,                       /* clCreatePipe */
     nullptr,                       /* clGetPipeInfo */

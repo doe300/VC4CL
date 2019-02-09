@@ -74,6 +74,19 @@ cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* 
 #endif
 
 /*
+ * Khronos creating command queues with properties (cl_khr_create_command_queue)
+ * https://github.com/KhronosGroup/OpenCL-Docs/blob/master/ext/cl_khr_create_command_queue.txt
+ *
+ * Enables creating of command queues with properties for OpenCL versions < 2.0.
+ */
+#ifndef cl_khr_create_command_queue
+#define cl_khr_create_command_queue 1
+typedef cl_bitfield cl_queue_properties_khr;
+#endif
+cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithPropertiesKHR)(cl_context context, cl_device_id device,
+    const cl_queue_properties_khr* properties, cl_int* errcode_ret);
+
+/*
  * Altera device temperature (cl_altera_device_temperature)
  * https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_device_temperature.txt
  *

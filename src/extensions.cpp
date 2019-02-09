@@ -33,6 +33,10 @@ void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platfo
     if(strcmp("clCreateProgramWithILKHR", funcname) == 0)
         return reinterpret_cast<void*>(&(VC4CL_FUNC(clCreateProgramWithILKHR)));
 
+    // cl_khr_create_command_queue
+    if(strcmp("clCreateCommandQueueWithPropertiesKHR", funcname) == 0)
+        return reinterpret_cast<void*>(&VC4CL_FUNC(clCreateCommandQueueWithPropertiesKHR));
+
     // cl_altera_live_object_tracking
     if(strcmp("clTrackLiveObjectsAltera", funcname) == 0)
         return reinterpret_cast<void*>(&(VC4CL_FUNC(clTrackLiveObjectsAltera)));

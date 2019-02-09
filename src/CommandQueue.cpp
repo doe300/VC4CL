@@ -112,8 +112,7 @@ cl_int CommandQueue::finish()
     // have completed"
 
     // wait_for_event_finish for all events in THIS queue
-    Event* event = nullptr;
-    while((event = peekQueue(this)) != nullptr)
+    while(auto event = peekQueue(this))
         ignoreReturnValue(event->waitFor(), __FILE__, __LINE__,
             "This method does not check the states of the single events as per specification");
 
@@ -176,7 +175,6 @@ cl_command_queue VC4CL_FUNC(clCreateCommandQueue)(
     RETURN_OBJECT(queue->toBase(), errcode_ret)
 }
 
-#ifdef CL_VERSION_2_0
 /*!
  * OpenCL 2.2 specification, pages 81+:
  *
@@ -208,8 +206,15 @@ cl_command_queue VC4CL_FUNC(clCreateCommandQueue)(
  *  - CL_OUT_OF_HOST_MEMORY if there is a failure to allocate resources required by the OpenCL implementation on the
  * host.
  */
+#ifdef CL_VERSION_2_0
 cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithProperties)(
     cl_context context, cl_device_id device, const cl_queue_properties* properties, cl_int* errcode_ret)
+{
+    return VC4CL_FUNC(clCreateCommandQueueWithPropertiesKHR)(context, device, properties, errcode_ret);
+}
+#endif
+cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithPropertiesKHR)(
+    cl_context context, cl_device_id device, const cl_queue_properties_khr* properties, cl_int* errcode_ret)
 {
     VC4CL_PRINT_API_CALL("cl_command_queue", clCreateCommandQueueWithProperties, "cl_context", context, "cl_device_id",
         device, "const cl_queue_properties*", properties, "cl_int*", errcode_ret);
@@ -234,7 +239,6 @@ cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithProperties)(
 
     return VC4CL_FUNC(clCreateCommandQueue)(context, device, props, errcode_ret);
 }
-#endif
 
 /*!
  * OpenCL 1.2 specification, pages 63+:
