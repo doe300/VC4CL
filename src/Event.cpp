@@ -20,6 +20,11 @@ NoAction::~NoAction() {}
 Event::Event(Context* context, cl_int status, CommandType type) :
     HasContext(context), type(type), queue(nullptr), status(status), userStatusSet(false)
 {
+    /*
+     * Since we set the initial status for user events here to CL_SUBMITTED, we will never gather profiling information
+     * for them.
+     * This is okay, since according to OpenCL 1.2, section 5.12 user-events cannot be profiled anyway.
+     */
 }
 
 Event::~Event() {}
@@ -125,16 +130,23 @@ cl_int Event::waitFor() const
 {
     if(!checkReferences())
         return CL_INVALID_EVENT;
-    CHECK_COMMAND_QUEUE(queue.get())
+    if(type != CommandType::USER_COMMAND)
+    {
+        // not required by OpenCL standard, but guarantees we are not waiting on an event that is not scheduled. This
+        // does not count for user-events which are never scheduled in a command queue.
+        CHECK_COMMAND_QUEUE(queue.get())
+    }
 
-    for(Event* e : waitList)
+    for(auto& e : waitList)
     {
         if(e->waitFor() != CL_SUCCESS)
             return returnError(
                 CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST, __FILE__, __LINE__, "Error in event in wait-list");
     }
 
-    waitForEvent(this);
+    if(!isFinished())
+        // no need to lock the queue mutex if we are already done
+        waitForEvent(this);
     return status;
 }
 
@@ -151,13 +163,15 @@ cl_int Event::getStatus() const
     return status;
 }
 
-void Event::fireCallbacks()
+void Event::fireCallbacks(cl_int previousStatus)
 {
     for(const auto& callback : callbacks)
     {
-        if(status <= std::get<0>(callback))
+        if(previousStatus > std::get<0>(callback) && status <= std::get<0>(callback))
             //"The registered callback function will be called when the execution status of command associated with
             // event changes to an execution status equal to or past the status specified by command_exec_status"
+            // we additionally check for previous status being "less advanced" than the expected one to make sure the
+            // callback is only called once (when the status "passes by" the expected status).
             std::get<1>(callback)(toBase(), status, std::get<2>(callback));
     }
 }
@@ -165,6 +179,10 @@ void Event::fireCallbacks()
 void Event::updateStatus(cl_int status, bool fireCallbacks)
 {
     std::lock_guard<std::mutex> guard(statusLock);
+    if(status == this->status)
+        // don't repeat setting status, e.g. required in queue handler, if events on wait list are not done yet
+        return;
+    auto oldStatus = this->status;
     this->status = status;
     if(status == CL_SUBMITTED)
         setTime(profile.submit_time);
@@ -173,7 +191,7 @@ void Event::updateStatus(cl_int status, bool fireCallbacks)
     else
         setTime(profile.end_time);
     if(fireCallbacks)
-        this->fireCallbacks();
+        this->fireCallbacks(oldStatus);
 }
 
 CommandQueue* Event::getCommandQueue()
@@ -206,7 +224,7 @@ void Event::setEventWaitList(cl_uint numEvents, const cl_event* events)
     for(cl_uint i = 0; i < numEvents; ++i)
     {
         Event* e = toType<Event>(events[i]);
-        waitList.push_back(e);
+        waitList.push_back(object_wrapper<Event>{e});
     }
 }
 
@@ -225,6 +243,20 @@ cl_int Event::setAsResultOrRelease(cl_int condition, cl_event* event)
     }
     // need to release once if the event is not used by the caller, since otherwise it cannot be completely freed
     return release();
+}
+
+WaitListStatus Event::getWaitListStatus() const
+{
+    // checks wait list, whether they all have finished and return if it was successfully
+    for(const auto& event : waitList)
+    {
+        auto st = event->getStatus();
+        if(st < 0)
+            return WaitListStatus::ERROR;
+        if(st != CL_COMPLETE)
+            return WaitListStatus::PENDING;
+    }
+    return WaitListStatus::FINISHED;
 }
 
 void Event::setTime(cl_ulong& field)
@@ -260,7 +292,7 @@ cl_event VC4CL_FUNC(clCreateUserEvent)(cl_context context, cl_int* errcode_ret)
     CHECK_CONTEXT_ERROR_CODE(toType<Context>(context), errcode_ret, cl_event)
     Event* event = newOpenCLObject<Event>(toType<Context>(context), CL_SUBMITTED, CommandType::USER_COMMAND);
     CHECK_ALLOCATION_ERROR_CODE(event, errcode_ret, cl_event)
-    return event->toBase();
+    RETURN_OBJECT(event->toBase(), errcode_ret)
 }
 
 /*!
@@ -317,32 +349,24 @@ cl_int VC4CL_FUNC(clWaitForEvents)(cl_uint num_events, const cl_event* event_lis
     if(num_events == 0 || event_list == nullptr)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "No events to wait for!");
 
-    for(cl_uint i = 0; i < num_events; ++i)
-        CHECK_EVENT(toType<Event>(event_list[i]))
-
+    CHECK_EVENT(toType<Event>(event_list[0]))
     Context* context = toType<Event>(event_list[0])->context();
-    bool all_completed = true;
-    for(cl_uint i = 0; i < num_events; ++i)
+
+    // first event is already checked above
+    for(cl_uint i = 1; i < num_events; ++i)
     {
         CHECK_EVENT(toType<Event>(event_list[i]))
         if(toType<Event>(event_list[i])->context() != context)
             return returnError(CL_INVALID_CONTEXT, __FILE__, __LINE__, "Contexts of events do not match!");
-        if(toType<Event>(event_list[i])->getStatus() < 0)
-            return returnError(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST, __FILE__, __LINE__,
-                buildString("Event has already errored with status: %d", toType<Event>(event_list[i])->getStatus()));
-        if(!toType<Event>(event_list[i])->isFinished())
-            all_completed = false;
     }
 
     bool with_errors = false;
-    if(!all_completed)
+    // wait for completion
+    // in any case (error or not), we need to walk through all events to make sure they are all finished.
+    for(cl_uint i = 0; i < num_events; ++i)
     {
-        // wait for completion
-        for(cl_uint i = 0; i < num_events; ++i)
-        {
-            if(toType<Event>(event_list[i])->waitFor() != CL_COMPLETE)
-                with_errors = true;
-        }
+        if(toType<Event>(event_list[i])->waitFor() != CL_COMPLETE)
+            with_errors = true;
     }
     return with_errors ?
         returnError(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST, __FILE__, __LINE__, "Error in event in wait-list!") :

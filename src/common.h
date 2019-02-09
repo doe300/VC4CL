@@ -52,7 +52,7 @@ namespace vc4cl
 
     template <typename T>
     CHECK_RETURN inline T returnError(
-        cl_int error, cl_int* errcode_ret, const std::string& file, unsigned line, const std::string& reason)
+        cl_int error, cl_int* errcode_ret, const char* file, unsigned line, const std::string& reason)
     {
 #ifdef DEBUG_MODE
         LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ":" << reason
@@ -63,8 +63,7 @@ namespace vc4cl
         return nullptr;
     }
 
-    CHECK_RETURN inline cl_int returnError(
-        cl_int error, const std::string& file, unsigned line, const std::string& reason)
+    CHECK_RETURN inline cl_int returnError(cl_int error, const char* file, unsigned line, const std::string& reason)
     {
 #ifdef DEBUG_MODE
         LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ":" << reason
@@ -73,8 +72,11 @@ namespace vc4cl
         return error;
     }
 
-    inline void ignoreReturnValue(
-        cl_int state, const std::string& file, unsigned line, const std::string& reasonForIgnoring)
+#ifndef DEBUG_MODE
+    constexpr
+#endif
+        inline void
+        ignoreReturnValue(cl_int state, const char* file, unsigned line, const char* reasonForIgnoring)
     {
     // used to hide warnings of unused return-values
     // the reason is for documentation only

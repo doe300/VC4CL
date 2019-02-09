@@ -66,6 +66,16 @@ namespace vc4cl
         cl_ulong end_time = 0;
     };
 
+    enum class WaitListStatus
+    {
+        // there was an error in one of the events in the wait list
+        ERROR,
+        // the wait list is not yet finished completely
+        PENDING,
+        // all events in the wait list have finished successfully
+        FINISHED
+    };
+
     struct EventAction
     {
         explicit EventAction() = default;
@@ -129,12 +139,12 @@ namespace vc4cl
         CHECK_RETURN cl_int waitFor() const;
         bool isFinished() const __attribute__((pure));
         cl_int getStatus() const __attribute__((pure));
-        void fireCallbacks();
         void updateStatus(cl_int status, bool fireCallbacks = true);
         CommandQueue* getCommandQueue() __attribute__((pure));
         CHECK_RETURN cl_int prepareToQueue(CommandQueue* queue);
         void setEventWaitList(cl_uint numEvents, const cl_event* events);
         CHECK_RETURN cl_int setAsResultOrRelease(cl_int condition, cl_event* event);
+        WaitListStatus getWaitListStatus() const;
 
         const CommandType type;
         std::unique_ptr<EventAction> action;
@@ -149,9 +159,13 @@ namespace vc4cl
 
         EventProfile profile;
         void setTime(cl_ulong& field);
+        void fireCallbacks(cl_int previousStatus);
 
         std::vector<std::tuple<cl_int, EventCallback, void*>> callbacks;
-        std::vector<Event*> waitList;
+        // This keeps all wait-list events alive until this event is released, but guarantees they are alive as long
+        // as we need them.
+        // TODO can we clear this list after the event has been scheduled to allow the other events to be released?
+        std::vector<object_wrapper<Event>> waitList;
 
         friend class CommandQueue;
     };
