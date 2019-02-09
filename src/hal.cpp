@@ -22,17 +22,33 @@
 // TODO emulate OpenCL-CTS with asan?
 
 static bool isQPUEnabled = false;
-static std::vector<std::vector<uint8_t>> allocatedMemory;
 
-// in combination with truncating the 2 upper bits in V3D::busAddressToPhysicalAddress, this leaves us with 32
-// possible buffers of 32 MB each
-static constexpr uint32_t INDEX_OFFSET = 25;
+// in combination with truncating the 2 upper bits in V3D::busAddressToPhysicalAddress, this leaves us with 128
+// possible buffers of 8 MB each
+static constexpr uint32_t INDEX_OFFSET = 23;
 static constexpr uint32_t ADDRESS_MASK = (1 << INDEX_OFFSET) - 1;
+static std::array<std::vector<uint8_t>, 1 << (30 - INDEX_OFFSET)> allocatedMemory;
 static vc4cl::WordWrapper completedPrograms{0, [](uint32_t val) -> uint32_t {
                                                 // XXX actually only some values clear the counter(s!), but we always
                                                 // write these values anyway
                                                 return 0;
                                             }};
+struct LeakCheck
+{
+    ~LeakCheck()
+    {
+        for(unsigned i = 0; i < allocatedMemory.size(); ++i)
+        {
+            if(!allocatedMemory[i].empty())
+                std::cerr << "Device-Buffer is not freed: 0x" << std::hex << (i << INDEX_OFFSET) << std::dec << " with "
+                          << allocatedMemory[i].size() << " bytes" << std::endl;
+        }
+    }
+};
+
+// this variable is deininitialzed on program exit before allocatedMemory and therefore can check for still alive
+// buffers
+static LeakCheck leakCheck;
 
 void bcm_host_init()
 {
@@ -144,9 +160,15 @@ int vc4cl::ioctl_mailbox(int fd, unsigned long request, void* data)
         {
             // look for the first empty buffer and re-use
             auto it = std::find(allocatedMemory.begin(), allocatedMemory.end(), std::vector<uint8_t>{});
-            it = allocatedMemory.emplace(it, std::vector<uint8_t>(buffer[5], 0));
-            // cannot start with index 0, since 0 is considered an error
-            buffer[5] = (it - allocatedMemory.begin()) + 1;
+            if(it != allocatedMemory.end())
+            {
+                *it = std::vector<uint8_t>(buffer[5], 0);
+                // cannot start with index 0, since 0 is considered an error
+                buffer[5] = (it - allocatedMemory.begin()) + 1;
+            }
+            else
+                // no more free buffers
+                buffer[5] = 0;
         }
         break;
     case MailboxTag::ARM_MEMORY:
@@ -199,9 +221,7 @@ int vc4cl::ioctl_mailbox(int fd, unsigned long request, void* data)
         break;
     case MailboxTag::RELEASE_MEMORY:
         // uses index + 1, see ALLOCATE_MEMORY
-        // FIXME boost compute has a lot of issues with using freed memory
-        // Is this fault of VC4CL or boost tests?
-        // TODO allocatedMemory[buffer[5] - 1].clear();
+        allocatedMemory[buffer[5] - 1].clear();
         buffer[5] = 0;
         break;
     case MailboxTag::UNLOCK_MEMORY:
