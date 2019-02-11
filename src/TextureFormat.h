@@ -67,7 +67,7 @@ namespace vc4cl
         explicit TextureAccessor(Image& image);
     };
 
-    struct TFormatAccessor : public TextureAccessor
+    struct TFormatAccessor final : public TextureAccessor
     {
     public:
         explicit TFormatAccessor(Image& image);
@@ -78,7 +78,7 @@ namespace vc4cl
             __attribute__((pure));
     };
 
-    struct LTFormatAccessor : public TextureAccessor
+    struct LTFormatAccessor final : public TextureAccessor
     {
     public:
         explicit LTFormatAccessor(Image& image);
@@ -89,7 +89,7 @@ namespace vc4cl
             void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const override;
     };
 
-    struct RasterFormatAccessor : public TextureAccessor
+    struct RasterFormatAccessor final : public TextureAccessor
     {
     public:
         explicit RasterFormatAccessor(Image& image);

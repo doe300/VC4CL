@@ -88,7 +88,7 @@ namespace vc4cl
             return referenceCount;
         }
 
-        void* getBasePointer() override
+        void* getBasePointer() override final
         {
             return reinterpret_cast<void*>(&base);
         }

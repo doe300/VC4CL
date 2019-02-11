@@ -23,7 +23,7 @@ namespace vc4cl
         INITIALIZE_MEMORY = 4,
     };
 
-    class Context : public Object<_cl_context, CL_INVALID_CONTEXT>
+    class Context final : public Object<_cl_context, CL_INVALID_CONTEXT>
     {
     public:
         Context(const Device* device, bool userSync, cl_context_properties memoryToZeroOut, const Platform* platform,
@@ -52,8 +52,7 @@ namespace vc4cl
     class HasContext
     {
     public:
-        explicit HasContext(Context* context);
-        virtual ~HasContext();
+        explicit HasContext(Context* context) : c(context) {};
 
         const Context* context() const __attribute__((pure));
         Context* context() __attribute__((pure));

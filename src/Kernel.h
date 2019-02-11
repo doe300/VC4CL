@@ -62,7 +62,7 @@ namespace vc4cl
         }
     };
 
-    class Kernel : public Object<_cl_kernel, CL_INVALID_KERNEL>
+    class Kernel final : public Object<_cl_kernel, CL_INVALID_KERNEL>
     {
     public:
         Kernel(Program* program, const KernelInfo& info);
@@ -86,7 +86,7 @@ namespace vc4cl
         std::bitset<kernel_config::MAX_PARAMETER_COUNT> argsSetMask;
     };
 
-    struct KernelExecution : public EventAction
+    struct KernelExecution final : public EventAction
     {
         object_wrapper<Kernel> kernel;
         cl_uchar numDimensions;
@@ -97,7 +97,7 @@ namespace vc4cl
         explicit KernelExecution(Kernel* kernel);
         ~KernelExecution() override = default;
 
-        cl_int operator()() override;
+        cl_int operator()() override final;
     };
 
 } /* namespace vc4cl */

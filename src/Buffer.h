@@ -18,7 +18,7 @@
 
 namespace vc4cl
 {
-    using BufferCallback = void(CL_CALLBACK*)(cl_mem event, void* user_data);
+    using BufferDestructionCallback = void(CL_CALLBACK*)(cl_mem event, void* user_data);
 
     class Image;
     struct BufferMapping;
@@ -55,7 +55,7 @@ namespace vc4cl
         CHECK_RETURN void* enqueueMap(CommandQueue* commandQueue, bool blockingMap, cl_map_flags mapFlags,
             size_t offset, size_t size, cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event,
             cl_int* errcode_ret);
-        CHECK_RETURN cl_int setDestructorCallback(BufferCallback callback, void* userData);
+        CHECK_RETURN cl_int setDestructorCallback(BufferDestructionCallback callback, void* userData);
         CHECK_RETURN cl_int enqueueUnmap(CommandQueue* commandQueue, void* mappedPtr, cl_uint numEventsInWaitList,
             const cl_event* waitList, cl_event* event);
         CHECK_RETURN virtual cl_int getInfo(
@@ -92,7 +92,7 @@ namespace vc4cl
         // the actual size of the buffer, can be less than the device-buffer size (e.g. for sub-buffers)
         size_t hostSize = 0;
 
-        std::vector<std::pair<BufferCallback, void*>> callbacks;
+        std::vector<std::pair<BufferDestructionCallback, void*>> callbacks;
 
         object_wrapper<Buffer> parent;
         size_t offset = 0;
@@ -112,7 +112,7 @@ namespace vc4cl
 
         BufferMapping(Buffer* buffer, void* hostPtr, bool unmap);
 
-        cl_int operator()() override;
+        cl_int operator()() override final;
     };
 
     struct BufferAccess : public EventAction
@@ -129,7 +129,7 @@ namespace vc4cl
         cl_int operator()() override;
     };
 
-    struct BufferRectAccess : public BufferAccess
+    struct BufferRectAccess final : public BufferAccess
     {
         std::array<std::size_t, 3> region;
         std::array<std::size_t, 3> bufferOrigin;
@@ -141,10 +141,10 @@ namespace vc4cl
 
         BufferRectAccess(Buffer* buffer, void* hostPtr, const std::size_t region[3], bool writeBuffer);
 
-        cl_int operator()() override;
+        cl_int operator()() override final;
     };
 
-    struct BufferFill : public EventAction
+    struct BufferFill final : public EventAction
     {
         object_wrapper<Buffer> buffer;
         std::size_t bufferOffset;
@@ -153,10 +153,10 @@ namespace vc4cl
 
         BufferFill(Buffer* buffer, const void* pattern, std::size_t patternSize, std::size_t numBytes);
 
-        cl_int operator()() override;
+        cl_int operator()() override final;
     };
 
-    struct BufferCopy : public EventAction
+    struct BufferCopy final : public EventAction
     {
         object_wrapper<Buffer> sourceBuffer;
         std::size_t sourceOffset;
@@ -166,10 +166,10 @@ namespace vc4cl
 
         BufferCopy(Buffer* src, Buffer* dest, std::size_t numBytes);
 
-        cl_int operator()() override;
+        cl_int operator()() override final;
     };
 
-    struct BufferRectCopy : public EventAction
+    struct BufferRectCopy final : public EventAction
     {
         object_wrapper<Buffer> sourceBuffer;
         object_wrapper<Buffer> destBuffer;
@@ -183,7 +183,7 @@ namespace vc4cl
 
         BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t region[3]);
 
-        cl_int operator()() override;
+        cl_int operator()() override final;
     };
 
 } /* namespace vc4cl */

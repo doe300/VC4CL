@@ -11,7 +11,7 @@
 
 namespace vc4cl
 {
-    class Platform : public Object<_cl_platform_id, CL_INVALID_PLATFORM>
+    class Platform final : public Object<_cl_platform_id, CL_INVALID_PLATFORM>
     {
     public:
         Platform(const Platform&) = delete;

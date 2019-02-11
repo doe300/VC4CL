@@ -475,7 +475,7 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
     RETURN_OBJECT(reinterpret_cast<void*>(out_ptr), errcode_ret)
 }
 
-cl_int Buffer::setDestructorCallback(BufferCallback callback, void* userData)
+cl_int Buffer::setDestructorCallback(BufferDestructionCallback callback, void* userData)
 {
     if(callback == nullptr)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot set a NULL callback!");

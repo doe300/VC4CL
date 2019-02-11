@@ -86,10 +86,6 @@ bool Context::initializeMemoryToZero(cl_context_properties memoryType) const
     return (explicitProperties & ContextProperty::INITIALIZE_MEMORY) != 0 && (memoryToInitialize & memoryType) != 0;
 }
 
-HasContext::HasContext(Context* context) : c(context) {}
-
-HasContext::~HasContext() {}
-
 const Context* HasContext::context() const
 {
     return c.get();

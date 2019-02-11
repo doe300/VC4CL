@@ -12,7 +12,7 @@ namespace vc4cl
 {
     class Event;
 
-    class CommandQueue : public Object<_cl_command_queue, CL_INVALID_COMMAND_QUEUE>, public HasContext
+    class CommandQueue final : public Object<_cl_command_queue, CL_INVALID_COMMAND_QUEUE>, public HasContext
     {
     public:
         CommandQueue(Context* context, bool outOfOrderExecution, bool profiling);

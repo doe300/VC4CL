@@ -12,7 +12,7 @@
 
 namespace vc4cl
 {
-    class PerformanceCounter : public Object<_cl_counter_vc4cl, CL_INVALID_PERFORMANCE_COUNTER_VC4CL>
+    class PerformanceCounter final : public Object<_cl_counter_vc4cl, CL_INVALID_PERFORMANCE_COUNTER_VC4CL>
     {
     public:
         PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index);

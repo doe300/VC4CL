@@ -93,14 +93,14 @@ namespace vc4cl
     /*
      * Event source to run a custom function
      */
-    struct CustomAction : public EventAction
+    struct CustomAction final : public EventAction
     {
         const std::function<cl_int()> func;
 
         explicit CustomAction(const std::function<cl_int()>& callback) : func(callback) {}
         ~CustomAction() override;
 
-        cl_int operator()() override
+        cl_int operator()() override final
         {
             return func();
         }
@@ -109,13 +109,13 @@ namespace vc4cl
     /*
      * Event source doing nothing, just returns the given status
      */
-    struct NoAction : public EventAction
+    struct NoAction final : public EventAction
     {
         const cl_int status;
         explicit NoAction(cl_int status = CL_SUCCESS) : status(status) {}
         ~NoAction() override;
 
-        cl_int operator()() override
+        cl_int operator()() override final
         {
             return status;
         }
@@ -123,7 +123,7 @@ namespace vc4cl
 
     using EventCallback = void(CL_CALLBACK*)(cl_event event, cl_int event_command_exec_status, void* user_data);
 
-    class Event : public Object<_cl_event, CL_INVALID_EVENT>, public HasContext
+    class Event final : public Object<_cl_event, CL_INVALID_EVENT>, public HasContext
     {
     public:
         Event(Context* context, cl_int status, CommandType type);

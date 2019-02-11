@@ -13,7 +13,7 @@ namespace vc4cl
 {
     class Platform;
 
-    class Device : public Object<_cl_device_id, CL_INVALID_DEVICE>
+    class Device  final: public Object<_cl_device_id, CL_INVALID_DEVICE>
     {
     public:
         ~Device() override;

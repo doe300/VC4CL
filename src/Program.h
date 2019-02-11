@@ -190,7 +190,7 @@ namespace vc4cl
 
     using BuildCallback = void(CL_CALLBACK*)(cl_program program, void* user_data);
 
-    class Program : public Object<_cl_program, CL_INVALID_PROGRAM>, public HasContext
+    class Program final : public Object<_cl_program, CL_INVALID_PROGRAM>, public HasContext
     {
     public:
         Program(Context* context, const std::vector<char>& code, CreationType type);

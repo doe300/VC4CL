@@ -97,7 +97,7 @@ namespace vc4cl
     static constexpr ImageType IMAGE_2D_ARRAY(CL_MEM_OBJECT_IMAGE2D_ARRAY, 2, false, true);
     static constexpr ImageType IMAGE_3D(CL_MEM_OBJECT_IMAGE3D, 3);
 
-    class Image : public Buffer
+    class Image final : public Buffer
     {
     public:
         Image(Context* context, cl_mem_flags flags, const cl_image_format& imageFormat,
@@ -105,8 +105,8 @@ namespace vc4cl
 
         CHECK_RETURN cl_int getImageInfo(
             cl_image_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
-        CHECK_RETURN cl_int getInfo(
-            cl_mem_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) override;
+        CHECK_RETURN cl_int getInfo(cl_mem_info param_name, size_t param_value_size, void* param_value,
+            size_t* param_value_size_ret) override final;
 
         CHECK_RETURN cl_int enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, const size_t* origin,
             const size_t* region, size_t row_pitch, size_t slice_pitch, void* ptr, cl_uint numEventsInWaitList,
@@ -149,7 +149,7 @@ namespace vc4cl
         CHECK_RETURN cl_int checkImageSlices(const size_t* region, size_t row_pitch, size_t slice_pitch) const;
     };
 
-    class Sampler : public Object<_cl_sampler, CL_INVALID_SAMPLER>, public HasContext
+    class Sampler final : public Object<_cl_sampler, CL_INVALID_SAMPLER>, public HasContext
     {
     public:
         Sampler(Context* context, bool normalizeCoords, cl_addressing_mode addressingMode, cl_filter_mode filterMode);
@@ -164,7 +164,7 @@ namespace vc4cl
         cl_filter_mode filter_mode;
     };
 
-    struct ImageAccess : public EventAction
+    struct ImageAccess final : public EventAction
     {
         object_wrapper<Image> image;
         void* hostPointer;
@@ -177,10 +177,10 @@ namespace vc4cl
         ImageAccess(
             Image* image, void* hostPtr, bool writeImage, const std::size_t origin[3], const std::size_t region[3]);
 
-        cl_int operator()() override;
+        cl_int operator()() override final;
     };
 
-    struct ImageCopy : public EventAction
+    struct ImageCopy final : public EventAction
     {
         object_wrapper<Image> source;
         object_wrapper<Image> destination;
@@ -191,10 +191,10 @@ namespace vc4cl
         ImageCopy(Image* src, Image* dst, const std::size_t srcOrigin[3], const std::size_t dstOrigin[3],
             const std::size_t region[3]);
 
-        cl_int operator()() override;
+        cl_int operator()() override final;
     };
 
-    struct ImageFill : public EventAction
+    struct ImageFill final : public EventAction
     {
         object_wrapper<Image> image;
         std::array<size_t, 3> origin;
@@ -203,10 +203,10 @@ namespace vc4cl
 
         ImageFill(Image* img, const void* color, const std::size_t origin[3], const std::size_t region[3]);
 
-        cl_int operator()() override;
+        cl_int operator()() override final;
     };
 
-    struct ImageCopyBuffer : public EventAction
+    struct ImageCopyBuffer final : public EventAction
     {
         object_wrapper<Image> image;
         object_wrapper<Buffer> buffer;
@@ -218,10 +218,10 @@ namespace vc4cl
         ImageCopyBuffer(Image* image, Buffer* buffer, bool copyIntoImage, const std::size_t imgOrigin[3],
             const std::size_t region[3], size_t bufferOffset);
 
-        cl_int operator()() override;
+        cl_int operator()() override final;
     };
 
-    struct ImageMapping : public BufferMapping
+    struct ImageMapping final : public BufferMapping
     {
         std::array<size_t, 3> origin;
         std::array<size_t, 3> region;
