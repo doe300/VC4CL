@@ -12,8 +12,8 @@
 
 using namespace vc4cl;
 
-static const size_t NAME_LENGTH = 24;
-static const size_t VAL_LENGTH = 16;
+static constexpr size_t NAME_LENGTH = 24;
+static constexpr size_t VAL_LENGTH = 16;
 
 static void checkResult(bool result)
 {

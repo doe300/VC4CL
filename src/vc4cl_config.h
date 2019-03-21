@@ -23,7 +23,11 @@ namespace vc4cl
         static const std::string OPENCL_VERSION = "1.2";
         //#define VC4CL_VERSION is set via CMake
         static const std::string VC4CL_VERSION = VC4CL_LIBRARY_VERSION;
+#if defined(MOCK_HAL) && MOCK_HAL
+        static const std::string NAME = "OpenCL for the Raspberry Pi VideoCore IV GPU (emulated)";
+#else
         static const std::string NAME = "OpenCL for the Raspberry Pi VideoCore IV GPU";
+#endif
         static const std::string VENDOR = "doe300";
         // we can't have FULL_PROFILE, since e.g. long is not supported
         static const std::string PROFILE = "EMBEDDED_PROFILE";
@@ -58,7 +62,11 @@ namespace vc4cl
      */
     namespace device_config
     {
+#if defined(MOCK_HAL) && MOCK_HAL
+        static const std::string NAME = "VideoCore IV GPU (emulated)";
+#else
         static const std::string NAME = "VideoCore IV GPU";
+#endif
         static const std::string VENDOR = "Broadcom";
         static constexpr cl_uint VENDOR_ID = 0x0A5C;
         static const std::string COMPILER_VERSION = std::string("OpenCL C ") + platform_config::OPENCL_VERSION + " ";

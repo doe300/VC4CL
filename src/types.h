@@ -19,7 +19,7 @@ struct _cl_object
 {
     vc4cl_icd_dispatch void* object;
 
-    explicit _cl_object(void* object) : object(object)
+    explicit _cl_object(void* object) noexcept : object(object)
     {
         static_assert(!std::is_copy_constructible<_cl_object>::value, "VC4CL objects can't be copied!");
         static_assert(!std::is_move_constructible<_cl_object>::value, "VC4CL objects can't be moved!");

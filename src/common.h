@@ -95,7 +95,7 @@ namespace vc4cl
     }
 
     template <typename T, typename Src>
-    CHECK_RETURN inline T* toType(Src* ptr)
+    CHECK_RETURN inline T* toType(Src* ptr) noexcept
     {
         if(ptr == nullptr)
             return nullptr;
@@ -199,25 +199,25 @@ namespace vc4cl
     // OTHER HELPERS
     //
     template <typename T>
-    constexpr bool exceedsLimits(const T val, const T min, const T max)
+    constexpr bool exceedsLimits(const T val, const T min, const T max) noexcept
     {
         return val < min || val > max;
     }
 
     template <typename T>
-    constexpr bool hasFlag(const T val, const T flag)
+    constexpr bool hasFlag(const T val, const T flag) noexcept
     {
         return val & flag;
     }
 
-    constexpr bool moreThanOneMemoryAccessFlagSet(cl_mem_flags flags)
+    constexpr bool moreThanOneMemoryAccessFlagSet(cl_mem_flags flags) noexcept
     {
         return (static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_WRITE_ONLY)) +
                    static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_READ_ONLY)) +
                    static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_READ_WRITE))) > 1;
     }
 
-    constexpr bool moreThanOneHostAccessFlagSet(cl_mem_flags flags)
+    constexpr bool moreThanOneHostAccessFlagSet(cl_mem_flags flags) noexcept
     {
         return (static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_WRITE_ONLY)) +
                    static_cast<unsigned>(hasFlag<cl_mem_flags>(flags, CL_MEM_HOST_READ_ONLY)) +

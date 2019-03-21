@@ -22,7 +22,7 @@ namespace vc4cl
     class BaseObject
     {
     public:
-        explicit BaseObject(const char* const typeName) : typeName(typeName), referenceCount(1)
+        explicit BaseObject(const char* const typeName) noexcept : typeName(typeName), referenceCount(1)
         {
             // reference-count is implicitly retained
         }
@@ -68,22 +68,22 @@ namespace vc4cl
             return CL_SUCCESS;
         }
 
-        BaseType* toBase()
+        BaseType* toBase() noexcept
         {
             return &base;
         }
 
-        const BaseType* toBase() const
+        const BaseType* toBase() const noexcept
         {
             return &base;
         }
 
-        inline bool checkReferences() const
+        inline bool checkReferences() const noexcept
         {
             return referenceCount > 0;
         }
 
-        inline cl_uint getReferences() const
+        inline cl_uint getReferences() const noexcept
         {
             return referenceCount;
         }
@@ -103,7 +103,7 @@ namespace vc4cl
     struct object_wrapper
     {
     public:
-        constexpr object_wrapper() : ref(nullptr) {}
+        constexpr object_wrapper() noexcept : ref(nullptr) {}
 
         explicit object_wrapper(T* object) : ref(object)
         {
@@ -151,27 +151,27 @@ namespace vc4cl
             return *this;
         }
 
-        T* get()
+        T* get() noexcept
         {
             return ref;
         }
 
-        const T* get() const
+        const T* get() const noexcept
         {
             return ref;
         }
 
-        T* operator->()
+        T* operator->() noexcept
         {
             return ref;
         }
 
-        const T* operator->() const
+        const T* operator->() const noexcept
         {
             return ref;
         }
 
-        explicit operator bool() const
+        explicit operator bool() const noexcept
         {
             return ref != nullptr;
         }
@@ -200,7 +200,7 @@ namespace vc4cl
     };
 
     template <typename T, typename... Args>
-    CHECK_RETURN inline T* newOpenCLObject(Args... args)
+    CHECK_RETURN inline T* newOpenCLObject(Args... args) noexcept
     {
         try
         {
