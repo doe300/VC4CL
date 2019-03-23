@@ -69,10 +69,13 @@ find_program(
 
 if(CLANG_FORMAT_PATH)
 	message (STATUS "found clang-format: ${CLANG_FORMAT_PATH}")
+	get_target_property(VC4CL_SRCS VC4CL SOURCES)
 	add_custom_target(
 		clang-format
 		COMMAND ${CLANG_FORMAT_PATH}
-		-i ${SRCS} ${HDRS}
+		-i ${VC4CL_SRCS}
+		WORKING_DIRECTORY
+		${CMAKE_CURRENT_SOURCE_DIR}
 	)
 else()
   message (WARNING "clang-format not found: strongly recommend to use it before commit!")

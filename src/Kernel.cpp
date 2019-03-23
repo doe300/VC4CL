@@ -15,46 +15,34 @@ using namespace vc4cl;
 
 extern cl_int executeKernel(KernelExecution&);
 
-static_assert(sizeof(KernelArgument::ScalarValue) == sizeof(uint32_t), "ScalarValue has wrong size!");
+static_assert(sizeof(ScalarArgument::ScalarValue) == sizeof(uint32_t), "ScalarValue has wrong size!");
 
-void KernelArgument::addScalar(const float f)
+KernelArgument::~KernelArgument() noexcept {}
+
+ScalarArgument::~ScalarArgument() noexcept {}
+
+void ScalarArgument::addScalar(const float f)
 {
     ScalarValue v;
     v.setFloat(f);
     scalarValues.push_back(v);
 }
 
-void KernelArgument::addScalar(const uint32_t u)
+void ScalarArgument::addScalar(const uint32_t u)
 {
     ScalarValue v;
     v.setUnsigned(u);
     scalarValues.push_back(v);
 }
 
-void KernelArgument::addScalar(const int32_t s)
+void ScalarArgument::addScalar(const int32_t s)
 {
     ScalarValue v;
     v.setSigned(s);
     scalarValues.push_back(v);
 }
 
-void KernelArgument::addScalar(DevicePointer ptr)
-{
-    ScalarValue v;
-    v.setUnsigned(static_cast<uint32_t>(ptr));
-    scalarValues.push_back(v);
-}
-
-void KernelArgument::setDirectData(const void* data, std::size_t numBytes)
-{
-    while(numBytes % sizeof(ScalarValue) != 0)
-        ++numBytes;
-    scalarValues.resize(numBytes / sizeof(ScalarValue));
-    memcpy(scalarValues.data(), data, numBytes);
-    sizeToAllocate = static_cast<unsigned>(numBytes);
-}
-
-std::string KernelArgument::to_string() const
+std::string ScalarArgument::to_string() const
 {
     std::string res;
     for(const ScalarValue& v : scalarValues)
@@ -62,6 +50,20 @@ std::string KernelArgument::to_string() const
         res += std::to_string(v.getUnsigned()) + ", ";
     }
     return res.substr(0, res.length() - 2);
+}
+
+TemporaryBufferArgument::~TemporaryBufferArgument() noexcept {}
+
+std::string TemporaryBufferArgument::to_string() const
+{
+    return "temporary buffer" + (data.empty() ? "" : (" (with " + std::to_string(data.size()) + " bytes of data)"));
+}
+
+BufferArgument::~BufferArgument() noexcept {}
+
+std::string BufferArgument::to_string() const
+{
+    return std::to_string(buffer ? static_cast<unsigned>(buffer->deviceBuffer->qpuPointer) : 0);
 }
 
 Kernel::Kernel(Program* program, const KernelInfo& info) : program(program), info(info), argsSetMask(0)
@@ -89,7 +91,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
     }
 
     // clear previous set parameter value
-    args[arg_index] = KernelArgument();
+    args[arg_index].reset();
 
     const ParamInfo& paramInfo = info.params[arg_index];
     if(!paramInfo.getPointer() || paramInfo.getByValue())
@@ -100,33 +102,35 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
             return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__,
                 buildString("Invalid arg size: %u, must be %d", arg_size, paramInfo.getSize()));
         }
+        if(paramInfo.getByValue())
+        {
+            // handle literal struct parameters which are treated on kernel-side as pointers
+            if(paramInfo.getVectorElements() > 1)
+            {
+                // there should be only 1 vector element
+                return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
+                    "Multiple vector elements for literal struct arguments are not supported");
+            }
+            args[arg_index].reset(new TemporaryBufferArgument(static_cast<unsigned>(arg_size), arg_value));
+        }
         const size_t elementSize = arg_size / paramInfo.getVectorElements();
+        ScalarArgument* scalarArg = new ScalarArgument(paramInfo.getVectorElements());
+        args[arg_index].reset(scalarArg);
         for(cl_uchar i = 0; i < paramInfo.getVectorElements(); ++i)
         {
-            if(paramInfo.getByValue())
-            {
-                // handle literal struct parameters which are treated on kernel-side as pointers
-                if(i != 0)
-                {
-                    // there should be only 1 vector element
-                    return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
-                        "Multiple vector elements for literal struct arguments are not supported");
-                }
-                args[arg_index].setDirectData(arg_value, arg_size);
-            }
             // arguments are all 32-bit, since UNIFORMS are always 32-bit
-            else if(elementSize == 1 /* [u]char-types */)
+            if(elementSize == 1 /* [u]char-types */)
             {
                 // expand 8-bit to 32-bit
                 if(!paramInfo.getFloatingType() && paramInfo.getSigned())
                 {
                     cl_int tmp = static_cast<const cl_char*>(arg_value)[i];
-                    args[arg_index].addScalar(tmp);
+                    scalarArg->addScalar(tmp);
                 }
                 else
                 {
                     cl_uint tmp = 0xFF & static_cast<const cl_uchar*>(arg_value)[i];
-                    args[arg_index].addScalar(tmp);
+                    scalarArg->addScalar(tmp);
                 }
             }
             else if(elementSize == 2 /* [u]short-types, also half */)
@@ -135,12 +139,12 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                 if(!paramInfo.getFloatingType() && paramInfo.getSigned())
                 {
                     cl_int tmp = static_cast<const cl_short*>(arg_value)[i];
-                    args[arg_index].addScalar(tmp);
+                    scalarArg->addScalar(tmp);
                 }
                 else
                 {
                     cl_uint tmp = 0xFFFF & static_cast<const cl_ushort*>(arg_value)[i];
-                    args[arg_index].addScalar(tmp);
+                    scalarArg->addScalar(tmp);
                 }
             }
             else if(elementSize > 4)
@@ -151,11 +155,12 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
             }
             else /* [u]int, float */
             {
-                args[arg_index].addScalar(static_cast<const cl_uint*>(arg_value)[i]);
+                scalarArg->addScalar(static_cast<const cl_uint*>(arg_value)[i]);
             }
         }
 #ifdef DEBUG_MODE
-        LOG(std::cout << "Setting kernel-argument " << arg_index << " to " << args[arg_index].to_string() << std::endl)
+        LOG(std::cout << "Setting kernel-argument " << arg_index << " to scalar " << args[arg_index]->to_string()
+                      << std::endl)
 #endif
     }
     else
@@ -169,7 +174,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
         //"If the argument is declared to be a pointer of a built-in scalar or vector type [...] the memory object
         // specified as argument value must be a buffer object (or NULL)"
         // -> no pointers to non-buffer objects are allowed! -> good, no extra checking required
-        DevicePointer pointer_arg(reinterpret_cast<uintptr_t>(nullptr));
+        Buffer* bufferArg = nullptr;
         if(arg_value != nullptr && *static_cast<const void* const*>(arg_value) != nullptr)
         {
             //"If the argument is a memory object, the size is the size of the buffer or image object type."
@@ -199,7 +204,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                 !toType<Buffer>(buffer)->writeable)
                 return returnError(
                     CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-writeable image as output parameter!");
-            pointer_arg = toType<Buffer>(buffer)->deviceBuffer->qpuPointer;
+            bufferArg = toType<Buffer>(buffer);
         }
         /*
          * For __local pointer parameters, the memory-area is not passed as cl_mem,
@@ -219,12 +224,12 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
             if(arg_size > std::numeric_limits<unsigned>::max() || arg_size > mailbox().getTotalGPUMemory())
                 return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
                     "The argument size for __local pointers exceeds the supported maximum!");
-            args[arg_index].sizeToAllocate = static_cast<unsigned>(arg_size);
+            args[arg_index].reset(new TemporaryBufferArgument(static_cast<unsigned>(arg_size)));
         }
-        args[arg_index].addScalar(pointer_arg);
+        else
+            args[arg_index].reset(new BufferArgument(bufferArg));
 #ifdef DEBUG_MODE
-        LOG(std::cout << "Setting kernel-argument " << arg_index << " to 0x" << std::hex << pointer_arg << std::dec
-                      << std::endl)
+        LOG(std::cout << "Setting kernel-argument " << arg_index << " to pointer 0x" << bufferArg << std::endl)
 #endif
     }
 
@@ -417,7 +422,7 @@ static cl_int split_global_work_size(const std::array<std::size_t, kernel_config
             // last, check whether the number of work-items in a work-group fits into the limit
             if(local_sizes[0] * local_sizes[1] * local_sizes[2] <= max_group_size)
             {
-            // we found an acceptable distribution
+                // we found an acceptable distribution
 #ifdef DEBUG_MODE
                 LOG(std::cout << "Splitting " << global_sizes[0] << " * " << global_sizes[1] << " * " << global_sizes[2]
                               << " work-items into " << local_sizes[0] << " * " << local_sizes[1] << " * "
@@ -547,6 +552,12 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
         }
     }
 
+    std::map<unsigned, std::unique_ptr<DeviceBuffer>> tmpBuffers;
+    std::map<unsigned, std::shared_ptr<DeviceBuffer>> persistentBuffers;
+    auto state = allocateAndTrackBufferArguments(tmpBuffers, persistentBuffers);
+    if(state != CL_SUCCESS)
+        return returnError(state, __FILE__, __LINE__, "Error while allocating and tracking buffer kernel arguments");
+
     Event* kernelEvent = newOpenCLObject<Event>(program->context(), CL_QUEUED, CommandType::KERNEL_NDRANGE);
     CHECK_ALLOCATION(kernelEvent)
 
@@ -556,12 +567,73 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
     source->globalOffsets = work_offsets;
     source->globalSizes = work_sizes;
     source->localSizes = local_sizes;
+    source->tmpBuffers = std::move(tmpBuffers);
+    source->persistentBuffers = std::move(persistentBuffers);
 
     kernelEvent->action.reset(source);
 
     kernelEvent->setEventWaitList(num_events_in_wait_list, event_wait_list);
     cl_int ret_val = commandQueue->enqueueEvent(kernelEvent);
     return kernelEvent->setAsResultOrRelease(ret_val, event);
+}
+
+CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
+    std::map<unsigned, std::unique_ptr<DeviceBuffer>>& tmpBuffers,
+    std::map<unsigned, std::shared_ptr<DeviceBuffer>>& persistentBuffers) const
+{
+    /*
+     * Allocate buffers for __local/struct parameters
+     *
+     * The buffers are automatically cleaned up with leaving this function
+     * and thus after the kernel has finished executing.
+     */
+
+    for(unsigned i = 0; i < args.size(); ++i)
+    {
+        const KernelArgument* arg = args.at(i).get();
+        if(auto localArg = dynamic_cast<const TemporaryBufferArgument*>(arg))
+        {
+            auto bufIt = tmpBuffers.emplace(i, mailbox().allocateBuffer(localArg->sizeToAllocate)).first;
+            if(!bufIt->second)
+                // failed to allocate the temporary buffer
+                return CL_OUT_OF_RESOURCES;
+            if(!localArg->data.empty())
+            {
+                // copy the parameter values to the buffer
+                memcpy(bufIt->second->hostPointer, localArg->data.data(),
+                    std::min(static_cast<unsigned>(localArg->data.size()), localArg->sizeToAllocate));
+            }
+            else if(program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR))
+            {
+                // we need to initialize the local memory to zero
+                memset(bufIt->second->hostPointer, '\0', localArg->sizeToAllocate);
+            }
+#ifdef DEBUG_MODE
+            LOG(std::cout << "Reserved " << localArg->sizeToAllocate << " bytes of buffer for local/struct parameter: "
+                          << kernel->info.params.at(i).type << " " << kernel->info.params.at(i).name << std::endl)
+#endif
+        }
+    }
+
+    /*
+     * Increasing reference counts for persistent/pre-existing device buffers
+     *
+     * The kernel execution needs to make sure the buffers used as parameters are not freed while the execution is
+     * running, see https://github.com/KhronosGroup/OpenCL-Docs/issues/45
+     */
+    for(unsigned i = 0; i < args.size(); ++i)
+    {
+        KernelArgument* arg = args.at(i).get();
+        if(auto bufferArg = dynamic_cast<BufferArgument*>(arg))
+        {
+            // NOTE: we cannot guarantee that the buffer still exists, but that is out of the scope of the OpenCL
+            // implementation (see issue referenced above).
+            if(bufferArg->buffer && !bufferArg->buffer->checkReferences())
+                return CL_INVALID_KERNEL_ARGS;
+            persistentBuffers.emplace(i, bufferArg->buffer->deviceBuffer);
+        }
+    }
+    return CL_SUCCESS;
 }
 
 KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), numDimensions(0) {}

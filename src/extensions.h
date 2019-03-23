@@ -10,7 +10,8 @@
 #include "common.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*
@@ -52,7 +53,8 @@ extern "C" {
 #ifndef CL_PROGRAM_IL_KHR
 #define CL_PROGRAM_IL_KHR CL_PROGRAM_IL
 #endif
-cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* il, size_t length, cl_int* errcode_ret);
+    cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(
+        cl_context context, const void* il, size_t length, cl_int* errcode_ret);
 
 /*
  * Khronos local and private memory initialization (cl_khr_initialize_memory)
@@ -81,10 +83,10 @@ cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* 
  */
 #ifndef cl_khr_create_command_queue
 #define cl_khr_create_command_queue 1
-typedef cl_bitfield cl_queue_properties_khr;
+    typedef cl_bitfield cl_queue_properties_khr;
 #endif
-cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithPropertiesKHR)(cl_context context, cl_device_id device,
-    const cl_queue_properties_khr* properties, cl_int* errcode_ret);
+    cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithPropertiesKHR)(
+        cl_context context, cl_device_id device, const cl_queue_properties_khr* properties, cl_int* errcode_ret);
 
 /*
  * Altera device temperature (cl_altera_device_temperature)
@@ -121,50 +123,50 @@ cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithPropertiesKHR)(cl_context co
 #define CL_VYUY_INTEL 0x4079
 #endif
 
-/*
- * Altera live object tracking (cl_altera_live_object_tracking)
- * https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_live_object_tracking.txt
- *
- * Introduces two new runtime-functions to track all currently allocated OpenCL objects
- *
- * Implementation and usage notes:
- *
- * - Also, the runtime may cause some objects to automatically retain other objects, so reference counts may be higher
- * than apparent from host program source code.
- */
+    /*
+     * Altera live object tracking (cl_altera_live_object_tracking)
+     * https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_live_object_tracking.txt
+     *
+     * Introduces two new runtime-functions to track all currently allocated OpenCL objects
+     *
+     * Implementation and usage notes:
+     *
+     * - Also, the runtime may cause some objects to automatically retain other objects, so reference counts may be
+     * higher than apparent from host program source code.
+     */
 
-/*!
- * Registers a future interest in enumerating all the live objects in the runtime API.
- * Registering such an interest may itself increase memory use and runtime, which is why is must be explicitly
- * requested.
- *
- * Behaviour is unspecified if the clTrackLiveObjectsAltera method is called before the the first call to
- * clGetPlatformIDs.
- */
-void VC4CL_FUNC(clTrackLiveObjectsAltera)(cl_platform_id platform);
-/*!
- * Requests an enumeration of all live objects in the runtime.  The enumeration is performed by calling the callback
- * function once for each live object in some implementation-defined sequence (i.e. not concurrently).
- *
- * The arguments to clReportLiveObjectsAltera are as follows:
- *
- * \param platform is the platform for which live objects are being tracked.
- *
- * \param report_fn is a callback function. It is called for every live object in the runtime. The arguments to the
- * callback function are:
- * - user_data is the user_data argument specified to clReportLiveObjectsAltera
- * - obj_ptr is a pointer to the live object, cast to type void*. (Note that all OpenCL API objects tracked are
- * type-defined in the OpenCL API header files to be pointers to implementation-defined structs.)
- * - type_name is a C string corresponding to the OpenCL API object type.  For example, a leaked cl_mem object will have
- * "cl_mem" as its type string.
- * - refcount is an instantaneous reference count for the object. Consider it to be immediately stale.
- *
- * \param user_data is a pointer to user supplied data.
- */
-void VC4CL_FUNC(clReportLiveObjectsAltera)(cl_platform_id platform,
-    void(CL_CALLBACK* report_fn)(
-        void* /* user_data */, void* /* obj_ptr */, const char* /* type_name */, cl_uint /* refcount */),
-    void* user_data);
+    /*!
+     * Registers a future interest in enumerating all the live objects in the runtime API.
+     * Registering such an interest may itself increase memory use and runtime, which is why is must be explicitly
+     * requested.
+     *
+     * Behaviour is unspecified if the clTrackLiveObjectsAltera method is called before the the first call to
+     * clGetPlatformIDs.
+     */
+    void VC4CL_FUNC(clTrackLiveObjectsAltera)(cl_platform_id platform);
+    /*!
+     * Requests an enumeration of all live objects in the runtime.  The enumeration is performed by calling the callback
+     * function once for each live object in some implementation-defined sequence (i.e. not concurrently).
+     *
+     * The arguments to clReportLiveObjectsAltera are as follows:
+     *
+     * \param platform is the platform for which live objects are being tracked.
+     *
+     * \param report_fn is a callback function. It is called for every live object in the runtime. The arguments to the
+     * callback function are:
+     * - user_data is the user_data argument specified to clReportLiveObjectsAltera
+     * - obj_ptr is a pointer to the live object, cast to type void*. (Note that all OpenCL API objects tracked are
+     * type-defined in the OpenCL API header files to be pointers to implementation-defined structs.)
+     * - type_name is a C string corresponding to the OpenCL API object type.  For example, a leaked cl_mem object will
+     * have "cl_mem" as its type string.
+     * - refcount is an instantaneous reference count for the object. Consider it to be immediately stale.
+     *
+     * \param user_data is a pointer to user supplied data.
+     */
+    void VC4CL_FUNC(clReportLiveObjectsAltera)(cl_platform_id platform,
+        void(CL_CALLBACK* report_fn)(
+            void* /* user_data */, void* /* obj_ptr */, const char* /* type_name */, cl_uint /* refcount */),
+        void* user_data);
 
 /*
  * ARM_core_id (cl_arm_core_id)
@@ -179,9 +181,9 @@ void VC4CL_FUNC(clReportLiveObjectsAltera)(cl_platform_id platform,
 #define CL_DEVICE_COMPUTE_UNITS_BITFIELD_ARM 0x40BF
 #endif
 
-/*
- * VC4CL performance counters (cl_vc4cl_performance_counters)
- */
+    /*
+     * VC4CL performance counters (cl_vc4cl_performance_counters)
+     */
 
 #define CL_COUNTER_IDLE_CYCLES_VC4CL 13
 #define CL_COUNTER_EXECUTION_CYCLES_VC4CL 16
@@ -197,45 +199,45 @@ void VC4CL_FUNC(clReportLiveObjectsAltera)(cl_platform_id platform,
 
 #define CL_INVALID_PERFORMANCE_COUNTER_VC4CL (-112)
 
-typedef cl_uchar cl_counter_type_vc4cl;
-typedef struct _cl_counter_vc4cl* cl_counter_vc4cl;
+    typedef cl_uchar cl_counter_type_vc4cl;
+    typedef struct _cl_counter_vc4cl* cl_counter_vc4cl;
 
-/*!
- * Initializes one of the system performance-counters to the type specified and
- * returns an object representing this counter. Returns NULL and sets errcode_ret on error
- */
-cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(
-    cl_device_id device, cl_counter_type_vc4cl counter_type, cl_int* errcode_ret);
-typedef CL_API_ENTRY cl_counter_vc4cl(CL_API_CALL* clCreatePerformanceCounterVC4CL_fn)(
-    cl_device_id device, cl_counter_type_vc4cl counter_type, cl_int* errcode_ret);
+    /*!
+     * Initializes one of the system performance-counters to the type specified and
+     * returns an object representing this counter. Returns NULL and sets errcode_ret on error
+     */
+    cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(
+        cl_device_id device, cl_counter_type_vc4cl counter_type, cl_int* errcode_ret);
+    typedef CL_API_ENTRY cl_counter_vc4cl(CL_API_CALL* clCreatePerformanceCounterVC4CL_fn)(
+        cl_device_id device, cl_counter_type_vc4cl counter_type, cl_int* errcode_ret);
 
-/*!
- * Reads the current value of the performance-counter object passed as argument and stores it into the value
- * output-parameter. Returns the status of the read (CL_SUCCESS on success)
- */
-cl_int VC4CL_FUNC(clGetPerformanceCounterValueVC4CL)(cl_counter_vc4cl counter, cl_uint* value);
-typedef CL_API_ENTRY cl_int(CL_API_CALL* clGetPerformanceCounterValueVC4CL_fn)(
-    cl_counter_vc4cl counter, cl_uint* value);
+    /*!
+     * Reads the current value of the performance-counter object passed as argument and stores it into the value
+     * output-parameter. Returns the status of the read (CL_SUCCESS on success)
+     */
+    cl_int VC4CL_FUNC(clGetPerformanceCounterValueVC4CL)(cl_counter_vc4cl counter, cl_uint* value);
+    typedef CL_API_ENTRY cl_int(CL_API_CALL* clGetPerformanceCounterValueVC4CL_fn)(
+        cl_counter_vc4cl counter, cl_uint* value);
 
-/*!
- * Decreases the reference counter of the performance-counter object.
- * IF the reference count becomes zero, the system performance-counter associated with this object is released
- * and the memory used by the given object is freed.
- */
-cl_int VC4CL_FUNC(clReleasePerformanceCounterVC4CL)(cl_counter_vc4cl counter);
-typedef CL_API_ENTRY cl_int(CL_API_CALL* clReleasePerformanceCounterVC4CL_fn)(cl_counter_vc4cl counter);
+    /*!
+     * Decreases the reference counter of the performance-counter object.
+     * IF the reference count becomes zero, the system performance-counter associated with this object is released
+     * and the memory used by the given object is freed.
+     */
+    cl_int VC4CL_FUNC(clReleasePerformanceCounterVC4CL)(cl_counter_vc4cl counter);
+    typedef CL_API_ENTRY cl_int(CL_API_CALL* clReleasePerformanceCounterVC4CL_fn)(cl_counter_vc4cl counter);
 
-/*!
- * Increases the reference-counter of the performance-counter object
- */
-cl_int VC4CL_FUNC(clRetainPerformanceCounterVC4CL)(cl_counter_vc4cl counter);
-typedef CL_API_ENTRY cl_int(CL_API_CALL* clRetainPerformanceCounterVC4CL_fn)(cl_counter_vc4cl counter);
+    /*!
+     * Increases the reference-counter of the performance-counter object
+     */
+    cl_int VC4CL_FUNC(clRetainPerformanceCounterVC4CL)(cl_counter_vc4cl counter);
+    typedef CL_API_ENTRY cl_int(CL_API_CALL* clRetainPerformanceCounterVC4CL_fn)(cl_counter_vc4cl counter);
 
-/*
- * Resets the counter-value of the system performance-counter associated with this object to zero.
- */
-cl_int VC4CL_FUNC(clResetPerformanceCounterValueVC4CL)(cl_counter_vc4cl counter);
-typedef CL_API_ENTRY cl_int(CL_API_CALL* clResetPerformanceCounterValueVC4CL_fn)(cl_counter_vc4cl counter);
+    /*
+     * Resets the counter-value of the system performance-counter associated with this object to zero.
+     */
+    cl_int VC4CL_FUNC(clResetPerformanceCounterValueVC4CL)(cl_counter_vc4cl counter);
+    typedef CL_API_ENTRY cl_int(CL_API_CALL* clResetPerformanceCounterValueVC4CL_fn)(cl_counter_vc4cl counter);
 
 #ifdef __cplusplus
 }

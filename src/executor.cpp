@@ -171,40 +171,6 @@ cl_int executeKernel(KernelExecution& args)
         --numIterations;
     }
 
-    /*
-     * Allocate buffers for __local/struct parameters
-     *
-     * The buffers are automatically cleaned up with leaving this function
-     * and thus after the kernel has finished executing.
-     */
-    std::map<unsigned, std::unique_ptr<DeviceBuffer>> tmpBuffers;
-    for(unsigned i = 0; i < kernel->args.size(); ++i)
-    {
-        const KernelArgument& arg = kernel->args.at(i);
-        if(arg.sizeToAllocate > 0)
-        {
-            auto bufIt =
-                tmpBuffers.emplace(i, std::unique_ptr<DeviceBuffer>(mailbox().allocateBuffer(arg.sizeToAllocate)))
-                    .first;
-            if(arg.isByValueParameter())
-            {
-                // copy the parameter values to the buffer
-                memcpy(bufIt->second->hostPointer, arg.scalarValues.data(),
-                    std::min(static_cast<unsigned>(arg.scalarValues.size() * sizeof(KernelArgument::ScalarValue)),
-                        arg.sizeToAllocate));
-            }
-            else if(kernel->program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR))
-            {
-                // we need to initialize the local memory to zero
-                memset(bufIt->second->hostPointer, '\0', arg.sizeToAllocate);
-            }
-#ifdef DEBUG_MODE
-            LOG(std::cout << "Reserved " << arg.sizeToAllocate << " bytes of buffer for local/struct parameter: "
-                          << kernel->info.params.at(i).type << " " << kernel->info.params.at(i).name << std::endl)
-#endif
-        }
-    }
-
 #ifdef DEBUG_MODE
     LOG(std::cout << "Running kernel '" << kernel->info.name << "' with " << kernel->info.getLength()
                   << " instructions..." << std::endl)
@@ -290,21 +256,46 @@ cl_int executeKernel(KernelExecution& args)
                 kernel->info.uniformsUsed);
             for(unsigned u = 0; u < kernel->info.params.size(); ++u)
             {
-                // we need to copy here, since we set to buffers which might not exist in next execution
-                KernelArgument arg = kernel->args.at(u);
-                if(tmpBuffers.find(u) != tmpBuffers.end())
+                auto tmpBufferIt = args.tmpBuffers.find(u);
+                auto persistentBufferIt = args.persistentBuffers.find(u);
+                if(tmpBufferIt != args.tmpBuffers.end())
                 {
                     // there exists a temporary buffer for the __local/struct parameter, so set its address as kernel
                     // argument
-                    arg.scalarValues.clear();
-                    arg.addScalar(tmpBuffers.at(u)->qpuPointer);
-                }
+                    *p++ = static_cast<unsigned>(tmpBufferIt->second->qpuPointer);
 #ifdef DEBUG_MODE
-                LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u) << " to "
-                              << arg.to_string() << std::endl)
+                    LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                                  << " to temporary buffer " << tmpBufferIt->second->qpuPointer << std::endl)
 #endif
-                for(cl_uchar i = 0; i < kernel->info.params[u].getVectorElements(); ++i)
-                    *p++ = arg.scalarValues.at(i).getUnsigned();
+                }
+                else if(persistentBufferIt != args.persistentBuffers.end())
+                {
+                    // the argument is a pointer to a buffer, use its device pointer as kernel argument value.
+                    // Since the buffer pointer might be NULL, we have to check for this first
+                    auto devicePtr = persistentBufferIt->second.get() ?
+                        static_cast<unsigned>(persistentBufferIt->second->qpuPointer) :
+                        0;
+                    *p++ = devicePtr;
+#ifdef DEBUG_MODE
+                    LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                                  << " to buffer " << devicePtr << std::endl)
+#endif
+                }
+                else if(auto scalarArg = dynamic_cast<const ScalarArgument*>(kernel->args.at(u).get()))
+                {
+                    // "default" scalar or vector of scalar kernel argument
+                    for(cl_uchar i = 0; i < kernel->info.params[u].getVectorElements(); ++i)
+                        *p++ = scalarArg->scalarValues.at(i).getUnsigned();
+#ifdef DEBUG_MODE
+                    LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                                  << " to scalar " << scalarArg->to_string() << std::endl)
+#endif
+                }
+                else
+                {
+                    // At this point all argument types should be handled already
+                    return CL_INVALID_KERNEL_ARGS;
+                }
             }
             //"Kernel Loop Optimization" to repeat kernel for several work-groups
             // needs to be non-zero for all but the last iteration and zero for the last iteration
@@ -330,7 +321,7 @@ cl_int executeKernel(KernelExecution& args)
         *p++ = AS_GPU_ADDRESS(qpu_code, buffer.get());
     }
 
-#ifdef DEBUG_MODE
+#if 0
     const std::string dumpFile("/tmp/vc4cl-dump-" + kernel->info.name + "-" + std::to_string(rand()) + ".bin");
     std::map<unsigned, const DeviceBuffer*> bufferArguments;
     {
@@ -518,6 +509,11 @@ cl_int executeKernel(KernelExecution& args)
     //
     // CLEANUP
     //
+
+    // even though the buffers are already freed when the KernelExecution event is freed, we clear the maps here, since
+    // we do not need the buffers anymore
+    args.tmpBuffers.clear();
+    args.persistentBuffers.clear();
 
     if(result)
         return CL_COMPLETE;

@@ -43,7 +43,11 @@ if(CROSS_COMPILE)
 	set(MOCK_HAL OFF)
 endif()
 
-project (VC4CL VERSION 0.4)
+if(NOT BUILD_NUMBER)
+	set(BUILD_NUMBER 9999)
+endif()
+
+project (VC4CL VERSION 0.4.${BUILD_NUMBER})
 
 # Set C++ standard to C++14 without any extensions (e.g. GNU)
 set(CMAKE_CXX_STANDARD 14)

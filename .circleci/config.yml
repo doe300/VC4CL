@@ -6,7 +6,7 @@ jobs:
     steps:
       - checkout
       - run: .circleci/clang-format-diff.sh
-  build:
+  cross:
     docker:
       - image: nomaddo/cross-rpi:0.2
     steps:
@@ -28,7 +28,7 @@ jobs:
           command: sudo dpkg-deb -x /tmp/vc4cl-stdlib.deb / && sudo dpkg-deb -x /tmp/vc4c.deb /
       - run:
           name: configure
-          command: mkdir build && cd build && cmake ../ -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
+          command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
       - run:
           name: build
           command: cd build && make -j`nproc`
@@ -44,3 +44,9 @@ jobs:
       - store_artifacts:
           path: build/vc4cl-0.4-Linux.deb
           distination: vc4cl-0.4-Linux.deb
+workflows:
+version: 2
+commit:
+  jobs:
+    # - check-code-style
+    - cross
