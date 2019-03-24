@@ -45,8 +45,8 @@ jobs:
           path: build/vc4cl-0.4-Linux.deb
           distination: vc4cl-0.4-Linux.deb
 workflows:
-version: 2
-commit:
-  jobs:
-    # - check-code-style
-    - cross
+  version: 2
+  commit:
+    jobs:
+      # - check-code-style
+      - cross

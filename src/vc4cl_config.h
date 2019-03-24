@@ -117,7 +117,7 @@ namespace vc4cl
             "cl_khr_initialize_memory",
             // adds a list of integer dot products
             "cl_arm_integer_dot_product_int8", "cl_arm_integer_dot_product_accumulate_int8",
-            "cl_arm_integer_dot_product_accumulate_int16"};
+            "cl_arm_integer_dot_product_accumulate_int16", "cl_arm_integer_dot_product_accumulate_saturate_int8"};
 
         /*
          * "The work-items in a given work-group execute concurrently on the processing elements of a single compute
