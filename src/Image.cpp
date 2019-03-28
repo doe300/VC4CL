@@ -493,7 +493,7 @@ Sampler::Sampler(Context* context, bool normalizeCoords, cl_addressing_mode addr
 {
 }
 
-Sampler::~Sampler() {}
+Sampler::~Sampler() noexcept = default;
 
 cl_int Sampler::getInfo(
     cl_sampler_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
@@ -586,8 +586,7 @@ ImageCopy::ImageCopy(Image* src, Image* dst, const std::size_t srcOrigin[3], con
 
 cl_int ImageCopy::operator()()
 {
-    if(TextureAccessor::copyPixelData(
-           *source->accessor.get(), *destination->accessor.get(), sourceOrigin, destOrigin, region))
+    if(TextureAccessor::copyPixelData(*source->accessor, *destination->accessor, sourceOrigin, destOrigin, region))
         return CL_SUCCESS;
     else
         return CL_INVALID_OPERATION;
@@ -874,7 +873,7 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
         image->deviceBuffer = buffer->deviceBuffer;
     else
         image->deviceBuffer.reset(mailbox().allocateBuffer(static_cast<unsigned>(size)));
-    if(image->deviceBuffer.get() == nullptr)
+    if(!image->deviceBuffer)
     {
         ignoreReturnValue(image->release(), __FILE__, __LINE__, "Already errored");
         return returnError<cl_mem>(CL_OUT_OF_RESOURCES, errcode_ret, __FILE__, __LINE__,

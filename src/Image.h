@@ -153,7 +153,7 @@ namespace vc4cl
     {
     public:
         Sampler(Context* context, bool normalizeCoords, cl_addressing_mode addressingMode, cl_filter_mode filterMode);
-        ~Sampler() override;
+        ~Sampler() noexcept override;
 
         CHECK_RETURN cl_int getInfo(
             cl_sampler_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);

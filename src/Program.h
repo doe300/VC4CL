@@ -194,7 +194,7 @@ namespace vc4cl
     {
     public:
         Program(Context* context, const std::vector<char>& code, CreationType type);
-        ~Program() override;
+        ~Program() noexcept override;
 
         /*
          * Compiles the program from OpenCL C source to intermediate representation (SPIR/LLVM IR, SPIR-V)

@@ -46,7 +46,7 @@ bool TestExecutions::setup()
 	context = VC4CL_FUNC(clCreateContext)(nullptr, 1, &device_id, nullptr, nullptr, &errcode);
 	queue = VC4CL_FUNC(clCreateCommandQueue)(context, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), 0, &errcode);
 
-	return errcode == CL_SUCCESS && context != NULL && queue != NULL
+	return errcode == CL_SUCCESS && context != nullptr && queue != nullptr
 			&& V3D::instance().setCounter(COUNTER_IDLE, CounterType::IDLE_CYCLES) && V3D::instance().setCounter(COUNTER_EXECUTIONS, CounterType::EXECUTION_CYCLES);
 }
 
@@ -476,16 +476,16 @@ void TestExecutions::testFibonacci()
 	const char* sorceText = sourceFibonacci.data();
 	cl_program program = VC4CL_FUNC(clCreateProgramWithSource)(context, 1, &sorceText, &sourceLength, &errcode);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-	TEST_ASSERT(program != NULL);
+	TEST_ASSERT(program != nullptr);
 	cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
 	errcode = VC4CL_FUNC(clBuildProgram)(program, 1, &device_id, "", nullptr, nullptr);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 	cl_mem outBuffer = VC4CL_FUNC(clCreateBuffer)(context, CL_MEM_HOST_READ_ONLY|CL_MEM_WRITE_ONLY, sizeof(int) * 16, nullptr, &errcode);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-	TEST_ASSERT(outBuffer != NULL);
+	TEST_ASSERT(outBuffer != nullptr);
 	cl_kernel kernel = VC4CL_FUNC(clCreateKernel)(program, "fibonacci", &errcode);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-	TEST_ASSERT(kernel != NULL);
+	TEST_ASSERT(kernel != nullptr);
 	errcode = VC4CL_FUNC(clSetKernelArg)(kernel, 0, sizeof(int), &startVal);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 	errcode = VC4CL_FUNC(clSetKernelArg)(kernel, 1, sizeof(int), &startVal);
@@ -495,10 +495,10 @@ void TestExecutions::testFibonacci()
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 
 	//execution
-	cl_event event = NULL;
+	cl_event event = nullptr;
 	errcode = VC4CL_FUNC(clEnqueueTask)(queue, kernel, 0, nullptr, &event);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-	TEST_ASSERT(event != NULL);
+	TEST_ASSERT(event != nullptr);
 	errcode = VC4CL_FUNC(clWaitForEvents)(1, &event);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 
@@ -535,7 +535,7 @@ void TestExecutions::testFFT2()
 	const char* sorceText = sourceFFT.data();
 	cl_program program = VC4CL_FUNC(clCreateProgramWithSource)(context, 1, &sorceText, &sourceLength, &errcode);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-	TEST_ASSERT(program != NULL);
+	TEST_ASSERT(program != nullptr);
 	cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
 	errcode = VC4CL_FUNC(clBuildProgram)(program, 1, &device_id, "", nullptr, nullptr);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
@@ -565,7 +565,7 @@ void TestExecutions::buildProgram(cl_program* program, const std::string& fileNa
 	if(errcode != CL_SUCCESS)
 		*program = nullptr;
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-	TEST_ASSERT(*program != NULL);
+	TEST_ASSERT(*program != nullptr);
 	cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
 	errcode = VC4CL_FUNC(clBuildProgram)(*program, 1, &device_id, "", nullptr, nullptr);
 	if(errcode != CL_SUCCESS)

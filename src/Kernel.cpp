@@ -17,9 +17,9 @@ extern cl_int executeKernel(KernelExecution&);
 
 static_assert(sizeof(ScalarArgument::ScalarValue) == sizeof(uint32_t), "ScalarValue has wrong size!");
 
-KernelArgument::~KernelArgument() noexcept {}
+KernelArgument::~KernelArgument() noexcept = default;
 
-ScalarArgument::~ScalarArgument() noexcept {}
+ScalarArgument::~ScalarArgument() noexcept = default;
 
 void ScalarArgument::addScalar(const float f)
 {
@@ -52,14 +52,14 @@ std::string ScalarArgument::to_string() const
     return res.substr(0, res.length() - 2);
 }
 
-TemporaryBufferArgument::~TemporaryBufferArgument() noexcept {}
+TemporaryBufferArgument::~TemporaryBufferArgument() noexcept = default;
 
 std::string TemporaryBufferArgument::to_string() const
 {
     return "temporary buffer" + (data.empty() ? "" : (" (with " + std::to_string(data.size()) + " bytes of data)"));
 }
 
-BufferArgument::~BufferArgument() noexcept {}
+BufferArgument::~BufferArgument() noexcept = default;
 
 std::string BufferArgument::to_string() const
 {
@@ -71,7 +71,7 @@ Kernel::Kernel(Program* program, const KernelInfo& info) : program(program), inf
     args.resize(info.params.size());
 }
 
-Kernel::~Kernel() {}
+Kernel::~Kernel() noexcept = default;
 
 cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
 {
@@ -184,7 +184,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                     buildString("Invalid arg size for buffers: %d, must be %u", arg_size, sizeof(cl_mem)));
             }
 
-            const cl_mem buffer = *static_cast<const cl_mem*>(arg_value);
+            auto buffer = *static_cast<const cl_mem*>(arg_value);
             CHECK_BUFFER(toType<Buffer>(buffer))
             if(toType<Buffer>(buffer)->context() != program->context())
                 return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
@@ -610,7 +610,7 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
             }
 #ifdef DEBUG_MODE
             LOG(std::cout << "Reserved " << localArg->sizeToAllocate << " bytes of buffer for local/struct parameter: "
-                          << kernel->info.params.at(i).type << " " << kernel->info.params.at(i).name << std::endl)
+                          << info.params.at(i).type << " " << info.params.at(i).name << std::endl)
 #endif
         }
     }
@@ -628,7 +628,7 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
         {
             // NOTE: we cannot guarantee that the buffer still exists, but that is out of the scope of the OpenCL
             // implementation (see issue referenced above).
-            if(bufferArg->buffer && !bufferArg->buffer->checkReferences())
+            if(!bufferArg->buffer || !bufferArg->buffer->checkReferences() || !bufferArg->buffer->deviceBuffer)
                 return CL_INVALID_KERNEL_ARGS;
             persistentBuffers.emplace(i, bufferArg->buffer->deviceBuffer);
         }

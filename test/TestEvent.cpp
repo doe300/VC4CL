@@ -36,7 +36,7 @@ bool TestEvent::setup()
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
     context = VC4CL_FUNC(clCreateContext)(nullptr, 1, &device_id, nullptr, nullptr, &state);
     queue = VC4CL_FUNC(clCreateCommandQueue)(context, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), 0, &state);
-    return state == CL_SUCCESS && context != NULL && queue != NULL;
+    return state == CL_SUCCESS && context != nullptr && queue != nullptr;
 }
 
 void TestEvent::testCreateUserEvent()
@@ -44,7 +44,7 @@ void TestEvent::testCreateUserEvent()
     cl_int state = CL_SUCCESS;
     user_event = VC4CL_FUNC(clCreateUserEvent)(context, &state);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(user_event != NULL);
+    TEST_ASSERT(user_event != nullptr);
 }
 
 void TestEvent::testSetUserEventStatus()
@@ -105,10 +105,10 @@ void TestEvent::testSetEventCallback()
 
 void TestEvent::testEnqueueBarrierWithWaitList()
 {
-    cl_event event = NULL;
+    cl_event event = nullptr;
     cl_int state = VC4CL_FUNC(clEnqueueBarrierWithWaitList)(queue, 0, nullptr, &event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(event != NULL);
+    TEST_ASSERT(event != nullptr);
     
     state = VC4CL_FUNC(clWaitForEvents)(1, &event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -120,10 +120,10 @@ void TestEvent::testEnqueueBarrierWithWaitList()
 
 void TestEvent::testEnqueueMarkerWithWaitList()
 {
-    cl_event event = NULL;
+    cl_event event = nullptr;
     cl_int state = VC4CL_FUNC(clEnqueueMarkerWithWaitList)(queue, 0, nullptr, &event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(event != NULL);
+    TEST_ASSERT(event != nullptr);
     
     state = VC4CL_FUNC(clWaitForEvents)(1, &event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);

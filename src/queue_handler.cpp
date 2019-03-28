@@ -38,7 +38,7 @@ static cl_uint numCommandQueues;
 void vc4cl::pushEventToQueue(Event* event)
 {
     std::lock_guard<std::mutex> guard(bufferMutex);
-    eventBuffer.push_back(object_wrapper<Event>{event});
+    eventBuffer.emplace_back(object_wrapper<Event>{event});
     eventAvailable.notify_all();
 }
 

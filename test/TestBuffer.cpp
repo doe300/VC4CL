@@ -4,7 +4,7 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <string.h>
+#include <cstring>
 
 #include "TestBuffer.h"
 
@@ -42,7 +42,7 @@ bool TestBuffer::setup()
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
     context = VC4CL_FUNC(clCreateContext)(nullptr, 1, &device_id, nullptr, nullptr, &errcode);
     queue = VC4CL_FUNC(clCreateCommandQueue)(context, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), 0, &errcode);
-    return errcode == CL_SUCCESS && context != NULL && queue != NULL;
+    return errcode == CL_SUCCESS && context != nullptr && queue != nullptr;
 }
 
 
@@ -55,7 +55,7 @@ void TestBuffer::testCreateBuffer()
     
     buffer = VC4CL_FUNC(clCreateBuffer)(context, 0, 1024, nullptr, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    TEST_ASSERT(buffer != NULL);
+    TEST_ASSERT(buffer != nullptr);
 }
 
 void TestBuffer::testCreateSubBuffer()
@@ -71,7 +71,7 @@ void TestBuffer::testCreateSubBuffer()
     region.size = 512;
     sub_buffer = VC4CL_FUNC(clCreateSubBuffer)(buffer, 0, CL_BUFFER_CREATE_TYPE_REGION, &region, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    TEST_ASSERT(sub_buffer != NULL);
+    TEST_ASSERT(sub_buffer != nullptr);
     TEST_ASSERT_EQUALS(2u, toType<Buffer>(buffer)->getReferences());
     errcode = VC4CL_FUNC(clReleaseMemObject)(sub_buffer);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
@@ -80,7 +80,7 @@ void TestBuffer::testCreateSubBuffer()
 
 void TestBuffer::testEnqueueReadBuffer()
 {
-    cl_event event = NULL;
+    cl_event event = nullptr;
     cl_int state = VC4CL_FUNC(clEnqueueReadBuffer)(queue, buffer, CL_FALSE, 0, 256, nullptr, 0, nullptr, &event);
     TEST_ASSERT(state != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, event);
@@ -88,7 +88,7 @@ void TestBuffer::testEnqueueReadBuffer()
     char tmp[1024];
     state = VC4CL_FUNC(clEnqueueReadBuffer)(queue, buffer, CL_TRUE, 256, 512, tmp, 0, nullptr, &event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(event != NULL);
+    TEST_ASSERT(event != nullptr);
     TEST_ASSERT_EQUALS(CL_COMPLETE, toType<Event>(event)->getStatus());
     
     TEST_ASSERT_EQUALS(1u, toType<Event>(event)->getReferences());
@@ -98,7 +98,7 @@ void TestBuffer::testEnqueueReadBuffer()
 
 void TestBuffer::testEnqueueWriteBuffer()
 {
-    cl_event event = NULL;
+    cl_event event = nullptr;
     cl_int state = VC4CL_FUNC(clEnqueueWriteBuffer)(queue, buffer, CL_FALSE, 0, 256, nullptr, 0, nullptr, &event);
     TEST_ASSERT(state != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, event);
@@ -106,7 +106,7 @@ void TestBuffer::testEnqueueWriteBuffer()
     char tmp[1024];
     state = VC4CL_FUNC(clEnqueueWriteBuffer)(queue, buffer, CL_TRUE, 256, 512, tmp, 0, nullptr, &event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(event != NULL);
+    TEST_ASSERT(event != nullptr);
     TEST_ASSERT_EQUALS(CL_COMPLETE, toType<Event>(event)->getStatus());
     
     TEST_ASSERT_EQUALS(1u, toType<Event>(event)->getReferences());
@@ -126,7 +126,7 @@ void TestBuffer::testEnqueueWriteBufferRect()
 
 void TestBuffer::testEnqueueFillBuffer()
 {
-    cl_event event = NULL;
+    cl_event event = nullptr;
     cl_int state = VC4CL_FUNC(clEnqueueFillBuffer)(queue, buffer, nullptr, 17, 0, 256, 0, nullptr, &event);
     TEST_ASSERT(state != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, event);
@@ -135,7 +135,7 @@ void TestBuffer::testEnqueueFillBuffer()
     memset(tmp, 0x55, 512);
     state = VC4CL_FUNC(clEnqueueFillBuffer)(queue, buffer, tmp, 8, 256, 512, 0, nullptr, &event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(event != NULL);
+    TEST_ASSERT(event != nullptr);
     state = VC4CL_FUNC(clWaitForEvents(1, &event));
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(CL_COMPLETE, toType<Event>(event)->getStatus());
@@ -163,7 +163,7 @@ void TestBuffer::testEnqueueCopyBufferRect()
 void TestBuffer::testEnqueueMapBuffer()
 {
     cl_int errcode = CL_SUCCESS;
-    cl_event event = NULL;
+    cl_event event = nullptr;
     mapped_ptr = VC4CL_FUNC(clEnqueueMapBuffer)(queue, buffer, CL_TRUE, 0, 256, 1512, 0, nullptr, &event, &errcode);
     TEST_ASSERT(errcode != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, mapped_ptr);
@@ -171,8 +171,8 @@ void TestBuffer::testEnqueueMapBuffer()
     
     mapped_ptr = VC4CL_FUNC(clEnqueueMapBuffer)(queue, buffer, CL_TRUE, 0, 256, 512, 0, nullptr, &event, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    TEST_ASSERT(mapped_ptr != NULL);
-    TEST_ASSERT(event != NULL);
+    TEST_ASSERT(mapped_ptr != nullptr);
+    TEST_ASSERT(event != nullptr);
     
     //value is set by fill-buffer
     TEST_ASSERT_EQUALS(0x55, *static_cast<unsigned char*>(mapped_ptr));
@@ -237,21 +237,21 @@ void TestBuffer::testGetMemObjectInfo()
 
 void TestBuffer::testEnqueueUnmapMemObject()
 {
-    cl_event event = NULL;
+    cl_event event = nullptr;
     cl_int state = VC4CL_FUNC(clEnqueueUnmapMemObject)(queue, buffer, mapped_ptr, 0, nullptr, &event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT(event != NULL);
+    TEST_ASSERT(event != nullptr);
     VC4CL_FUNC(clWaitForEvents)(1, &event);
     TEST_ASSERT_EQUALS(CL_COMPLETE, toType<Event>(event)->getStatus());
     state = VC4CL_FUNC(clReleaseEvent)(event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    event = NULL;
+    event = nullptr;
     state = VC4CL_FUNC(clEnqueueUnmapMemObject)(queue, buffer, mapped_ptr, 0, nullptr, &event);
     TEST_ASSERT(state != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, event);
     
-    mapped_ptr = NULL;
+    mapped_ptr = nullptr;
 }
 
 void TestBuffer::testEnqueueMigrateMemObjects()

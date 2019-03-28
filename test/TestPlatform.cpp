@@ -4,7 +4,7 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <string.h>
+#include <cstring>
 
 #include "TestPlatform.h"
 #include "src/vc4cl_config.h"
@@ -27,14 +27,14 @@ void TestPlatform::testGetPlatformIDs()
     
     TEST_ASSERT_EQUALS(CL_SUCCESS, status_code);
     TEST_ASSERT_EQUALS(1u, num_ids);
-    TEST_ASSERT(ids[0] != NULL);
+    TEST_ASSERT(ids[0] != nullptr);
     
     platform = ids[0];
 }
 
 void TestPlatform::testGetPlatformInfo()
 {
-    TEST_ASSERT(platform != NULL);
+    TEST_ASSERT(platform != nullptr);
     
     size_t info_size = 0;
     char buffer[1024] = {0};

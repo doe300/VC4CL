@@ -18,13 +18,13 @@ Context::Context(const Device* device, const bool userSync, cl_context_propertie
 {
 }
 
-Context::~Context() {}
+Context::~Context() noexcept = default;
 
 cl_int Context::getInfo(
     cl_context_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
     size_t propertiesSize = 0;
-    std::array<cl_context_properties, 7> props;
+    std::array<cl_context_properties, 7> props{};
     // this makes sure, only the explicit set properties are returned
     if((explicitProperties & ContextProperty::PLATFORM) == ContextProperty::PLATFORM)
     {

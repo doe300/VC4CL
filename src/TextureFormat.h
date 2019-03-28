@@ -34,7 +34,7 @@ namespace vc4cl
     struct TextureAccessor
     {
     public:
-        virtual ~TextureAccessor() = default;
+        virtual ~TextureAccessor() noexcept = default;
 
         virtual int checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const = 0;
         virtual void* calculatePixelOffset(
@@ -71,7 +71,7 @@ namespace vc4cl
     {
     public:
         explicit TFormatAccessor(Image& image);
-        ~TFormatAccessor() override = default;
+        ~TFormatAccessor() noexcept override = default;
 
         int checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const override;
         void* calculatePixelOffset(void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const override
@@ -82,7 +82,7 @@ namespace vc4cl
     {
     public:
         explicit LTFormatAccessor(Image& image);
-        ~LTFormatAccessor() override = default;
+        ~LTFormatAccessor() noexcept override = default;
 
         int checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const override;
         void* calculatePixelOffset(
@@ -93,7 +93,7 @@ namespace vc4cl
     {
     public:
         explicit RasterFormatAccessor(Image& image);
-        ~RasterFormatAccessor() override = default;
+        ~RasterFormatAccessor() noexcept override = default;
 
         int checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const override;
         void* calculatePixelOffset(void* basePointer, const std::array<std::size_t, 3>& pixelCoordinates) const override
