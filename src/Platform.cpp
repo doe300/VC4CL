@@ -23,7 +23,7 @@ Platform::Platform() : Object()
     }
 }
 
-Platform::~Platform() {}
+Platform::~Platform() noexcept = default;
 
 cl_int Platform::getInfo(
     cl_platform_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const
@@ -64,7 +64,7 @@ cl_int Platform::getInfo(
 Platform& Platform::getVC4CLPlatform()
 {
     static std::unique_ptr<Platform> singleton(new Platform());
-    return *singleton.get();
+    return *singleton;
 }
 
 /*!

@@ -36,7 +36,7 @@ bool TestBuiltins::setup()
     
     //TODO create and compile program
     
-    return errcode == CL_SUCCESS && context != NULL && queue != NULL && program != NULL;
+    return errcode == CL_SUCCESS && context != nullptr && queue != nullptr && program != nullptr;
 }
 
 bool TestBuiltins::before(const std::string& methodName)
@@ -45,51 +45,51 @@ bool TestBuiltins::before(const std::string& methodName)
     size_t allocateInput = 0;
     size_t allocateOutput0 = 0;
     size_t allocateOutput1 = 0;
-    if(methodName.compare("testMathFunctions") == 0)
+    if(methodName == "testMathFunctions")
     {
         kernel = VC4CL_FUNC(clCreateKernel)(program, "test_math", &state);
         allocateOutput0 = sizeof(cl_float16) * 50;
         allocateOutput1 = sizeof(cl_int16) * 50;
     }
-    else if(methodName.compare("testIntegerFunctions") == 0)
+    else if(methodName == "testIntegerFunctions")
     {
         kernel = VC4CL_FUNC(clCreateKernel)(program, "test_integer", &state);
         allocateOutput0 = sizeof(cl_int16) * 20;
     }
-    else if(methodName.compare("testCommonFunctions") == 0)
+    else if(methodName == "testCommonFunctions")
     {
         kernel = VC4CL_FUNC(clCreateKernel)(program, "test_common", &state);
         allocateOutput0 = sizeof(cl_int16) * 10;
     }
-    else if(methodName.compare("testGeometricFunctions") == 0)
+    else if(methodName == "testGeometricFunctions")
     {
         kernel = VC4CL_FUNC(clCreateKernel)(program, "test_geometric", &state);
         allocateOutput0 = sizeof(cl_int16) * 10;
     }
-    else if(methodName.compare("testRelationalFunctions") == 0)
+    else if(methodName == "testRelationalFunctions")
     {
         kernel = VC4CL_FUNC(clCreateKernel)(program, "test_relational", &state);
         allocateOutput0 = sizeof(cl_int16) * 20;
     }
-    else if(methodName.compare("testVectorFunctions") == 0)
+    else if(methodName == "testVectorFunctions")
     {
         kernel = VC4CL_FUNC(clCreateKernel)(program, "test_vector", &state);
         allocateInput = sizeof(cl_float16) * 4;
         allocateOutput0 = sizeof(cl_float16) * 4;
     }
-    else if(methodName.compare("testAsyncFunctions") == 0)
+    else if(methodName == "testAsyncFunctions")
     {
         kernel = VC4CL_FUNC(clCreateKernel)(program, "test_async", &state);
         allocateInput = sizeof(cl_float16) * 20;
         allocateOutput0 = sizeof(cl_float16) * 20;
     }
-    else if(methodName.compare("testAtomicFunctions") == 0)
+    else if(methodName == "testAtomicFunctions")
     {
         kernel = VC4CL_FUNC(clCreateKernel)(program, "test_atomic", &state);
         allocateInput = sizeof(cl_int) * 16;
         allocateOutput0 = sizeof(cl_int) * 16;
     }
-    else if(methodName.compare("testImageFunctions") == 0)
+    else if(methodName == "testImageFunctions")
     {
         kernel = VC4CL_FUNC(clCreateKernel)(program, "test_image", &state);
         allocateOutput0 = sizeof(cl_float4) * 40;
@@ -125,7 +125,7 @@ void TestBuiltins::testMathFunctions()
     state = VC4CL_FUNC(clSetKernelArg)(kernel, 2, sizeof(int), &val3);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    cl_event event = NULL;
+    cl_event event = nullptr;
     state = VC4CL_FUNC(clEnqueueTask(queue, kernel, 0, nullptr, &event));
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
@@ -211,7 +211,7 @@ void TestBuiltins::testIntegerFunctions()
     state = VC4CL_FUNC(clSetKernelArg)(kernel, 2, sizeof(struct _cl_mem), out0);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     
-    cl_event event = NULL;
+    cl_event event = nullptr;
     state = VC4CL_FUNC(clEnqueueTask(queue, kernel, 0, nullptr, &event));
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     

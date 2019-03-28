@@ -4,7 +4,7 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <string.h>
+#include <cstring>
 
 #include "TestKernel.h"
 #include "src/Kernel.h"
@@ -48,7 +48,7 @@ bool TestKernel::setup()
     errcode = VC4CL_FUNC(clBuildProgram)(program, 1, &device_id, nullptr, nullptr, nullptr);
     in_buffer = VC4CL_FUNC(clCreateBuffer)(context, 0, (work_size[0] * work_size[1] * work_size[2]) * sizeof(cl_char16), nullptr, &errcode);
     out_buffer = VC4CL_FUNC(clCreateBuffer)(context, 0, (work_size[0] * work_size[1] * work_size[2]) * sizeof(cl_char16), nullptr, &errcode);
-    return errcode == CL_SUCCESS && context != NULL && queue != NULL && program != NULL && in_buffer != NULL && out_buffer != NULL;
+    return errcode == CL_SUCCESS && context != nullptr && queue != nullptr && program != nullptr && in_buffer != nullptr && out_buffer != nullptr;
 }
 
 void TestKernel::testCreateKernel()
@@ -60,7 +60,7 @@ void TestKernel::testCreateKernel()
     
     kernel = VC4CL_FUNC(clCreateKernel)(program, kernel_name, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    TEST_ASSERT(kernel != NULL);
+    TEST_ASSERT(kernel != nullptr);
 }
 
 void TestKernel::testCreateKernelsInProgram()
@@ -70,7 +70,7 @@ void TestKernel::testCreateKernelsInProgram()
     cl_int state = VC4CL_FUNC(clCreateKernelsInProgram)(program, 16, kernels, &num_kernels);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(1u, num_kernels);
-    TEST_ASSERT(kernels[0] != NULL);
+    TEST_ASSERT(kernels[0] != nullptr);
     
     VC4CL_FUNC(clReleaseKernel)(kernels[0]);
 }
@@ -245,7 +245,7 @@ void TestKernel::testEnqueueNDRangeKernel()
 
 void TestKernel::testEnqueueNativeKernel()
 {
-    cl_event event = NULL;
+    cl_event event = nullptr;
     cl_int state = VC4CL_FUNC(clEnqueueNativeKernel)(queue, nullptr, nullptr, 0, 0, nullptr, nullptr, 0, nullptr, &event);
     TEST_ASSERT(state != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, event);
@@ -267,7 +267,7 @@ void TestKernel::testKernelResult()
 
 void TestKernel::testEnqueueTask()
 {
-    cl_event event = NULL;
+    cl_event event = nullptr;
     cl_int state = VC4CL_FUNC(clEnqueueTask)(queue, kernel, 0, nullptr, &event);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT(event != nullptr);

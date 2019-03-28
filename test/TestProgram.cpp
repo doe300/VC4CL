@@ -38,7 +38,7 @@ bool TestProgram::setup()
     cl_int errcode = CL_SUCCESS;
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
     context = VC4CL_FUNC(clCreateContext)(nullptr, 1, &device_id, nullptr, nullptr, &errcode);
-    return errcode == CL_SUCCESS && context != NULL;
+    return errcode == CL_SUCCESS && context != nullptr;
 }
 
 void TestProgram::testCreateProgramWithSource()
@@ -53,7 +53,7 @@ void TestProgram::testCreateProgramWithSource()
     const char* strings[1] = {sourceCode.data()};
     source_program = VC4CL_FUNC(clCreateProgramWithSource)(context, 1, strings, &sourceLength, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    TEST_ASSERT(source_program != NULL);
+    TEST_ASSERT(source_program != nullptr);
 }
 
 void TestProgram::testCreateProgramWithBinary()
@@ -69,7 +69,7 @@ void TestProgram::testCreateProgramWithBinary()
     const unsigned char* strings[1] = {reinterpret_cast<const unsigned char*>(hello_world_vector_hex)};
     binary_program = VC4CL_FUNC(clCreateProgramWithBinary)(context, 1, &device_id, &binary_size, strings, &binary_state, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    TEST_ASSERT(binary_program != NULL);
+    TEST_ASSERT(binary_program != nullptr);
     TEST_ASSERT_EQUALS(CL_SUCCESS, binary_state);
 }
 

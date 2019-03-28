@@ -127,7 +127,7 @@ namespace vc4cl
     {
     public:
         Event(Context* context, cl_int status, CommandType type);
-        ~Event() override;
+        ~Event() noexcept override;
 
         CHECK_RETURN cl_int setUserEventStatus(cl_int execution_status);
         CHECK_RETURN cl_int getInfo(

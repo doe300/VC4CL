@@ -11,11 +11,11 @@
 
 using namespace vc4cl;
 
-EventAction::~EventAction() {}
+EventAction::~EventAction() = default;
 
-CustomAction::~CustomAction() {}
+CustomAction::~CustomAction() = default;
 
-NoAction::~NoAction() {}
+NoAction::~NoAction() = default;
 
 Event::Event(Context* context, cl_int status, CommandType type) :
     HasContext(context), type(type), queue(nullptr), status(status), userStatusSet(false)
@@ -27,7 +27,7 @@ Event::Event(Context* context, cl_int status, CommandType type) :
      */
 }
 
-Event::~Event() {}
+Event::~Event() noexcept = default;
 
 cl_int Event::setUserEventStatus(cl_int execution_status)
 {
@@ -224,7 +224,7 @@ void Event::setEventWaitList(cl_uint numEvents, const cl_event* events)
     for(cl_uint i = 0; i < numEvents; ++i)
     {
         Event* e = toType<Event>(events[i]);
-        waitList.push_back(object_wrapper<Event>{e});
+        waitList.emplace_back(object_wrapper<Event>{e});
     }
 }
 

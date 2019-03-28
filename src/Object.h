@@ -26,7 +26,7 @@ namespace vc4cl
         {
             // reference-count is implicitly retained
         }
-        virtual ~BaseObject() = default;
+        virtual ~BaseObject() noexcept = default;
 
         virtual void* getBasePointer() = 0;
 
@@ -45,7 +45,7 @@ namespace vc4cl
         // make sure, objects can't be copied or moved, since it invalidates the pointers
         Object(const Object&) = delete;
         Object(Object&&) = delete;
-        ~Object() override = default;
+        ~Object() noexcept override = default;
 
         Object& operator=(const Object&) = delete;
         Object& operator=(Object&&) = delete;

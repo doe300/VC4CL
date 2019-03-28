@@ -40,9 +40,6 @@ int main(int argc, char** argv)
     Test::TextOutput output(Test::TextOutput::Verbose, file);
 #endif
 
-    assert(sizeof(cl_int) == 4);
-    assert(sizeof(cl_long) == 8);
-    assert(sizeof(size_t) == 4);
 #if use_cl_khr_icd
     assert(offsetof(_cl_context, dispatch) == 0);
 #endif

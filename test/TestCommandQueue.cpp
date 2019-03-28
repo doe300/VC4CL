@@ -27,7 +27,7 @@ void TestCommandQueue::testCreateCommandQueue()
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
     context = VC4CL_FUNC(clCreateContext)(nullptr, 1, &device_id, nullptr, nullptr, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    TEST_ASSERT(context != NULL);
+    TEST_ASSERT(context != nullptr);
     
     queue = VC4CL_FUNC(clCreateCommandQueue)(context, nullptr, 0, &errcode);
     TEST_ASSERT(errcode != CL_SUCCESS);
@@ -35,7 +35,7 @@ void TestCommandQueue::testCreateCommandQueue()
     
     queue = VC4CL_FUNC(clCreateCommandQueue)(context, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_QUEUE_PROFILING_ENABLE, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    TEST_ASSERT(queue != NULL);
+    TEST_ASSERT(queue != nullptr);
 }
 
 void TestCommandQueue::testGetCommandQueueInfo()

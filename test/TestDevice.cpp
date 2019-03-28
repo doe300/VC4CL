@@ -4,7 +4,7 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <string.h>
+#include <cstring>
 
 #include "TestDevice.h"
 #include "src/common.h"

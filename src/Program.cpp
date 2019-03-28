@@ -48,7 +48,7 @@ Program::Program(Context* context, const std::vector<char>& code, CreationType t
     }
 }
 
-Program::~Program() {}
+Program::~Program() noexcept = default;
 
 #if HAS_COMPILER
 static cl_int extractLog(std::string& log, std::wstringstream& logStream)
