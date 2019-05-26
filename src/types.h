@@ -10,8 +10,6 @@
 #include "icd_loader.h"
 #include "vc4cl_config.h"
 
-#include <CL/opencl.h>
-
 #include <cassert>
 #include <type_traits>
 

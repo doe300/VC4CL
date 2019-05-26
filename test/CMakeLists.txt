@@ -1,5 +1,8 @@
 add_executable(TestVC4CL "")
 target_link_libraries(TestVC4CL VC4CL)
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(TestVC4CL PRIVATE -Wno-ignored-attributes -Wno-deprecated-declarations)
+endif()
 
 include(sources.list)
 
@@ -13,7 +16,7 @@ endif()
 target_link_libraries(TestVC4CL VC4CL cpptest-lite ${SYSROOT_LIBRARY_FLAGS})
 
 if(BUILD_DEBUG)
-        target_compile_definitions(TestVC4CL PRIVATE DEBUG_MODE=1)
+  target_compile_definitions(TestVC4CL PRIVATE DEBUG_MODE=1)
 endif(BUILD_DEBUG)
 
 add_test(NAME System COMMAND TestVC4CL --system WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

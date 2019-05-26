@@ -3,8 +3,6 @@
  *
  * See the file "LICENSE" for the full license governing this code.
  */
-#include <CL/opencl.h>
-
 #include "common.h"
 
 #include "CommandQueue.h"

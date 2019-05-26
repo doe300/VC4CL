@@ -221,7 +221,7 @@ cl_command_queue VC4CL_FUNC(clCreateCommandQueueWithPropertiesKHR)(
     cl_command_queue_properties props = 0;
     if(properties != nullptr)
     {
-        const cl_queue_properties* prop = properties;
+        const cl_queue_properties_khr* prop = properties;
         while(*prop != 0)
         {
             if(*prop == CL_QUEUE_PROPERTIES)

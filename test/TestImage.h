@@ -7,7 +7,7 @@
 #ifndef TESTIMAGE_H
 #define TESTIMAGE_H
 
-#include <CL/opencl.h>
+#include "src/vc4cl_config.h"
 
 #include "cpptest.h"
 

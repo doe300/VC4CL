@@ -31,6 +31,9 @@ The GPU (which is located on the same chip as the CPU) has 12 cores, able of run
 - The Raspbian development files (available in the official Raspbian repository as `sudo apt-get install libraspberrypi-dev`)
 - The Khronos ICD Loader (available in the official Raspbian repository as `sudo apt-get install ocl-icd-opencl-dev ocl-icd-dev`) for building with ICD-support (e.g. allows to run several OpenCL implementations on one machine)
 - The OpenCL headers in version >= 1.2 (available in the Raspbian repositories as `sudo apt-get install opencl-headers`)
+- The Raspberry Pi [firmware](https://github.com/raspberrypi/firmware) GPU-side and host-side binaries as well as the [mailbox kernel module](https://github.com/raspberrypi/linux).
+  These are already provided by default on Raspbian OS. For other Linux distributions, see [here](https://github.com/doe300/VC4CL/issues/53).
+ 
  
 
 ## Build

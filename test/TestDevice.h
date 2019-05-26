@@ -7,7 +7,7 @@
 #ifndef TESTDEVICE_H
 #define TESTDEVICE_H
 
-#include <CL/opencl.h>
+#include "src/vc4cl_config.h"
 #include "cpptest.h"
 
 class TestDevice : public Test::Suite

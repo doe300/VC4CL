@@ -7,7 +7,7 @@
 #ifndef TEST_TESTEXECUTIONS_H_
 #define TEST_TESTEXECUTIONS_H_
 
-#include <CL/opencl.h>
+#include "src/vc4cl_config.h"
 
 #include "cpptest.h"
 

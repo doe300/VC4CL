@@ -195,6 +195,8 @@ namespace vc4cl
         GET_MIN_VOLTAGE = 0x00030008,
         GET_TEMPERATURE = 0x00030006,
         GET_MAX_TEMPERATURE = 0x0003000A,
+        // 1. word time in microseconds since VideoCore boot, 2. word unused
+        GET_STC = 0x0003000B,
         ALLOCATE_MEMORY = 0x0003000C,
         LOCK_MEMORY = 0x0003000D,
         UNLOCK_MEMORY = 0x0003000E,

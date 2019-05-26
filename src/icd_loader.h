@@ -7,7 +7,12 @@
 #ifndef ICD_LOADER_H
 #define ICD_LOADER_H
 
-#include <CL/opencl.h>
+// These functions are declared and defined for backwards compatibility anyway
+#define CL_USE_DEPRECATED_OPENCL_1_0_APIS
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+
+#include "vc4cl_config.h"
 
 #ifdef __cplusplus
 extern "C"

@@ -8,7 +8,7 @@
 #define TESTBUILTINS_H
 
 #include "cpptest.h"
-#include "CL/opencl.h"
+#include "src/vc4cl_config.h"
 
 class TestBuiltins : Test::Suite
 {

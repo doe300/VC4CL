@@ -265,7 +265,8 @@ cl_int executeKernel(KernelExecution& args)
                     *p++ = static_cast<unsigned>(tmpBufferIt->second->qpuPointer);
 #ifdef DEBUG_MODE
                     LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
-                                  << " to temporary buffer " << tmpBufferIt->second->qpuPointer << std::endl)
+                                  << " to temporary buffer 0x" << std::hex << tmpBufferIt->second->qpuPointer
+                                  << std::dec << std::endl)
 #endif
                 }
                 else if(persistentBufferIt != args.persistentBuffers.end())
@@ -278,7 +279,7 @@ cl_int executeKernel(KernelExecution& args)
                     *p++ = devicePtr;
 #ifdef DEBUG_MODE
                     LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
-                                  << " to buffer " << devicePtr << std::endl)
+                                  << " to buffer 0x" << std::hex << devicePtr << std::dec << std::endl)
 #endif
                 }
                 else if(auto scalarArg = dynamic_cast<const ScalarArgument*>(kernel->args.at(u).get()))

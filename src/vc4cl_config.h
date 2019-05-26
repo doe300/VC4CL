@@ -7,6 +7,9 @@
 #ifndef VC4CL_CONFIG_H
 #define VC4CL_CONFIG_H
 
+// For unified OpenCL specification, we need to define the target version
+#define CL_TARGET_OPENCL_VERSION 120
+
 #include <CL/opencl.h>
 
 #include <array>
