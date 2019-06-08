@@ -20,9 +20,7 @@
 
 using namespace vc4cl;
 
-Device::Device() {}
-
-Device::~Device() {}
+Device::~Device() noexcept = default;
 
 cl_int Device::getInfo(
     cl_device_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const
@@ -315,8 +313,11 @@ cl_int Device::getInfo(
         // The following approved Khronos extension names must be returned by all device that support OpenCL C 1.2:
         // cl_khr_global_int32_base_atomics, cl_khr_global_int32_extended_atomics, cl_khr_local_int32_base_atomics,
         // cl_khr_local_int32_extended_atomics, cl_khr_byte_addressable_store"
-        return returnString(
-            joinStrings(device_config::EXTENSIONS), param_value_size, param_value, param_value_size_ret);
+        // TODO are all platform extensions always also device extensions?? Or is my associated wrong?
+        // OpenCL CTS expects e.g. "cl_khr_spir" and "cl_khr_icd" to be device extensions (see
+        // https://github.com/KhronosGroup/OpenCL-CTS/blob/cl12_trunk/test_conformance/compiler/test_compiler_defines_for_extensions.cpp)
+        return returnString(joinStrings(device_config::EXTENSIONS) + " " + joinStrings(platform_config::EXTENSIONS),
+            param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_PRINTF_BUFFER_SIZE:
         //"Maximum size of the internal buffer that holds the output of printf calls from a kernel.
         // The minimum value for the FULL profile is 1 MB (1KB for EMBEDDED PROFILE)."

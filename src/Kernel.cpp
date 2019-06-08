@@ -291,10 +291,13 @@ cl_int Kernel::getWorkGroupInfo(
         return returnValue(
             info.compileGroupSizes.data(), sizeof(size_t), 3, param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_LOCAL_MEM_SIZE:
+        // XXX can we get this somehow? Need to distinguish in global data block what is __global/__local/__private
+        // section
         return returnValue<cl_ulong>(0, param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
         return returnValue<size_t>(1, param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_PRIVATE_MEM_SIZE:
+        // XXX same for local memory, could determine if type of global data section is known
         return returnValue<cl_ulong>(0, param_value_size, param_value, param_value_size_ret);
     }
 
