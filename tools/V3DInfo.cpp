@@ -6,6 +6,9 @@
 
 #include <iomanip>
 #include <iostream>
+#include <map>
+#include <string>
+#include <vector>
 
 #include "Mailbox.h"
 #include "common.h"
@@ -19,6 +22,104 @@ static void checkResult(bool result)
 {
     if(!result)
         throw std::runtime_error("Error in mailbox-call!");
+}
+
+static void printModelInfo()
+{
+    // This information is all taken from https://github.com/AndrewFromMelbourne/raspberry_pi_revision
+
+    uint32_t revision = 0;
+    {
+        Mailbox& mb = mailbox();
+        SimpleQueryMessage<MailboxTag::BOARD_REVISION> msg;
+        checkResult(mb.readMailboxMessage(msg));
+        revision = msg.getContent(0);
+    }
+
+    if(revision == 0)
+    {
+        std::cout << std::setw(NAME_LENGTH) << "Model:" << std::setw(VAL_LENGTH) << "failed to detect" << std::endl;
+        return;
+    }
+
+    if(revision & 0x800000)
+    {
+        // Raspberry Pi2 style revision encoding
+        static const std::vector<std::string> bitfieldToModel = {"A", "B", "A+", "B+", "B+", "Alpha", "CM", "unknown",
+            "3 B", "Zero", "3 CM", "unknown", "Zero W", "3 B+", "3 A+", "unknown", "3 CM+"};
+        static const std::vector<std::string> bitFieldToProcessor = {"BCM2835", "BCM2836", "BCM2837"};
+
+        auto modelIndex = (revision & 0xFF0) >> 4;
+        std::cout << std::setw(NAME_LENGTH) << "Model:" << std::setw(VAL_LENGTH)
+                  << (modelIndex >= bitfieldToModel.size() ? "unknown" : bitfieldToModel[modelIndex]) << std::endl;
+
+        auto processorIndex = (revision & 0xF000) >> 12;
+        std::cout << std::setw(NAME_LENGTH) << "Processor:" << std::setw(VAL_LENGTH)
+                  << (processorIndex >= bitFieldToProcessor.size() ? "unknown" : bitFieldToProcessor[processorIndex])
+                  << std::endl;
+
+        std::cout << std::setw(NAME_LENGTH) << "Warranty void:" << std::setw(VAL_LENGTH)
+                  << (revision & 0x2000000 ? "yes" : "no") << std::endl;
+    }
+    else
+    {
+        static const std::map<uint32_t, std::string> revisionToModel = {
+            {2, "B"},
+            {3, "B"},
+            {4, "B"},
+            {5, "B"},
+            {6, "B"},
+            {7, "A"},
+            {8, "A"},
+            {9, "A"},
+            {0xD, "B"},
+            {0xE, "B"},
+            {0xF, "B"},
+            {0x10, "B+"},
+            {0x11, "CM"},
+            {0x12, "A+"},
+            {0x13, "B+"},
+            {0x14, "CM"},
+            {0x15, "A+"},
+        };
+        auto it = revisionToModel.find(revision & 0xFF);
+        std::cout << std::setw(NAME_LENGTH) << "Model:" << std::setw(VAL_LENGTH)
+                  << (it == revisionToModel.end() ? "unknown" : it->second) << std::endl;
+        std::cout << std::setw(NAME_LENGTH) << "Warranty void:" << std::setw(VAL_LENGTH)
+                  << (revision & 0x1000000 ? "yes" : "no") << std::endl;
+    }
+}
+
+static void printVC4CLInfo()
+{
+    std::cout << "VC4CL info:" << std::endl;
+
+    std::cout << std::setw(NAME_LENGTH) << "Version:" << std::setw(VAL_LENGTH) << platform_config::VC4CL_VERSION
+              << std::endl;
+
+#ifdef HAS_COMPILER
+    std::cout << std::setw(NAME_LENGTH) << "Compiler:" << std::setw(VAL_LENGTH) << "available" << std::endl;
+#else
+    std::cout << std::setw(NAME_LENGTH) << "Compiler:" << std::setw(VAL_LENGTH) << "unavailable" << std::endl;
+#endif
+
+#if defined(cl_khr_icd) and defined(use_cl_khr_icd)
+    std::cout << std::setw(NAME_LENGTH) << "ICD loader support:" << std::setw(VAL_LENGTH) << "enabled" << std::endl;
+#else
+    std::cout << std::setw(NAME_LENGTH) << "ICD loader support:" << std::setw(VAL_LENGTH) << "disabled" << std::endl;
+#endif
+
+#ifdef IMAGE_SUPPORT
+    std::cout << std::setw(NAME_LENGTH) << "Image support:" << std::setw(VAL_LENGTH) << "enabled" << std::endl;
+#else
+    std::cout << std::setw(NAME_LENGTH) << "Image support:" << std::setw(VAL_LENGTH) << "disabled" << std::endl;
+#endif
+
+#ifdef REGISTER_POKE_KERNELS
+    std::cout << std::setw(NAME_LENGTH) << "Execution mode:" << std::setw(VAL_LENGTH) << "register" << std::endl;
+#else
+    std::cout << std::setw(NAME_LENGTH) << "Execution mode:" << std::setw(VAL_LENGTH) << "mailbox" << std::endl;
+#endif
 }
 
 static void printMailboxInfo()
@@ -172,6 +273,8 @@ int main(int argc, char** argv)
     std::cout << "V3D Info:" << std::endl;
     std::cout << std::endl;
 
+    printModelInfo();
+    printVC4CLInfo();
     printMailboxInfo();
     printV3DInfo();
     printMaximumAllocation();
