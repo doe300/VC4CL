@@ -31,6 +31,8 @@ public:
 	void testShuffle();
 	void testWorkItems();
 	void testBarrier();
+	void testConstantHelloWorld();
+	void testConstantGlobalLoad();
 
 	void tear_down() override;
 

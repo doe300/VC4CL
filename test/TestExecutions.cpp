@@ -35,6 +35,10 @@ TestExecutions::TestExecutions() : Test::Suite(), context(nullptr), queue(nullpt
 	TEST_ADD(TestExecutions::testHungState);
 	TEST_ADD(TestExecutions::testBarrier);
 	TEST_ADD(TestExecutions::testHungState);
+	TEST_ADD(TestExecutions::testConstantHelloWorld);
+	TEST_ADD(TestExecutions::testHungState);
+	TEST_ADD(TestExecutions::testConstantGlobalLoad);
+	TEST_ADD(TestExecutions::testHungState);
 	//FIXME TEST_ADD(TestExecutions::testFibonacci);
 	//TEST_ADD(TestExecutions::testFFT2);
 }
@@ -521,6 +525,125 @@ void TestExecutions::testFibonacci()
 	errcode = VC4CL_FUNC(clReleaseKernel)(kernel);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 	errcode = VC4CL_FUNC(clReleaseMemObject)(outBuffer);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	errcode = VC4CL_FUNC(clReleaseProgram)(program);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+}
+
+void TestExecutions::testConstantHelloWorld()
+{
+	//setup
+	cl_int errcode = CL_SUCCESS;
+	cl_program program = nullptr;
+	buildProgram(&program, "./test/hello_world_constant.cl");
+	TEST_ASSERT(program != nullptr);
+
+	cl_mem outBuffer = VC4CL_FUNC(clCreateBuffer)(context, CL_MEM_HOST_READ_ONLY|CL_MEM_WRITE_ONLY, sizeof(cl_char16), nullptr, &errcode);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT(outBuffer != nullptr);
+
+	cl_kernel kernel = VC4CL_FUNC(clCreateKernel)(program, "hello_world", &errcode);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT(kernel != nullptr);
+	errcode = VC4CL_FUNC(clSetKernelArg)(kernel, 0, sizeof(cl_mem), &outBuffer);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+
+	//execution
+	cl_event event = nullptr;
+	size_t workSize = 12;
+	errcode = VC4CL_FUNC(clEnqueueNDRangeKernel)(queue, kernel, 1, nullptr, &workSize, nullptr, 0, nullptr, &event);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT(event != nullptr);
+	errcode = VC4CL_FUNC(clWaitForEvents)(1, &event);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+
+	//test
+	std::array<char, sizeof(cl_char16)> result;
+	errcode = VC4CL_FUNC(clEnqueueReadBuffer)(queue, outBuffer, CL_TRUE, 0, result.size(), result.data(), 0, nullptr, nullptr);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_STRING_EQUALS("Hello World!", result.data());
+
+	//tear-down
+	errcode = VC4CL_FUNC(clReleaseEvent)(event);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	errcode = VC4CL_FUNC(clReleaseKernel)(kernel);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	errcode = VC4CL_FUNC(clReleaseMemObject)(outBuffer);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	errcode = VC4CL_FUNC(clReleaseProgram)(program);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+}
+
+void TestExecutions::testConstantGlobalLoad()
+{
+	//setup
+	cl_int errcode = CL_SUCCESS;
+	cl_program program = nullptr;
+	buildProgram(&program, "./test/constant_load.cl");
+	TEST_ASSERT(program != nullptr);
+
+	cl_mem out0Buffer = VC4CL_FUNC(clCreateBuffer)(context, CL_MEM_HOST_READ_ONLY|CL_MEM_WRITE_ONLY, 2 * sizeof(uint32_t), nullptr, &errcode);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT(out0Buffer != nullptr);
+	
+	cl_mem out1Buffer = VC4CL_FUNC(clCreateBuffer)(context, CL_MEM_HOST_READ_ONLY|CL_MEM_WRITE_ONLY, 2 * sizeof(uint32_t), nullptr, &errcode);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT(out1Buffer != nullptr);
+	
+	cl_mem out2Buffer = VC4CL_FUNC(clCreateBuffer)(context, CL_MEM_HOST_READ_ONLY|CL_MEM_WRITE_ONLY, 2 * sizeof(uint32_t), nullptr, &errcode);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT(out2Buffer != nullptr);
+
+	cl_kernel kernel = VC4CL_FUNC(clCreateKernel)(program, "test_constant_load", &errcode);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT(kernel != nullptr);
+	errcode = VC4CL_FUNC(clSetKernelArg)(kernel, 0, sizeof(cl_mem), &out0Buffer);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	errcode = VC4CL_FUNC(clSetKernelArg)(kernel, 1, sizeof(cl_mem), &out1Buffer);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	errcode = VC4CL_FUNC(clSetKernelArg)(kernel, 2, sizeof(cl_mem), &out2Buffer);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	uint32_t index = 0;
+	errcode = VC4CL_FUNC(clSetKernelArg)(kernel, 3, sizeof(uint32_t), &index);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+
+	//execution
+	cl_event event = nullptr;
+	errcode = VC4CL_FUNC(clEnqueueTask)(queue, kernel, 0, nullptr, &event);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT(event != nullptr);
+	errcode = VC4CL_FUNC(clWaitForEvents)(1, &event);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+
+	//test
+	std::array<uint32_t, 2> result0 = {0};
+	errcode = VC4CL_FUNC(clEnqueueReadBuffer)(queue, out0Buffer, CL_TRUE, 0, result0.size() * sizeof(uint32_t), result0.data(), 0, nullptr, nullptr);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT_EQUALS(0x42, result0[0]);
+	TEST_ASSERT_EQUALS(0x17 + 42, result0[1]);
+
+	std::array<uint16_t, 2> result1 = {0};
+	errcode = VC4CL_FUNC(clEnqueueReadBuffer)(queue, out1Buffer, CL_TRUE, 0, result1.size() * sizeof(uint16_t), result1.data(), 0, nullptr, nullptr);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT_EQUALS(0x42, result1[0]);
+	TEST_ASSERT_EQUALS(0x17 + 42, result1[1]);
+
+	std::array<uint8_t, 2> result2 = {0};
+	errcode = VC4CL_FUNC(clEnqueueReadBuffer)(queue, out2Buffer, CL_TRUE, 0, result2.size() * sizeof(uint8_t), result2.data(), 0, nullptr, nullptr);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	TEST_ASSERT_EQUALS(0x42, static_cast<uint32_t>(result2[0]));
+	TEST_ASSERT_EQUALS(0x17 + 42, static_cast<uint32_t>(result2[1]));
+
+	//tear-down
+	errcode = VC4CL_FUNC(clReleaseEvent)(event);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	errcode = VC4CL_FUNC(clReleaseKernel)(kernel);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	errcode = VC4CL_FUNC(clReleaseMemObject)(out2Buffer);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	errcode = VC4CL_FUNC(clReleaseMemObject)(out1Buffer);
+	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
+	errcode = VC4CL_FUNC(clReleaseMemObject)(out0Buffer);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
 	errcode = VC4CL_FUNC(clReleaseProgram)(program);
 	TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
