@@ -103,11 +103,11 @@ namespace vc4cl
     }
 
     template <typename T, typename... Args>
-    CHECK_RETURN inline T* newObject(Args... args)
+    CHECK_RETURN inline T* newObject(Args&&... args)
     {
         try
         {
-            return new T(args...);
+            return new T(std::forward<Args>(args)...);
         }
         catch(std::bad_alloc&)
         {

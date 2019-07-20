@@ -794,7 +794,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBuiltInKernels)(cl_context context, cl_
             CL_INVALID_DEVICE, errcode_ret, __FILE__, __LINE__, "Device specified is not the VC4CL GPU device!");
 
     // no built-in kernels are supported!
-    //TODO support FFT? From raspbery pi userland? libraries? FFT2?
+    // TODO support FFT? From raspbery pi userland? libraries? FFT2?
 
     return returnError<cl_program>(
         CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "There are no supported built-in kernels");

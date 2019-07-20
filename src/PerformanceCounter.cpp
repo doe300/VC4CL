@@ -40,7 +40,7 @@ cl_int PerformanceCounter::getValue(cl_uint* value) const
     if(value == nullptr)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Output parameter is NULL!");
     std::lock_guard<std::mutex> lock(counterAccessMutex);
-    *value = V3D::instance().getCounter(index);
+    *value = static_cast<cl_uint>(V3D::instance().getCounter(index));
     return CL_SUCCESS;
 }
 

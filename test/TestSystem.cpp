@@ -4,17 +4,17 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include <CL/cl_platform.h>
-
 #include "TestSystem.h"
 #include "src/V3D.h"
+
+#include <CL/cl_platform.h>
 
 using namespace vc4cl;
 
 TestSystem::TestSystem()
 {
-	//"warm-up" V3D hardware
-	V3D::instance();
+    //"warm-up" V3D hardware
+    V3D::instance();
     TEST_ADD(TestSystem::testGetSystemInfo);
 }
 

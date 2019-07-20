@@ -8,7 +8,7 @@ set(VC4CL_ENABLED_WARNINGS -Wall -Wextra -Wold-style-cast -Wno-unused-parameter 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 	SET(VC4CL_ENABLED_WARNINGS ${VC4CL_ENABLED_WARNINGS} -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-shadow -Wno-padded -Wno-shadow-field-in-constructor -Wno-global-constructors -Wno-exit-time-destructors -Wno-missing-prototypes -Wno-gnu-anonymous-struct -Wno-nested-anon-types -Wno-documentation -Wno-unused-command-line-argument -Wno-unused-member-function -Wno-gnu-zero-variadic-macro-arguments -Wno-covered-switch-default -Wno-switch-enum -Wswitch)
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-	SET(VC4CL_ENABLED_WARNINGS ${VC4CL_ENABLED_WARNINGS} -Wdouble-promotion -fdelete-null-pointer-checks -Wnull-dereference -Wuninitialized -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=format -Wsuggest-override -Wconversion -Wzero-as-null-pointer-constant -Wno-psabi -Wno-ignored-attributes)
+	SET(VC4CL_ENABLED_WARNINGS ${VC4CL_ENABLED_WARNINGS} -Wdouble-promotion -fdelete-null-pointer-checks -Wnull-dereference -Wuninitialized -Wsuggest-attribute=format -Wsuggest-override -Wconversion -Wzero-as-null-pointer-constant -Wno-psabi -Wno-ignored-attributes)
 endif()
 target_compile_options(VC4CL PRIVATE ${VC4CL_ENABLED_WARNINGS})
 

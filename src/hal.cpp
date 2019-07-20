@@ -100,7 +100,7 @@ static bool emulateQPU(unsigned numQPUs, uint32_t bufferIndex, uint32_t controlO
         if(i == 0)
         {
             auto kernelAddress = toDevicePointer(controlPtr[i * 2 + 1]);
-            numInstructions = (uniformAddresses.front() - kernelAddress) / sizeof(uint64_t);
+            numInstructions = static_cast<uint32_t>((uniformAddresses.front() - kernelAddress) / sizeof(uint64_t));
             kernelPtr = reinterpret_cast<uint64_t*>(buffer.data()) +
                 ((kernelAddress - (bufferIndex << INDEX_OFFSET)) / sizeof(uint64_t));
         }
@@ -164,7 +164,7 @@ int vc4cl::ioctl_mailbox(int fd, unsigned long request, void* data)
             {
                 *it = std::vector<uint8_t>(buffer[5], 0);
                 // cannot start with index 0, since 0 is considered an error
-                buffer[5] = (it - allocatedMemory.begin()) + 1;
+                buffer[5] = static_cast<uint32_t>(it - allocatedMemory.begin()) + 1u;
             }
             else
                 // no more free buffers

@@ -224,7 +224,7 @@ cl_int executeKernel(KernelExecution& args)
 
     // Reserve space for stack-frames and fill it with zeros (e.g. for cl_khr_initialize_memory extension)
     uint32_t maxQPUS = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
-    uint32_t stackFrameSize = kernel->program->moduleInfo.getStackFrameSize() * sizeof(uint64_t);
+    uint32_t stackFrameSize = static_cast<uint32_t>(kernel->program->moduleInfo.getStackFrameSize() * sizeof(uint64_t));
 #ifdef DEBUG_MODE
     LOG(std::cout << "Reserving space for " << maxQPUS << " stack-frames of " << stackFrameSize << " bytes each"
                   << std::endl)
@@ -250,10 +250,10 @@ cl_int executeKernel(KernelExecution& args)
     {
         for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
         {
-            uniformPointers.at(i).at(iteration) = p;
+            uniformPointers.at(i).at(static_cast<unsigned>(iteration)) = p;
             p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes,
-                group_indices, local_indices, global_data, static_cast<unsigned>(numIterations - 1) - iteration,
-                kernel->info.uniformsUsed);
+                group_indices, local_indices, global_data,
+                static_cast<unsigned>(numIterations - 1) - static_cast<unsigned>(iteration), kernel->info.uniformsUsed);
             for(unsigned u = 0; u < kernel->info.params.size(); ++u)
             {
                 auto tmpBufferIt = args.tmpBuffers.find(u);
@@ -437,9 +437,10 @@ cl_int executeKernel(KernelExecution& args)
         {
             for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
             {
-                set_work_item_info(uniformPointers.at(i).at(iteration), args.numDimensions, args.globalOffsets,
-                    args.globalSizes, args.localSizes, group_indices, local_indices, global_data,
-                    static_cast<unsigned>(numIterations - 1) - iteration, kernel->info.uniformsUsed);
+                set_work_item_info(uniformPointers.at(i).at(static_cast<unsigned>(iteration)), args.numDimensions,
+                    args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data,
+                    static_cast<unsigned>(numIterations - 1) - static_cast<unsigned>(iteration),
+                    kernel->info.uniformsUsed);
             }
             increment_index(local_indices, args.localSizes, 1);
         }
