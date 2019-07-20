@@ -36,6 +36,7 @@
 #define VC4CL_MAILBOX
 
 #include "common.h"
+#include "executor.h"
 
 #include <chrono>
 #include <cstring>
@@ -306,10 +307,10 @@ namespace vc4cl
             MemoryFlag flags = MemoryFlag::L1_NONALLOCATING) const;
         bool deallocateBuffer(const DeviceBuffer* buffer) const;
 
-        CHECK_RETURN bool executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2,
-            unsigned valueR3, unsigned valueR4, unsigned valueR5) const;
-        CHECK_RETURN bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress, bool flushBuffer,
-            std::chrono::milliseconds timeout) const;
+        CHECK_RETURN ExecutionHandle executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1,
+            unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const;
+        CHECK_RETURN ExecutionHandle executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress,
+            bool flushBuffer, std::chrono::milliseconds timeout) const;
         uint32_t getTotalGPUMemory() const;
 
         template <MailboxTag Tag, unsigned RequestSize, unsigned MaxResponseSize>

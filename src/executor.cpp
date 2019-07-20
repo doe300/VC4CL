@@ -4,6 +4,7 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
+#include "executor.h"
 #include "Buffer.h"
 #include "Event.h"
 #include "Kernel.h"
@@ -43,10 +44,17 @@ static unsigned AS_GPU_ADDRESS(const unsigned* ptr, DeviceBuffer* buffer)
 
 static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data_size, size_t stackFrameSizeInWords)
 {
-    size_t raw_size = code_size + sizeof(unsigned) * num_uniforms + global_data_size +
-        V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT) * stackFrameSizeInWords * sizeof(uint64_t) /* word-size */;
+    auto numQPUS = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
+
+    // we duplicate the UNIFORMs to be able to update one block while the second one is used for execution
+    size_t uniformSize = 2 * sizeof(unsigned) * num_uniforms;
+    // we need 2 32-bit words (code pointer, uniform pointer) per QPU for a single launch message block.
+    // we need 2 launch message blocks, one per UNIFORM block (see above)
+    size_t launchMessageSize = 2 * 2 * sizeof(uint32_t) * numQPUS;
+    size_t rawSize = code_size + uniformSize + global_data_size +
+        numQPUS * stackFrameSizeInWords * sizeof(uint64_t) /* word-size */ + launchMessageSize;
     // round up to next multiple of alignment
-    return (raw_size / PAGE_ALIGNMENT + 1) * PAGE_ALIGNMENT;
+    return (rawSize / PAGE_ALIGNMENT + 1) * PAGE_ALIGNMENT;
 }
 
 static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions,
@@ -123,7 +131,7 @@ static bool increment_index(std::array<std::size_t, kernel_config::NUM_DIMENSION
     return indices[2] < limits[2];
 }
 
-static bool executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> controlAddress, bool flushBuffer,
+static ExecutionHandle executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> controlAddress, bool flushBuffer,
     std::chrono::milliseconds timeout)
 {
 #ifdef REGISTER_POKE_KERNELS
@@ -243,14 +251,15 @@ cl_int executeKernel(KernelExecution& args)
                   << " bytes of kernel code to device buffer" << std::endl)
 #endif
 
-    std::array<std::array<unsigned*, MAX_ITERATIONS>, 16> uniformPointers;
+    // 2 times (for each UNIFORM block) 16 times (for each possible QPU) 8 (for each iteration) UNIFORMS
+    std::array<std::array<std::array<unsigned*, MAX_ITERATIONS>, 16>, 2> uniformPointers;
     // Build Uniforms
-    const unsigned* qpu_uniform = p;
+    const unsigned* qpu_uniform_0 = p;
     for(unsigned i = 0; i < num_qpus; ++i)
     {
         for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
         {
-            uniformPointers.at(i).at(static_cast<unsigned>(iteration)) = p;
+            uniformPointers[0][i].at(static_cast<unsigned>(iteration)) = p;
             p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes,
                 group_indices, local_indices, global_data,
                 static_cast<unsigned>(numIterations - 1) - static_cast<unsigned>(iteration), kernel->info.uniformsUsed);
@@ -310,15 +319,34 @@ cl_int executeKernel(KernelExecution& args)
         increment_index(local_indices, args.localSizes, 1);
     }
 
+    // We duplicate the UNIFORM buffer, so we can have one being used by the background execution and the other is
+    // prepared for the next execution
+    unsigned* qpu_uniform_1 = p;
+    {
+        auto uniformSize = static_cast<size_t>(qpu_uniform_1 - qpu_uniform_0);
+        std::memcpy(qpu_uniform_1, qpu_uniform_0, uniformSize * sizeof(uint32_t));
+        p += uniformSize;
+
+        // the UNIFORMs of the second block are exactly the size of the first block after the corresponding UNIFORMs of
+        // the first block
+        for(unsigned i = 0; i < num_qpus; ++i)
+            for(unsigned iteration = 0; iteration < numIterations; ++iteration)
+                uniformPointers[1][i][iteration] = uniformPointers[0][i][iteration] + uniformSize;
+    }
+
     /* Build QPU Launch messages */
-    unsigned* qpu_msg = p;
+    auto uniformsPerQPU = numIterations *
+        (kernel->info.uniformsUsed.countUniforms() + 1 /* re-run flag */ + kernel->info.getExplicitUniformCount());
+    unsigned* qpu_msg_0 = p;
     for(unsigned i = 0; i < num_qpus; ++i)
     {
-        *p++ = AS_GPU_ADDRESS(qpu_uniform +
-                i * numIterations *
-                    (kernel->info.uniformsUsed.countUniforms() + 1 /* re-run flag */ +
-                        kernel->info.getExplicitUniformCount()),
-            buffer.get());
+        *p++ = AS_GPU_ADDRESS(qpu_uniform_0 + i * uniformsPerQPU, buffer.get());
+        *p++ = AS_GPU_ADDRESS(qpu_code, buffer.get());
+    }
+    unsigned* qpu_msg_1 = p;
+    for(unsigned i = 0; i < num_qpus; ++i)
+    {
+        *p++ = AS_GPU_ADDRESS(qpu_uniform_1 + i * uniformsPerQPU, buffer.get());
         *p++ = AS_GPU_ADDRESS(qpu_code, buffer.get());
     }
 
@@ -421,41 +449,52 @@ cl_int executeKernel(KernelExecution& args)
     LOG(std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", " << group_indices[2]
                   << std::endl)
 #endif
+    // toggle between the first and second launch message block to toggle between the first and second UNIFORMs block
+    auto qpu_msg_current = qpu_msg_0;
+    auto qpu_msg_next = qpu_msg_1;
+    auto* uniformPointers_current = &uniformPointers[0];
+    auto* uniformPointers_next = &uniformPointers[1];
     // on first execution, flush code cache
-    bool result = executeQPU(static_cast<unsigned>(num_qpus),
-        std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), true, KERNEL_TIMEOUT);
+    auto result = executeQPU(static_cast<unsigned>(num_qpus),
+        std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), true, KERNEL_TIMEOUT);
 #ifdef DEBUG_MODE
-    LOG(std::cout << "Execution: " << (result ? "successful" : "failed") << std::endl)
+    // NOTE: This disables background-execution!
+    LOG(std::cout << "Execution: " << (result.waitFor() ? "successful" : "failed") << std::endl)
 #endif
-    if(!result)
-        return CL_OUT_OF_RESOURCES;
+
     while(increment_index(group_indices, group_limits, numIterations))
     {
+        // switch between current and next launch message and UNIFORM blocks
+        std::swap(qpu_msg_current, qpu_msg_next);
+        std::swap(uniformPointers_current, uniformPointers_next);
         local_indices[0] = local_indices[1] = local_indices[2] = 0;
         // re-set indices and offsets for all QPUs
         for(cl_uint i = 0; i < num_qpus; ++i)
         {
             for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
             {
-                set_work_item_info(uniformPointers.at(i).at(static_cast<unsigned>(iteration)), args.numDimensions,
-                    args.globalOffsets, args.globalSizes, args.localSizes, group_indices, local_indices, global_data,
+                set_work_item_info((*uniformPointers_current)[i].at(static_cast<unsigned>(iteration)),
+                    args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices,
+                    local_indices, global_data,
                     static_cast<unsigned>(numIterations - 1) - static_cast<unsigned>(iteration),
                     kernel->info.uniformsUsed);
             }
             increment_index(local_indices, args.localSizes, 1);
         }
+        // wait for and check previous work-group (possible asynchronous) execution
+        if(!result.waitFor())
+            return CL_OUT_OF_RESOURCES;
 #ifdef DEBUG_MODE
         LOG(std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", "
                       << group_indices[2] << std::endl)
 #endif
         // all following executions, don't flush cache
         result = executeQPU(static_cast<unsigned>(num_qpus),
-            std::make_pair(qpu_msg, AS_GPU_ADDRESS(qpu_msg, buffer.get())), false, KERNEL_TIMEOUT);
+            std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), false, KERNEL_TIMEOUT);
 #ifdef DEBUG_MODE
-        LOG(std::cout << "Execution: " << (result ? "successful" : "failed") << std::endl)
+        // NOTE: This disables background-execution!
+        LOG(std::cout << "Execution: " << (result.waitFor() ? "successful" : "failed") << std::endl)
 #endif
-        if(!result)
-            return CL_OUT_OF_RESOURCES;
     }
 
 #if 0
@@ -517,7 +556,7 @@ cl_int executeKernel(KernelExecution& args)
     args.tmpBuffers.clear();
     args.persistentBuffers.clear();
 
-    if(result)
+    if(result.waitFor())
         return CL_COMPLETE;
     return CL_OUT_OF_RESOURCES;
 }

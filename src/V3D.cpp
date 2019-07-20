@@ -168,7 +168,7 @@ bool V3D::hasError(const ErrorType type) const
     return val == 1;
 }
 
-bool V3D::executeQPU(
+ExecutionHandle V3D::executeQPU(
     unsigned numQPUs, std::pair<uint32_t*, unsigned> addressPairs, bool flushBuffer, std::chrono::milliseconds timeout)
 {
     // see
@@ -204,19 +204,23 @@ bool V3D::executeQPU(
     }
 
     const auto start = std::chrono::high_resolution_clock::now();
-    // wait for completion
-    while(true)
-    {
-        if(((v3d_register(v3dBasePointer, V3D_SRQCS) >> 16) & 0xFF) == numQPUs)
-            return true;
-        if(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start) >
-            timeout)
-            break;
-        // TODO sleep some time?? so CPU is not fully used for waiting
-        // e.g. sleep for the theoretical execution time of the kernel (e.g. #instructions / QPU clock) and then begin
-        // active waiting
-    }
-    return false;
+    auto basePointer = v3dBasePointer;
+    auto checkFunc = [basePointer, numQPUs, start, timeout]() -> bool {
+        // wait for completion
+        while(true)
+        {
+            if(((v3d_register(basePointer, V3D_SRQCS) >> 16) & 0xFF) == numQPUs)
+                return true;
+            if(std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::high_resolution_clock::now() - start) > timeout)
+                break;
+            // TODO sleep some time?? so CPU is not fully used for waiting
+            // e.g. sleep for the theoretical execution time of the kernel (e.g. #instructions / QPU clock) and then
+            // begin active waiting
+        }
+        return false;
+    };
+    return ExecutionHandle{checkFunc};
 }
 
 uint32_t V3D::busAddressToPhysicalAddress(uint32_t busAddress)

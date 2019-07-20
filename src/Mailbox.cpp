@@ -141,17 +141,17 @@ bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer) const
     return true;
 }
 
-bool Mailbox::executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2, unsigned valueR3,
-    unsigned valueR4, unsigned valueR5) const
+ExecutionHandle Mailbox::executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1, unsigned valueR2,
+    unsigned valueR3, unsigned valueR4, unsigned valueR5) const
 {
     MailboxMessage<MailboxTag::EXECUTE_CODE, 7, 1> msg(
         {codeAddress, valueR0, valueR1, valueR2, valueR3, valueR4, valueR5});
     if(mailboxCall(msg.buffer.data()) < 0)
-        return false;
-    return msg.getContent(0) == 0;
+        return ExecutionHandle{false};
+    return ExecutionHandle{msg.getContent(0) == 0};
 }
 
-bool Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress, bool flushBuffer,
+ExecutionHandle Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress, bool flushBuffer,
     std::chrono::milliseconds timeout) const
 {
     if(timeout.count() > 0xFFFFFFFF)
@@ -169,8 +169,8 @@ bool Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> contro
     MailboxMessage<MailboxTag::EXECUTE_QPU, 4, 1> msg(
         {numQPUs, controlAddress.second, static_cast<unsigned>(!flushBuffer), static_cast<unsigned>(timeout.count())});
     if(mailboxCall(msg.buffer.data()) < 0)
-        return false;
-    return msg.getContent(0) == 0;
+        return ExecutionHandle{false};
+    return ExecutionHandle{msg.getContent(0) == 0};
 }
 
 uint32_t Mailbox::getTotalGPUMemory() const
