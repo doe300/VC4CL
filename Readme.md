@@ -2,6 +2,8 @@
 
 [![CircleCI](https://circleci.com/gh/doe300/VC4CL.svg?style=svg)](https://circleci.com/gh/doe300/VC4CL)
 
+**NOTE: VC4CL will NOT work with Raspberry Pi 4, since it has an incompatible GPU!**
+
 # VC4CL
 
 **VC4CL** is an implementation of the **OpenCL 1.2** standard for the VideoCore IV GPU (found in all Raspberry Pi models).

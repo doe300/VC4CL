@@ -46,8 +46,8 @@ static void printModelInfo()
     {
         // Raspberry Pi2 style revision encoding
         static const std::vector<std::string> bitfieldToModel = {"A", "B", "A+", "B+", "B+", "Alpha", "CM", "unknown",
-            "3 B", "Zero", "3 CM", "unknown", "Zero W", "3 B+", "3 A+", "unknown", "3 CM+"};
-        static const std::vector<std::string> bitFieldToProcessor = {"BCM2835", "BCM2836", "BCM2837"};
+            "3 B", "Zero", "3 CM", "unknown", "Zero W", "3 B+", "3 A+", "unknown", "3 CM+", "4 B"};
+        static const std::vector<std::string> bitFieldToProcessor = {"BCM2835", "BCM2836", "BCM2837", "BCM2838"};
 
         auto modelIndex = (revision & 0xFF0) >> 4;
         std::cout << std::setw(NAME_LENGTH) << "Model:" << std::setw(VAL_LENGTH)
@@ -60,6 +60,9 @@ static void printModelInfo()
 
         std::cout << std::setw(NAME_LENGTH) << "Warranty void:" << std::setw(VAL_LENGTH)
                   << (revision & 0x2000000 ? "yes" : "no") << std::endl;
+
+        if(processorIndex >= 3 || modelIndex >= 17)
+            std::cout << "NOTE: Raspberry Pi 4 is not supported!" << std::endl;
     }
     else
     {
