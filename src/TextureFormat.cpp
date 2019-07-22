@@ -23,7 +23,8 @@ static std::size_t getSlicePitchInBytes(const Image& image)
     return getRowPitchInBytes(image) * image.imageHeight;
 }
 
-TextureAccessor::TextureAccessor(Image& image) : image(image) {}
+TextureAccessor::TextureAccessor(Image& img) : image(img) {}
+TextureAccessor::~TextureAccessor() noexcept = default;
 
 std::size_t TextureAccessor::readSinglePixel(
     const std::array<std::size_t, 3>& pixelCoordinates, void* output, const std::size_t outputSize) const
@@ -175,7 +176,8 @@ static size_t roundUp(size_t numToRound, size_t multiple)
     return numToRound + multiple - remainder;
 }
 
-TFormatAccessor::TFormatAccessor(Image& image) : TextureAccessor(image) {}
+TFormatAccessor::TFormatAccessor(Image& img) : TextureAccessor(img) {}
+TFormatAccessor::~TFormatAccessor() noexcept = default;
 
 int TFormatAccessor::checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const
 {
@@ -212,7 +214,8 @@ void* TFormatAccessor::calculatePixelOffset(void* basePointer, const std::array<
     return nullptr;
 }
 
-LTFormatAccessor::LTFormatAccessor(Image& image) : TextureAccessor(image) {}
+LTFormatAccessor::LTFormatAccessor(Image& img) : TextureAccessor(img) {}
+LTFormatAccessor::~LTFormatAccessor() noexcept = default;
 
 int LTFormatAccessor::checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const
 {
@@ -274,7 +277,8 @@ void* LTFormatAccessor::calculatePixelOffset(
     return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(basePointer) + offsetA + offsetB + offsetSlice);
 }
 
-RasterFormatAccessor::RasterFormatAccessor(Image& image) : TextureAccessor(image) {}
+RasterFormatAccessor::RasterFormatAccessor(Image& img) : TextureAccessor(img) {}
+RasterFormatAccessor::~RasterFormatAccessor() noexcept = default;
 
 cl_int RasterFormatAccessor::checkAndApplyPitches(size_t srcRowPitch, size_t srcSlicePitch) const
 {

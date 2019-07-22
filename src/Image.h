@@ -176,6 +176,7 @@ namespace vc4cl
 
         ImageAccess(
             Image* image, void* hostPtr, bool writeImage, const std::size_t origin[3], const std::size_t region[3]);
+        ~ImageAccess() override;
 
         cl_int operator()() override final;
     };
@@ -190,6 +191,7 @@ namespace vc4cl
 
         ImageCopy(Image* src, Image* dst, const std::size_t srcOrigin[3], const std::size_t dstOrigin[3],
             const std::size_t region[3]);
+        ~ImageCopy() override;
 
         cl_int operator()() override final;
     };
@@ -202,6 +204,7 @@ namespace vc4cl
         std::vector<char> fillColor;
 
         ImageFill(Image* img, const void* color, const std::size_t origin[3], const std::size_t region[3]);
+        ~ImageFill() override;
 
         cl_int operator()() override final;
     };
@@ -217,6 +220,7 @@ namespace vc4cl
 
         ImageCopyBuffer(Image* image, Buffer* buffer, bool copyIntoImage, const std::size_t imgOrigin[3],
             const std::size_t region[3], size_t bufferOffset);
+        ~ImageCopyBuffer() override;
 
         cl_int operator()() override final;
     };
@@ -226,7 +230,9 @@ namespace vc4cl
         std::array<size_t, 3> origin;
         std::array<size_t, 3> region;
 
-        ImageMapping(Image* image, void* hostPtr, bool unmap, const std::size_t origin[3], const std::size_t region[3]);
+        ImageMapping(
+            Image* image, void* hostPointer, bool isUnmap, const std::size_t origin[3], const std::size_t region[3]);
+        ~ImageMapping() override;
     };
 
     struct hash_cl_image_format : public std::hash<std::string>

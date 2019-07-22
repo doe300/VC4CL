@@ -197,7 +197,8 @@ _cl_icd_dispatch vc4cl_dispatch = {
 #ifdef CL_VERSION_2_0
     &VC4CL_clCreateCommandQueueWithProperties, /* clCreateCommandQueueWithProperties */
 #else
-    &VC4CL_clCreateCommandQueueWithPropertiesKHR, /* clCreateCommandQueueWithProperties */
+    reinterpret_cast<cl_int (*)()>(
+        &VC4CL_clCreateCommandQueueWithPropertiesKHR),               /* clCreateCommandQueueWithProperties */
 #endif
     nullptr, /* clCreatePipe */
     nullptr, /* clGetPipeInfo */
@@ -211,7 +212,7 @@ _cl_icd_dispatch vc4cl_dispatch = {
 #ifdef CL_VERSION_2_0
     &VC4CL_clCreateSamplerWithProperties, /* clCreateSamplerWithProperties */
 #else
-    nullptr,                                      /* clCreateSamplerWithProperties */
+    nullptr,                                                         /* clCreateSamplerWithProperties */
 #endif
     nullptr, /* clSetKernelArgSVMPointer */
     nullptr, /* clSetKernelExecInfo */
@@ -219,13 +220,17 @@ _cl_icd_dispatch vc4cl_dispatch = {
     nullptr, /* clGetKernelSubGroupInfoKHR */
 
     /* OpenCL 2.1 */
-    nullptr,                         /* clCloneKernel */
+    nullptr, /* clCloneKernel */
+#ifdef CL_VERSION_2_1
     &VC4CL_clCreateProgramWithILKHR, /* clCreateProgramWithIL */
-    nullptr,                         /* clEnqueueSVMMigrateMem */
-    nullptr,                         /* clGetDeviceAndHostTimer */
-    nullptr,                         /* clGetHostTimer */
-    nullptr,                         /* clGetKernelSubGroupInfo */
-    nullptr,                         /* clSetDefaultDeviceCommandQueue */
+#else
+    reinterpret_cast<cl_int (*)()>(&VC4CL_clCreateProgramWithILKHR), /* clCreateProgramWithIL */
+#endif
+    nullptr, /* clEnqueueSVMMigrateMem */
+    nullptr, /* clGetDeviceAndHostTimer */
+    nullptr, /* clGetHostTimer */
+    nullptr, /* clGetKernelSubGroupInfo */
+    nullptr, /* clSetDefaultDeviceCommandQueue */
 
     /* OpenCL 2.2 */
     nullptr, /* clSetProgramReleaseCallback */

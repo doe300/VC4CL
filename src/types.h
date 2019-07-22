@@ -17,7 +17,7 @@ struct _cl_object
 {
     vc4cl_icd_dispatch void* object;
 
-    explicit _cl_object(void* object) noexcept : object(object)
+    explicit _cl_object(void* obj) noexcept : object(obj)
     {
         static_assert(!std::is_copy_constructible<_cl_object>::value, "VC4CL objects can't be copied!");
         static_assert(!std::is_move_constructible<_cl_object>::value, "VC4CL objects can't be moved!");
@@ -37,7 +37,7 @@ struct _cl_platform_id : public _cl_object
 {
     constexpr static const char* TYPE_NAME = "cl_platform_id";
 
-    explicit _cl_platform_id(void* object) : _cl_object(object)
+    explicit _cl_platform_id(void* obj) : _cl_object(obj)
     {
         static_assert(std::is_standard_layout<_cl_platform_id>::value,
             "This is required for the ICD-loader to correctly find the dispatcher");
@@ -54,7 +54,7 @@ struct _cl_device_id : public _cl_object
 {
     constexpr static const char* TYPE_NAME = "cl_device_id";
 
-    explicit _cl_device_id(void* object) : _cl_object(object)
+    explicit _cl_device_id(void* obj) : _cl_object(obj)
     {
         static_assert(std::is_standard_layout<_cl_device_id>::value,
             "This is required for the ICD-loader to correctly find the dispatcher");
@@ -70,7 +70,7 @@ struct _cl_context : public _cl_object
 {
     constexpr static const char* TYPE_NAME = "cl_context";
 
-    explicit _cl_context(void* object) : _cl_object(object)
+    explicit _cl_context(void* obj) : _cl_object(obj)
     {
         static_assert(std::is_standard_layout<_cl_context>::value,
             "This is required for the ICD-loader to correctly find the dispatcher");
@@ -93,7 +93,7 @@ struct _cl_command_queue : public _cl_object
 {
     constexpr static const char* TYPE_NAME = "cl_command_queue";
 
-    explicit _cl_command_queue(void* object) : _cl_object(object)
+    explicit _cl_command_queue(void* obj) : _cl_object(obj)
     {
         static_assert(std::is_standard_layout<_cl_command_queue>::value,
             "This is required for the ICD-loader to correctly find the dispatcher");
@@ -116,7 +116,7 @@ struct _cl_mem : public _cl_object
 {
     constexpr static const char* TYPE_NAME = "cl_mem";
 
-    explicit _cl_mem(void* object) : _cl_object(object)
+    explicit _cl_mem(void* obj) : _cl_object(obj)
     {
         static_assert(std::is_standard_layout<_cl_mem>::value,
             "This is required for the ICD-loader to correctly find the dispatcher");
@@ -152,7 +152,7 @@ struct _cl_event : public _cl_object
 {
     constexpr static const char* TYPE_NAME = "cl_event";
 
-    explicit _cl_event(void* object) : _cl_object(object)
+    explicit _cl_event(void* obj) : _cl_object(obj)
     {
         static_assert(std::is_standard_layout<_cl_event>::value,
             "This is required for the ICD-loader to correctly find the dispatcher");
@@ -183,7 +183,7 @@ struct _cl_program : public _cl_object
 {
     constexpr static const char* TYPE_NAME = "cl_program";
 
-    explicit _cl_program(void* object) : _cl_object(object)
+    explicit _cl_program(void* obj) : _cl_object(obj)
     {
         static_assert(std::is_standard_layout<_cl_program>::value,
             "This is required for the ICD-loader to correctly find the dispatcher");
@@ -206,7 +206,7 @@ struct _cl_kernel : public _cl_object
 {
     constexpr static const char* TYPE_NAME = "cl_kernel";
 
-    explicit _cl_kernel(void* object) : _cl_object(object)
+    explicit _cl_kernel(void* obj) : _cl_object(obj)
     {
         static_assert(std::is_standard_layout<_cl_kernel>::value,
             "This is required for the ICD-loader to correctly find the dispatcher");
@@ -230,7 +230,7 @@ struct _cl_sampler : public _cl_object
 {
     constexpr static const char* TYPE_NAME = "cl_sampler";
 
-    explicit _cl_sampler(void* object) : _cl_object(object)
+    explicit _cl_sampler(void* obj) : _cl_object(obj)
     {
         static_assert(std::is_standard_layout<_cl_sampler>::value,
             "This is required for the ICD-loader to correctly find the dispatcher");
@@ -249,7 +249,7 @@ struct _cl_counter_vc4cl : public _cl_object
 {
     constexpr static const char* TYPE_NAME = "cl_counter_vc4cl";
 
-    explicit _cl_counter_vc4cl(void* object) : _cl_object(object)
+    explicit _cl_counter_vc4cl(void* obj) : _cl_object(obj)
     {
         static_assert(std::is_standard_layout<_cl_counter_vc4cl>::value,
             "This is required for the ICD-loader to correctly find the dispatcher");

@@ -99,7 +99,7 @@ bool V3D::setCounter(uint8_t counterIndex, const CounterType type)
     // 1. enable counter
     // http://maazl.de/project/vc4asm/doc/VideoCoreIV-addendum.html states (section 10):
     //"You need to set bit 31 (allegedly reserved) to enable performance counters at all."
-    v3d_register(v3dBasePointer, V3D_COUNTER_ENABLE) |= (1 << 31) | (1 << counterIndex);
+    v3d_register(v3dBasePointer, V3D_COUNTER_ENABLE) |= (1u << 31) | (1u << counterIndex);
     // 2. set mapping
     v3d_register(v3dBasePointer, V3D_COUNTER_MAPPING_BASE + counterIndex * V3D_COUNTER_INCREMENT) =
         static_cast<uint32_t>(type) & 0x1F;
@@ -142,9 +142,9 @@ bool V3D::setReservation(const uint8_t qpu, const QPUReservation val)
     // 8 reservation settings are in one 32-bit register (4 bit per setting)
     uint32_t registerOffset = qpu / 8;
     uint32_t bitOffset = (qpu % 8) * 4;
-    uint32_t writeVal = (static_cast<uint8_t>(val) & 0xF) << bitOffset;
+    uint32_t writeVal = (static_cast<uint8_t>(val) & 0xFu) << bitOffset;
     // clear old values
-    v3d_register(v3dBasePointer, V3D_QPU_RESERVATIONS0 + registerOffset) &= ~(0xF << bitOffset);
+    v3d_register(v3dBasePointer, V3D_QPU_RESERVATIONS0 + registerOffset) &= ~(0xFu << bitOffset);
     // set new values
     v3d_register(v3dBasePointer, V3D_QPU_RESERVATIONS0 + registerOffset) |= writeVal;
 

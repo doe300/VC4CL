@@ -565,6 +565,8 @@ ImageAccess::ImageAccess(
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
 
+ImageAccess::~ImageAccess() = default;
+
 cl_int ImageAccess::operator()()
 {
     if(writeToImage)
@@ -583,6 +585,8 @@ ImageCopy::ImageCopy(Image* src, Image* dst, const std::size_t srcOrigin[3], con
     memcpy(this->destOrigin.data(), dstOrigin, 3 * sizeof(size_t));
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
+
+ImageCopy::~ImageCopy() = default;
 
 cl_int ImageCopy::operator()()
 {
@@ -604,6 +608,8 @@ ImageFill::ImageFill(Image* img, const void* color, const std::size_t origin[3],
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
 
+ImageFill::~ImageFill() = default;
+
 cl_int ImageFill::operator()()
 {
     image->accessor->fillPixelData(origin, region, fillColor.data());
@@ -618,6 +624,8 @@ ImageCopyBuffer::ImageCopyBuffer(Image* image, Buffer* buffer, bool copyIntoImag
     memcpy(this->imageOrigin.data(), imgOrigin, 3 * sizeof(size_t));
     memcpy(this->imageRegion.data(), region, 3 * sizeof(size_t));
 }
+
+ImageCopyBuffer::~ImageCopyBuffer() = default;
 
 cl_int ImageCopyBuffer::operator()()
 {
@@ -637,12 +645,14 @@ cl_int ImageCopyBuffer::operator()()
 }
 
 ImageMapping::ImageMapping(
-    Image* image, void* hostPtr, bool unmap, const std::size_t origin[3], const std::size_t region[3]) :
-    BufferMapping(image, hostPtr, unmap)
+    Image* image, void* hostPointer, bool isUnmap, const std::size_t origin[3], const std::size_t region[3]) :
+    BufferMapping(image, hostPointer, isUnmap)
 {
     memcpy(this->origin.data(), origin, 3 * sizeof(size_t));
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
+
+ImageMapping::~ImageMapping() = default;
 
 size_t hash_cl_image_format::operator()(const cl_image_format& format) const noexcept
 {

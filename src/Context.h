@@ -52,7 +52,7 @@ namespace vc4cl
     class HasContext
     {
     public:
-        explicit HasContext(Context* context) : c(context){};
+        explicit HasContext(Context* context) : c(context) {}
 
         const Context* context() const __attribute__((pure));
         Context* context() __attribute__((pure));

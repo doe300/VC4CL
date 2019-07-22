@@ -20,7 +20,7 @@ namespace vc4cl
     struct DeviceBuffer;
     struct DevicePointer;
     struct KernelArgument;
-    struct Buffer;
+    class Buffer;
 
     class Kernel final : public Object<_cl_kernel, CL_INVALID_KERNEL>
     {
@@ -53,7 +53,7 @@ namespace vc4cl
 
     struct KernelArgument
     {
-        virtual ~KernelArgument() noexcept = 0;
+        virtual ~KernelArgument() noexcept;
 
         virtual std::string to_string() const = 0;
     };
@@ -61,7 +61,7 @@ namespace vc4cl
     /**
      * Simple kernel argument storing vectors (1 to 16 elements) of scalar data
      */
-    struct ScalarArgument : public KernelArgument
+    struct ScalarArgument final : public KernelArgument
     {
         ScalarArgument(uint32_t numEntries)
         {
@@ -91,7 +91,7 @@ namespace vc4cl
      *
      * Temporary buffers are required e.g. for local memory buffers as well as for direct input of complex data.
      */
-    struct TemporaryBufferArgument : public KernelArgument
+    struct TemporaryBufferArgument final : public KernelArgument
     {
         TemporaryBufferArgument(unsigned bufferSize) : sizeToAllocate(bufferSize) {}
         TemporaryBufferArgument(unsigned bufferSize, const void* directData) :
@@ -125,7 +125,7 @@ namespace vc4cl
     /**
      * The kernel argument refers to a preallocated buffer object
      */
-    struct BufferArgument : public KernelArgument
+    struct BufferArgument final : public KernelArgument
     {
         BufferArgument(Buffer* buffer) : buffer(buffer) {}
         ~BufferArgument() noexcept override;
@@ -163,7 +163,7 @@ namespace vc4cl
         std::map<unsigned, std::shared_ptr<DeviceBuffer>> persistentBuffers;
 
         explicit KernelExecution(Kernel* kernel);
-        ~KernelExecution() override = default;
+        ~KernelExecution() override;
 
         cl_int operator()() override final;
     };

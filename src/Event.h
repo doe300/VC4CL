@@ -82,7 +82,7 @@ namespace vc4cl
         // prohibit copying or moving, since it might screw up with the manual reference counts
         EventAction(const EventAction&) = delete;
         EventAction(EventAction&&) = delete;
-        virtual ~EventAction();
+        virtual ~EventAction() noexcept;
 
         EventAction& operator=(const EventAction&) = delete;
         EventAction& operator=(EventAction&&) = delete;
@@ -98,7 +98,7 @@ namespace vc4cl
         const std::function<cl_int()> func;
 
         explicit CustomAction(const std::function<cl_int()>& callback) : func(callback) {}
-        ~CustomAction() override;
+        ~CustomAction() noexcept override;
 
         cl_int operator()() override final
         {
@@ -113,7 +113,7 @@ namespace vc4cl
     {
         const cl_int status;
         explicit NoAction(cl_int status = CL_SUCCESS) : status(status) {}
-        ~NoAction() override;
+        ~NoAction() noexcept override;
 
         cl_int operator()() override final
         {

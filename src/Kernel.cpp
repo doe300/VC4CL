@@ -640,6 +640,7 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
 }
 
 KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), numDimensions(0) {}
+KernelExecution::~KernelExecution() = default;
 
 cl_int KernelExecution::operator()()
 {
@@ -698,7 +699,7 @@ cl_kernel VC4CL_FUNC(clCreateKernel)(cl_program program, const char* kernel_name
 
     Kernel* kernel = newOpenCLObject<Kernel>(toType<Program>(program), *info);
     CHECK_ALLOCATION_ERROR_CODE(kernel, errcode_ret, cl_kernel)
-    RETURN_OBJECT(kernel->toBase(), errcode_ret);
+    RETURN_OBJECT(kernel->toBase(), errcode_ret)
 }
 
 /*!

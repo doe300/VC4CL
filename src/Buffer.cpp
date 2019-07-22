@@ -656,6 +656,8 @@ BufferMapping::BufferMapping(Buffer* buffer, void* hostPtr, bool unmap) : buffer
 {
 }
 
+BufferMapping::~BufferMapping() = default;
+
 cl_int BufferMapping::operator()()
 {
     /*
@@ -686,6 +688,8 @@ BufferAccess::BufferAccess(Buffer* buffer, void* hostPtr, std::size_t numBytes, 
 {
 }
 
+BufferAccess::~BufferAccess() = default;
+
 cl_int BufferAccess::operator()()
 {
     if(hostPtr == buffer->deviceBuffer->hostPointer && bufferOffset == hostOffset)
@@ -699,13 +703,15 @@ cl_int BufferAccess::operator()()
     return CL_SUCCESS;
 }
 
-BufferRectAccess::BufferRectAccess(Buffer* buffer, void* hostPtr, const std::size_t region[3], bool writeBuffer) :
-    BufferAccess(buffer, hostPtr, region[0] * region[1] * region[2], writeBuffer), region{0, 0, 0}, bufferOrigin{0, 0,
-                                                                                                        0},
+BufferRectAccess::BufferRectAccess(Buffer* buf, void* hostPointer, const std::size_t region[3], bool writeBuffer) :
+    BufferAccess(buf, hostPointer, region[0] * region[1] * region[2], writeBuffer), region{0, 0, 0}, bufferOrigin{0, 0,
+                                                                                                         0},
     bufferRowPitch(0), bufferSlicePitch(0), hostOrigin{0, 0, 0}, hostRowPitch(0), hostSlicePitch(0)
 {
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
+
+BufferRectAccess::~BufferRectAccess() = default;
 
 cl_int BufferRectAccess::operator()()
 {
@@ -745,6 +751,8 @@ BufferFill::BufferFill(Buffer* buffer, const void* pattern, std::size_t patternS
     memcpy(this->pattern.data(), pattern, patternSize);
 }
 
+BufferFill::~BufferFill() = default;
+
 cl_int BufferFill::operator()()
 {
     uintptr_t start = reinterpret_cast<uintptr_t>(buffer->deviceBuffer->hostPointer) + bufferOffset;
@@ -762,6 +770,8 @@ BufferCopy::BufferCopy(Buffer* src, Buffer* dest, std::size_t numBytes) :
 {
 }
 
+BufferCopy::~BufferCopy() = default;
+
 cl_int BufferCopy::operator()()
 {
     uintptr_t src = reinterpret_cast<uintptr_t>(sourceBuffer->deviceBuffer->hostPointer) + sourceOffset;
@@ -776,6 +786,8 @@ BufferRectCopy::BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t regi
 {
     memcpy(this->region.data(), region, 3 * sizeof(size_t));
 }
+
+BufferRectCopy::~BufferRectCopy() = default;
 
 cl_int BufferRectCopy::operator()()
 {
@@ -960,7 +972,7 @@ cl_mem VC4CL_FUNC(clCreateSubBuffer)(cl_mem buffer, cl_mem_flags flags, cl_buffe
     Buffer* subBuffer =
         toType<Buffer>(buffer)->createSubBuffer(flags, buffer_create_type, buffer_create_info, errcode_ret);
     CHECK_BUFFER_ERROR_CODE(subBuffer, errcode_ret, cl_mem)
-    RETURN_OBJECT(subBuffer->toBase(), errcode_ret);
+    RETURN_OBJECT(subBuffer->toBase(), errcode_ret)
 }
 
 /*!

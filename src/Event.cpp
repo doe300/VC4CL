@@ -11,11 +11,9 @@
 
 using namespace vc4cl;
 
-EventAction::~EventAction() = default;
-
-CustomAction::~CustomAction() = default;
-
-NoAction::~NoAction() = default;
+EventAction::~EventAction() noexcept = default;
+CustomAction::~CustomAction() noexcept = default;
+NoAction::~NoAction() noexcept = default;
 
 Event::Event(Context* context, cl_int status, CommandType type) :
     HasContext(context), type(type), queue(nullptr), status(status), userStatusSet(false)
@@ -262,7 +260,7 @@ WaitListStatus Event::getWaitListStatus() const
 void Event::setTime(cl_ulong& field)
 {
     const auto now = std::chrono::high_resolution_clock::now();
-    field = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+    field = static_cast<cl_ulong>(std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count());
 }
 
 /*!

@@ -111,6 +111,7 @@ namespace vc4cl
         bool unmap;
 
         BufferMapping(Buffer* buffer, void* hostPtr, bool unmap);
+        ~BufferMapping() override;
 
         cl_int operator()() override final;
     };
@@ -125,6 +126,7 @@ namespace vc4cl
         bool writeToBuffer;
 
         BufferAccess(Buffer* buffer, void* hostPtr, std::size_t numBytes, bool writeBuffer);
+        ~BufferAccess() override;
 
         cl_int operator()() override;
     };
@@ -139,7 +141,8 @@ namespace vc4cl
         std::size_t hostRowPitch;
         std::size_t hostSlicePitch;
 
-        BufferRectAccess(Buffer* buffer, void* hostPtr, const std::size_t region[3], bool writeBuffer);
+        BufferRectAccess(Buffer* buf, void* hostPointer, const std::size_t region[3], bool writeBuffer);
+        ~BufferRectAccess() override;
 
         cl_int operator()() override final;
     };
@@ -152,6 +155,7 @@ namespace vc4cl
         std::size_t numBytes;
 
         BufferFill(Buffer* buffer, const void* pattern, std::size_t patternSize, std::size_t numBytes);
+        ~BufferFill() override;
 
         cl_int operator()() override final;
     };
@@ -165,6 +169,7 @@ namespace vc4cl
         std::size_t numBytes;
 
         BufferCopy(Buffer* src, Buffer* dest, std::size_t numBytes);
+        ~BufferCopy() override;
 
         cl_int operator()() override final;
     };
@@ -182,6 +187,7 @@ namespace vc4cl
         std::size_t destSlicePitch;
 
         BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t region[3]);
+        ~BufferRectCopy() override;
 
         cl_int operator()() override final;
     };

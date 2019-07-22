@@ -26,7 +26,7 @@ namespace vc4cl
         {
             // reference-count is implicitly retained
         }
-        virtual ~BaseObject() noexcept = default;
+        virtual ~BaseObject() noexcept;
 
         virtual void* getBasePointer() = 0;
 

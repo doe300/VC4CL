@@ -210,7 +210,8 @@ static cl_int link_programs(Program* program, const std::vector<Program*>& other
 static cl_int compile_program(Program* program, const std::string& options)
 {
     std::stringstream intermediateCode;
-    intermediateCode.write(reinterpret_cast<char*>(program->intermediateCode.data()), program->intermediateCode.size());
+    intermediateCode.write(reinterpret_cast<char*>(program->intermediateCode.data()),
+        static_cast<std::streamsize>(program->intermediateCode.size()));
 
     vc4c::SourceType sourceType = vc4c::Precompiler::getSourceType(intermediateCode);
     if(sourceType == vc4c::SourceType::UNKNOWN || sourceType == vc4c::SourceType::QPUASM_BIN ||
@@ -816,7 +817,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBuiltInKernels)(cl_context context, cl_
 cl_int VC4CL_FUNC(clRetainProgram)(cl_program program)
 {
     VC4CL_PRINT_API_CALL("cl_int", clRetainProgram, "cl_program", program);
-    CHECK_PROGRAM(toType<Program>(program));
+    CHECK_PROGRAM(toType<Program>(program))
     return toType<Program>(program)->retain();
 }
 
@@ -837,7 +838,7 @@ cl_int VC4CL_FUNC(clRetainProgram)(cl_program program)
 cl_int VC4CL_FUNC(clReleaseProgram)(cl_program program)
 {
     VC4CL_PRINT_API_CALL("cl_int", clReleaseProgram, "cl_program", program);
-    CHECK_PROGRAM(toType<Program>(program));
+    CHECK_PROGRAM(toType<Program>(program))
     return toType<Program>(program)->release();
 }
 

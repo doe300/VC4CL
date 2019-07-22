@@ -13,6 +13,8 @@
 
 using namespace vc4cl;
 
+BaseObject::~BaseObject() noexcept = default;
+
 static ObjectTracker liveObjectsTracker;
 
 ObjectTracker::~ObjectTracker()
