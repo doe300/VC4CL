@@ -32,9 +32,10 @@ Buffer::Buffer(Buffer* parent, cl_mem_flags flags) : Buffer(parent->context(), f
 Buffer::~Buffer()
 {
     // fire callbacks
-    for(const auto& callback : callbacks)
+    // "The registered user callback functions are called in the reverse order in which they were registered."
+    for(auto it = callbacks.rbegin(); it != callbacks.rend(); ++it)
     {
-        callback.first(this->toBase(), callback.second);
+        it->first(this->toBase(), it->second);
     }
 }
 
