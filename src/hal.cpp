@@ -131,8 +131,7 @@ static bool emulateQPU(unsigned numQPUs, uint32_t bufferIndex, uint32_t controlO
         std::cerr << "Error in emulating kernel execution: " << std::endl;
         std::wcerr << logStream.rdbuf();
         std::cerr << err.what() << std::endl;
-        exit(1);
-        // TODO return false;
+        return false;
     }
 }
 

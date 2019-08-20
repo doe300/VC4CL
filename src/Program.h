@@ -71,6 +71,10 @@ namespace vc4cl
         BITFIELD_ENTRY(GlobalOffsetYUsed, bool, 10, Bit)
         BITFIELD_ENTRY(GlobalOffsetZUsed, bool, 11, Bit)
         BITFIELD_ENTRY(GlobalDataAddressUsed, bool, 12, Bit)
+        BITFIELD_ENTRY(UniformAddressUsed, bool, 13, Bit)
+        BITFIELD_ENTRY(MaxGroupIDXUsed, bool, 14, Bit)
+        BITFIELD_ENTRY(MaxGroupIDYUsed, bool, 15, Bit)
+        BITFIELD_ENTRY(MaxGroupIDZUsed, bool, 16, Bit)
 
         inline size_t countUniforms() const
         {

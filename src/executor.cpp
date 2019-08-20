@@ -26,13 +26,10 @@ using namespace vc4cl;
 // timeout in ms
 // to allow hanging kernels to time-out, set this to a non-infinite, but high enough value, so no valid kernel takes
 // that long (e.g. 1min)
-static const std::chrono::milliseconds KERNEL_TIMEOUT{30 * 1000};
-// maximum number of work-groups to run in a single execution
-// since all UNIFORMs (at least need to be re-loaded for every iteration, this number should not be too high
-static const size_t MAX_ITERATIONS = 8;
+static const std::chrono::milliseconds KERNEL_TIMEOUT{1000};
 
-// get_work_dim, get_local_size, get_local_id, get_num_groups (x, y, z), get_group_id (x, y, z), get_global_offset (x,
-// y, z), global-data, repeat-iteration flag
+// get_work_dim, get_local_size, get_local_id, get_num_groups (x, y, z), get_global_offset (x, y, z), global-data,
+// uniform address, max_group_id (x, y, z)
 static const unsigned MAX_HIDDEN_PARAMETERS = 14;
 
 static unsigned AS_GPU_ADDRESS(const unsigned* ptr, DeviceBuffer* buffer)
@@ -57,27 +54,26 @@ static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data
     return (rawSize / PAGE_ALIGNMENT + 1) * PAGE_ALIGNMENT;
 }
 
-static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions,
+static unsigned* set_work_item_info(unsigned* ptr, cl_uint num_dimensions,
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& global_offsets,
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& global_sizes,
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_sizes,
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& group_indices,
-    const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_indices, const unsigned global_data,
-    const unsigned iterationIndex, const KernelUniforms& uniformsUsed)
+    const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_indices, unsigned global_data,
+    unsigned uniformAddress, const KernelUniforms& uniformsUsed)
 {
 #ifdef DEBUG_MODE
     LOG(std::cout << "Setting work-item infos:" << std::endl;
         std::cout << "\t" << num_dimensions << " dimensions with offsets: " << global_offsets[0] << ", "
                   << global_offsets[1] << ", " << global_offsets[2] << std::endl;
-        std::cout << "\tGlobal IDs (sizes): " << (group_indices[0] + iterationIndex) * local_sizes[0] + local_indices[0]
-                  << "(" << global_sizes[0] << "), " << group_indices[1] * local_sizes[1] + local_indices[1] << "("
+        std::cout << "\tGlobal IDs (sizes): " << group_indices[0] * local_sizes[0] + local_indices[0] << "("
+                  << global_sizes[0] << "), " << group_indices[1] * local_sizes[1] + local_indices[1] << "("
                   << global_sizes[1] << "), " << group_indices[2] * local_sizes[2] + local_indices[2] << "("
                   << global_sizes[2] << ")" << std::endl;
         std::cout << "\tLocal IDs (sizes): " << local_indices[0] << "(" << local_sizes[0] << "), " << local_indices[1]
                   << "(" << local_sizes[1] << "), " << local_indices[2] << "(" << local_sizes[2] << ")" << std::endl;
-        std::cout << "\tGroup IDs (sizes): " << (group_indices[0] + iterationIndex) << "("
-                  << (global_sizes[0] / local_sizes[0]) << "), " << group_indices[1] << "("
-                  << (global_sizes[1] / local_sizes[1]) << "), " << group_indices[2] << "("
+        std::cout << "\tGroup IDs (sizes): " << group_indices[0] << "(" << (global_sizes[0] / local_sizes[0]) << "), "
+                  << group_indices[1] << "(" << (global_sizes[1] / local_sizes[1]) << "), " << group_indices[2] << "("
                   << (global_sizes[2] / local_sizes[2]) << ")" << std::endl)
 #endif
     // composes UNIFORMS for the values
@@ -98,7 +94,7 @@ static unsigned* set_work_item_info(unsigned* ptr, const cl_uint num_dimensions,
     if(uniformsUsed.getNumGroupsZUsed())
         *ptr++ = static_cast<unsigned>(global_sizes[2] / local_sizes[2]); /* get_num_groups(2) */
     if(uniformsUsed.getGroupIDXUsed())
-        *ptr++ = static_cast<unsigned>(group_indices[0] + iterationIndex); /* get_group_id(0) */
+        *ptr++ = static_cast<unsigned>(group_indices[0]); /* get_group_id(0) */
     if(uniformsUsed.getGroupIDYUsed())
         *ptr++ = static_cast<unsigned>(group_indices[1]); /* get_group_id(1) */
     if(uniformsUsed.getGroupIDZUsed())
@@ -169,15 +165,10 @@ cl_int executeKernel(KernelExecution& args)
     };
     std::array<std::size_t, kernel_config::NUM_DIMENSIONS> group_indices = {0, 0, 0};
     std::array<std::size_t, kernel_config::NUM_DIMENSIONS> local_indices = {0, 0, 0};
-    // Number of iterations for the "Kernel Loop Optimization"
-    size_t numIterations = std::min(MAX_ITERATIONS, group_limits[0]);
-    // make sure, the number of iterations divides the local size
-    while(numIterations >= 1)
-    {
-        if(group_limits[0] % numIterations == 0)
-            break;
-        --numIterations;
-    }
+
+    // if the "loop-work-groups" optimization is enabled, all work-items are executed by the first call
+    bool isWorkGroupLoopEnabled = kernel->info.uniformsUsed.getMaxGroupIDXUsed() ||
+        kernel->info.uniformsUsed.getMaxGroupIDYUsed() || kernel->info.uniformsUsed.getMaxGroupIDZUsed();
 
 #ifdef DEBUG_MODE
     LOG(std::cout << "Running kernel '" << kernel->info.name << "' with " << kernel->info.getLength()
@@ -186,14 +177,14 @@ cl_int executeKernel(KernelExecution& args)
                   << " -> " << num_qpus << " QPUs" << std::endl)
     LOG(std::cout << "Global sizes: " << args.globalSizes[0] << " " << args.globalSizes[1] << " " << args.globalSizes[2]
                   << " -> " << (args.globalSizes[0] * args.globalSizes[1] * args.globalSizes[2]) / num_qpus
-                  << " work-groups (" << numIterations << " run at once)" << std::endl)
+                  << " work-groups (" << (isWorkGroupLoopEnabled ? "all at once" : "separate") << ")" << std::endl)
 #endif
 
     //
     // ALLOCATE BUFFER
     //
     size_t buffer_size = get_size(kernel->info.getLength() * sizeof(uint64_t),
-        num_qpus * numIterations * (MAX_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()),
+        num_qpus * (MAX_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()),
         kernel->program->globalData.size() * sizeof(uint64_t), kernel->program->moduleInfo.getStackFrameSize());
 
     std::unique_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(static_cast<unsigned>(buffer_size)));
@@ -251,73 +242,76 @@ cl_int executeKernel(KernelExecution& args)
                   << " bytes of kernel code to device buffer" << std::endl)
 #endif
 
-    // 2 times (for each UNIFORM block) 16 times (for each possible QPU) 8 (for each iteration) UNIFORMS
-    std::array<std::array<std::array<unsigned*, MAX_ITERATIONS>, 16>, 2> uniformPointers;
+    // 2 times (for each UNIFORM block) 16 times (for each possible QPU)
+    std::array<std::array<unsigned*, 16>, 2> uniformPointers;
     // Build Uniforms
     const unsigned* qpu_uniform_0 = p;
     for(unsigned i = 0; i < num_qpus; ++i)
     {
-        for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
+        uniformPointers[0][i] = p;
+        p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes,
+            group_indices, local_indices, global_data, AS_GPU_ADDRESS(p, buffer.get()), kernel->info.uniformsUsed);
+        for(unsigned u = 0; u < kernel->info.params.size(); ++u)
         {
-            uniformPointers[0][i].at(static_cast<unsigned>(iteration)) = p;
-            p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes,
-                group_indices, local_indices, global_data,
-                static_cast<unsigned>(numIterations - 1) - static_cast<unsigned>(iteration), kernel->info.uniformsUsed);
-            for(unsigned u = 0; u < kernel->info.params.size(); ++u)
+            auto tmpBufferIt = args.tmpBuffers.find(u);
+            auto persistentBufferIt = args.persistentBuffers.find(u);
+            if(tmpBufferIt != args.tmpBuffers.end())
             {
-                auto tmpBufferIt = args.tmpBuffers.find(u);
-                auto persistentBufferIt = args.persistentBuffers.find(u);
-                if(tmpBufferIt != args.tmpBuffers.end())
-                {
-                    // there exists a temporary buffer for the __local/struct parameter, so set its address as kernel
-                    // argument
-                    *p++ = static_cast<unsigned>(tmpBufferIt->second->qpuPointer);
+                // there exists a temporary buffer for the __local/struct parameter, so set its address as kernel
+                // argument
+                *p++ = static_cast<unsigned>(tmpBufferIt->second->qpuPointer);
 #ifdef DEBUG_MODE
-                    LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
-                                  << " to temporary buffer 0x" << std::hex << tmpBufferIt->second->qpuPointer
-                                  << std::dec << std::endl)
+                LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                              << " to temporary buffer 0x" << std::hex << tmpBufferIt->second->qpuPointer << std::dec
+                              << std::endl)
 #endif
-                }
-                else if(persistentBufferIt != args.persistentBuffers.end())
-                {
-                    // the argument is a pointer to a buffer, use its device pointer as kernel argument value.
-                    // Since the buffer pointer might be NULL, we have to check for this first
-                    auto devicePtr = persistentBufferIt->second.get() ?
-                        static_cast<unsigned>(persistentBufferIt->second->qpuPointer) :
-                        0;
-                    *p++ = devicePtr;
-#ifdef DEBUG_MODE
-                    LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
-                                  << " to buffer 0x" << std::hex << devicePtr << std::dec << std::endl)
-#endif
-                }
-                else if(auto scalarArg = dynamic_cast<const ScalarArgument*>(kernel->args.at(u).get()))
-                {
-                    // "default" scalar or vector of scalar kernel argument
-                    for(cl_uchar i = 0; i < kernel->info.params[u].getVectorElements(); ++i)
-                        *p++ = scalarArg->scalarValues.at(i).getUnsigned();
-#ifdef DEBUG_MODE
-                    LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
-                                  << " to scalar " << scalarArg->to_string() << std::endl)
-#endif
-                }
-                else
-                {
-                    // At this point all argument types should be handled already
-                    return CL_INVALID_KERNEL_ARGS;
-                }
             }
-            //"Kernel Loop Optimization" to repeat kernel for several work-groups
-            // needs to be non-zero for all but the last iteration and zero for the last iteration
-            *p++ = static_cast<unsigned>(iteration);
-        }
+            else if(persistentBufferIt != args.persistentBuffers.end())
+            {
+                // the argument is a pointer to a buffer, use its device pointer as kernel argument value.
+                // Since the buffer pointer might be NULL, we have to check for this first
+                auto devicePtr = persistentBufferIt->second.get() ?
+                    static_cast<unsigned>(persistentBufferIt->second->qpuPointer) :
+                    0;
+                *p++ = devicePtr;
 #ifdef DEBUG_MODE
-        LOG(std::cout << numIterations *
-                (kernel->info.uniformsUsed.countUniforms() + 1 /* re-run flag */ + kernel->info.params.size())
-                      << " parameters set." << std::endl)
+                LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                              << " to buffer 0x" << std::hex << devicePtr << std::dec << std::endl)
 #endif
+            }
+            else if(auto scalarArg = dynamic_cast<const ScalarArgument*>(kernel->args.at(u).get()))
+            {
+                // "default" scalar or vector of scalar kernel argument
+                for(cl_uchar i = 0; i < kernel->info.params[u].getVectorElements(); ++i)
+                    *p++ = scalarArg->scalarValues.at(i).getUnsigned();
+#ifdef DEBUG_MODE
+                LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                              << " to scalar " << scalarArg->to_string() << std::endl)
+#endif
+            }
+            else
+            {
+                // At this point all argument types should be handled already
+                return CL_INVALID_KERNEL_ARGS;
+            }
+        }
+        // append UNIFORMs for "loop-work-groups" optimization to end of kernel UNIFORMs
+        if(kernel->info.uniformsUsed.getUniformAddressUsed())
+            *p++ = AS_GPU_ADDRESS(uniformPointers[0][i], buffer.get());
+        if(kernel->info.uniformsUsed.getMaxGroupIDXUsed())
+            *p++ = static_cast<unsigned>(group_limits[0]);
+        if(kernel->info.uniformsUsed.getMaxGroupIDYUsed())
+            *p++ = static_cast<unsigned>(group_limits[1]);
+        if(kernel->info.uniformsUsed.getMaxGroupIDZUsed())
+            *p++ = static_cast<unsigned>(group_limits[2]);
+
         increment_index(local_indices, args.localSizes, 1);
     }
+
+#ifdef DEBUG_MODE
+    LOG(std::cout << (kernel->info.uniformsUsed.countUniforms() + kernel->info.params.size()) << " parameters set."
+                  << std::endl)
+#endif
 
     // We duplicate the UNIFORM buffer, so we can have one being used by the background execution and the other is
     // prepared for the next execution
@@ -327,16 +321,14 @@ cl_int executeKernel(KernelExecution& args)
         std::memcpy(qpu_uniform_1, qpu_uniform_0, uniformSize * sizeof(uint32_t));
         p += uniformSize;
 
-        // the UNIFORMs of the second block are exactly the size of the first block after the corresponding UNIFORMs of
-        // the first block
+        // the UNIFORMs of the second block are exactly the size of the first block after the corresponding UNIFORMs
+        // of the first block
         for(unsigned i = 0; i < num_qpus; ++i)
-            for(unsigned iteration = 0; iteration < numIterations; ++iteration)
-                uniformPointers[1][i][iteration] = uniformPointers[0][i][iteration] + uniformSize;
+            uniformPointers[1][i] = uniformPointers[0][i] + uniformSize;
     }
 
     /* Build QPU Launch messages */
-    auto uniformsPerQPU = numIterations *
-        (kernel->info.uniformsUsed.countUniforms() + 1 /* re-run flag */ + kernel->info.getExplicitUniformCount());
+    auto uniformsPerQPU = kernel->info.uniformsUsed.countUniforms() + kernel->info.getExplicitUniformCount();
     unsigned* qpu_msg_0 = p;
     for(unsigned i = 0; i < num_qpus; ++i)
     {
@@ -449,20 +441,23 @@ cl_int executeKernel(KernelExecution& args)
     LOG(std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", " << group_indices[2]
                   << std::endl)
 #endif
-    // toggle between the first and second launch message block to toggle between the first and second UNIFORMs block
+    // toggle between the first and second launch message block to toggle between the first and second UNIFORMs
+    // block
     auto qpu_msg_current = qpu_msg_0;
     auto qpu_msg_next = qpu_msg_1;
     auto* uniformPointers_current = &uniformPointers[0];
     auto* uniformPointers_next = &uniformPointers[1];
+    // calculate execution timeout depending on the number of work-groups to be executed at once
+    auto timeout = KERNEL_TIMEOUT * std::max(std::size_t{30}, group_limits[0] * group_limits[1] * group_limits[2]);
     // on first execution, flush code cache
     auto result = executeQPU(static_cast<unsigned>(num_qpus),
-        std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), true, KERNEL_TIMEOUT);
+        std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), true, timeout);
 #ifdef DEBUG_MODE
     // NOTE: This disables background-execution!
     LOG(std::cout << "Execution: " << (result.waitFor() ? "successful" : "failed") << std::endl)
 #endif
 
-    while(increment_index(group_indices, group_limits, numIterations))
+    while(!isWorkGroupLoopEnabled && increment_index(group_indices, group_limits, 1))
     {
         // switch between current and next launch message and UNIFORM blocks
         std::swap(qpu_msg_current, qpu_msg_next);
@@ -471,14 +466,10 @@ cl_int executeKernel(KernelExecution& args)
         // re-set indices and offsets for all QPUs
         for(cl_uint i = 0; i < num_qpus; ++i)
         {
-            for(int iteration = static_cast<int>(numIterations - 1); iteration >= 0; --iteration)
-            {
-                set_work_item_info((*uniformPointers_current)[i].at(static_cast<unsigned>(iteration)),
-                    args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes, group_indices,
-                    local_indices, global_data,
-                    static_cast<unsigned>(numIterations - 1) - static_cast<unsigned>(iteration),
-                    kernel->info.uniformsUsed);
-            }
+            set_work_item_info((*uniformPointers_current)[i], args.numDimensions, args.globalOffsets, args.globalSizes,
+                args.localSizes, group_indices, local_indices, global_data,
+                AS_GPU_ADDRESS((*uniformPointers_current)[i], buffer.get()), kernel->info.uniformsUsed);
+
             increment_index(local_indices, args.localSizes, 1);
         }
         // wait for and check previous work-group (possible asynchronous) execution
@@ -490,7 +481,7 @@ cl_int executeKernel(KernelExecution& args)
 #endif
         // all following executions, don't flush cache
         result = executeQPU(static_cast<unsigned>(num_qpus),
-            std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), false, KERNEL_TIMEOUT);
+            std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), false, timeout);
 #ifdef DEBUG_MODE
         // NOTE: This disables background-execution!
         LOG(std::cout << "Execution: " << (result.waitFor() ? "successful" : "failed") << std::endl)
@@ -551,8 +542,8 @@ cl_int executeKernel(KernelExecution& args)
     // CLEANUP
     //
 
-    // even though the buffers are already freed when the KernelExecution event is freed, we clear the maps here, since
-    // we do not need the buffers anymore
+    // even though the buffers are already freed when the KernelExecution event is freed, we clear the maps here,
+    // since we do not need the buffers anymore
     args.tmpBuffers.clear();
     args.persistentBuffers.clear();
 

@@ -146,7 +146,10 @@ namespace vc4cl
          * Work-group configuration
          */
         static constexpr cl_uint NUM_DIMENSIONS = 3;
-        static const std::array<size_t, NUM_DIMENSIONS> MAX_WORK_ITEM_DIMENSIONS = {SIZE_MAX, SIZE_MAX, SIZE_MAX};
+        // For the "loop-work-groups" optimization, we can only count up to INT_MAX - 1 without overflowing the signed
+        // integer comparison. Therefore, set the limits accordingly
+        static const std::array<size_t, NUM_DIMENSIONS> MAX_WORK_ITEM_DIMENSIONS = {
+            0xFFFFFFFEu, 0xFFFFFFFEu, 0xFFFFFFFEu};
 
         /*
          * Parameter configuration
