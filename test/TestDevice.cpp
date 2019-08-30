@@ -385,5 +385,5 @@ void TestDevice::testRetainDevice()
 void TestDevice::testReleaseDevice()
 {
     cl_int state = VC4CL_FUNC(clReleaseDevice)(device);
-    TEST_ASSERT_EQUALS(CL_INVALID_DEVICE, state);
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 }

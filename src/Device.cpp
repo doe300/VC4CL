@@ -609,7 +609,7 @@ cl_int VC4CL_FUNC(clCreateSubDevices)(cl_device_id in_device, const cl_device_pa
  *
  *  \return clRetainDevice returns CL_SUCCESS if the function is executed successfully or the device is a root-level
  * device. Otherwise, it returns one of the following errors:
- *  - CL_INVALID_DEVICE if device is not a valid sub-device created by a call to clCreateSubDevices.
+ *  - CL_INVALID_DEVICE if device is not a valid device.
  *  - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the
  * device.
  *  - CL_OUT_OF_HOST_MEMORY if there is a failure to allocate resources required by the OpenCL implementation on the
@@ -619,8 +619,7 @@ cl_int VC4CL_FUNC(clRetainDevice)(cl_device_id device)
 {
     VC4CL_PRINT_API_CALL("cl_int", clRetainDevice, "cl_device_id", device);
     CHECK_DEVICE(toType<Device>(device))
-    // not supported
-    //"[...] the device is a root-level device"
+    //"[...] the device is a root-level device [...], the device reference count remains unchanged"
     return CL_SUCCESS;
 }
 
@@ -632,7 +631,7 @@ cl_int VC4CL_FUNC(clRetainDevice)(cl_device_id device)
  *
  *  \return clReleaseDevice returns CL_SUCCESS if the function is executed successfully. Otherwise, it returns one of
  * the following errors:
- *  - CL_INVALID_DEVICE if device is not a valid sub-device created by a call to clCreateSubDevices.
+ *  - CL_INVALID_DEVICE if device is not a valid device.
  *  - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the
  * device.
  *  - CL_OUT_OF_HOST_MEMORY if there is a failure to allocate resources required by the OpenCL implementation on the
@@ -645,6 +644,6 @@ cl_int VC4CL_FUNC(clReleaseDevice)(cl_device_id device)
 {
     VC4CL_PRINT_API_CALL("cl_int", clReleaseDevice, "cl_device_id", device);
     CHECK_DEVICE(toType<Device>(device))
-    // not supported
-    return CL_INVALID_DEVICE;
+    //"[...] the device is a root-level device [...], the device reference count remains unchanged"
+    return CL_SUCCESS;
 }

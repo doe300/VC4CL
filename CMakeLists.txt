@@ -20,6 +20,8 @@ option(CROSS_COMPILE "Cross compile for Raspbian" OFF)
 option(BUILD_DEB_PACKAGE "Enables creating .deb package" ON)
 # Option whether to emulate the hardware interface for testing purposes
 option(MOCK_HAL "Emulate hardware interface" OFF)
+# Option whether to enable more compile-time checks
+option(ADVANCED_CHECKS "Enable advanced compile-time checks" OFF)
 
 if(CROSS_COMPILE)
     set (CMAKE_LIBRARY_ARCHITECTURE "arm-linux-gnueabihf")
@@ -62,6 +64,13 @@ if(BUILD_DEBUG)
 	SET(CMAKE_BUILD_TYPE Debug)
 else()
 	SET(CMAKE_BUILD_TYPE Release)
+endif()
+
+# clang-tidy
+find_program(CLANG_TIDY NAMES clang-tidy clang-tidy-5.0 clang-tidy-6.0 clang-tidy-7 clang-tidy-8)
+if(ADVANCED_CHECKS AND CLANG_TIDY)
+    message(STATUS "Enabling clang-tidy compile time checks: ${CLANG_TIDY}")
+    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY}")
 endif()
 
 ####
@@ -148,6 +157,11 @@ find_package(Curses)
 if(NOT CURSES_FOUND)
 	message(STATUS "NCurses not found on this machine, the V3D profiler will not be built")
 endif()
+
+####
+# Additional configuration
+####
+include(cmake/sanitizers.cmake)
 
 ####
 # Main files
