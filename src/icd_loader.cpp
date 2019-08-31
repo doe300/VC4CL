@@ -42,6 +42,9 @@ cl_int VC4CL_FUNC(clIcdGetPlatformIDsKHR)(cl_uint num_entries, cl_platform_id* p
 }
 
 #ifdef use_cl_khr_icd
+// Ignore the missing initializer error here, since depending on the system, there might be different amount of entries
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 _cl_icd_dispatch vc4cl_dispatch = {
     // see https://github.com/KhronosGroup/OpenCL-ICD-Loader/blob/master/icd_dispatch.h
     // for implementation, see https://github.com/pocl/pocl/blob/master/lib/CL/clGetPlatformIDs.c
@@ -236,5 +239,5 @@ _cl_icd_dispatch vc4cl_dispatch = {
     nullptr, /* clSetProgramReleaseCallback */
     nullptr  /* clSetProgramSpecializationConstant */
 };
-
+#pragma GCC diagnostic pop
 #endif

@@ -18,6 +18,10 @@ static std::string sourceFFT;
 static constexpr int COUNTER_IDLE = 0;
 static constexpr int COUNTER_EXECUTIONS = 1;
 
+// TODO add execution tests for:
+// - multiple work-groups
+// - with/without "loop-work-groups" optimization enabled
+
 TestExecutions::TestExecutions() : Test::Suite(), context(nullptr), queue(nullptr)
 {
 	TEST_ADD(TestExecutions::testHungState);
@@ -67,8 +71,8 @@ void TestExecutions::testHungState()
 	std::this_thread::sleep_for(std::chrono::seconds{1});
 
 	//read new counter values
-	float qpuIdle = V3D::instance().getCounter(COUNTER_IDLE);
-	float qpuExec = V3D::instance().getCounter(COUNTER_EXECUTIONS);
+	auto qpuIdle = static_cast<float>(V3D::instance().getCounter(COUNTER_IDLE));
+	auto qpuExec = static_cast<float>(V3D::instance().getCounter(COUNTER_EXECUTIONS));
 
 	if(qpuIdle >= 0 && qpuExec >= 0 && (qpuIdle + qpuExec) > 0)
 	{
@@ -77,7 +81,7 @@ void TestExecutions::testHungState()
 		//one QPU is 1/12 of full power -> 8%
 		// -> to be safe use a threshold of 0.04
 		float qpuUsage = qpuExec / (qpuIdle + qpuExec);
-		TEST_ASSERT_MSG(qpuUsage < 0.04, "QPU(s) in a hung state or another program is using them!");
+		TEST_ASSERT_MSG(qpuUsage < 0.04f, "QPU(s) in a hung state or another program is using them!");
 	}
 }
 

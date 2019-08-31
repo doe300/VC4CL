@@ -43,6 +43,7 @@ The GPU (which is located on the same chip as the CPU) has 12 cores, able of run
 The following configuration options are available in CMake:
 
 - `BUILD_TESTING` toggles building of test program (when configured, can be built with `make TestVC4CL`)
+- `CMAKE_BUILD_TYPE` set to *Debug*, *Release*, *asan*, *tsan* or *usbsan* to build for the given debug/release mode or with sanitizers enabled
 - `BUILD_DEBUG` toggles building debug or release program
 - `CROSS_COMPILE` toggles whether to cross-compile for the Raspberry Pi. NOTE: The [Raspberry Pi cross-compiler](https://github.com/raspberrypi/tools) is no longer supported!
 - `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler (.g. `arm-linux-gnueabihf-g++-6`)
@@ -52,7 +53,6 @@ The following configuration options are available in CMake:
 - `BUILD_ICD` toggles whether to build with support for the Khronos ICD loader, requires the ICD loader to be installed system-wide
 - `IMAGE_SUPPORT` toggles whether to enable the very experimental image-support
 - `REGISTER_POKE_KERNELS` toggles the use of register-poking to start kernels (if disabled, uses the mailbox system-calls). Enabling this increases performance up to 10%, but may crash the system, if any other application accesses the GPU at the same time!
-- `BUILD_DEB_PACKAGE` toggles whether to create the necessary configuration to build `vc4cl-xxx.deb` package for installation on Raspbian. The actual packaging is started with `cpack -G DEB`
 
 ## Khronos ICD Loader
 The Khronos ICD Loaders allows multiple OpenCL implementation to be used in parallel (e.g. VC4CL and [pocl](https://github.com/pocl/pocl)), but requires a bit of manual configuration:

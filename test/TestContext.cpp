@@ -25,7 +25,7 @@ TestContext::TestContext() : context(nullptr)
 void TestContext::testCreateContext()
 {
     cl_int errcode = CL_SUCCESS;
-    cl_context_properties props[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)nullptr, 0};
+    cl_context_properties props[3] = {CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(nullptr), 0};
     context = VC4CL_FUNC(clCreateContext)(props, 1, nullptr, nullptr, nullptr, &errcode);
     TEST_ASSERT_EQUALS(nullptr, context);
     TEST_ASSERT(errcode != CL_SUCCESS);

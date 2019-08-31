@@ -1,6 +1,7 @@
 add_executable(v3d_info "")
 target_link_libraries(v3d_info VC4CL ${SYSROOT_LIBRARY_FLAGS})
 target_include_directories(v3d_info PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+target_compile_options(v3d_info PRIVATE ${VC4CL_ENABLED_WARNINGS})
 
 if(CURSES_FOUND)
   add_executable(v3d_profile "")
@@ -8,6 +9,7 @@ if(CURSES_FOUND)
   target_link_libraries(v3d_profile VC4CL ${CURSES_LIBRARIES})
   target_include_directories(v3d_profile PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
   target_include_directories(v3d_profile PRIVATE ${CURSES_INCLUDE_DIRS})
+  target_compile_options(v3d_profile PRIVATE ${VC4CL_ENABLED_WARNINGS})
 endif()
 
 if(INCLUDE_COMPILER AND EXISTS "${VC4C_HEADER_PATH}")
@@ -15,6 +17,7 @@ if(INCLUDE_COMPILER AND EXISTS "${VC4C_HEADER_PATH}")
 	add_executable(vc4cl_dump_analyzer "")
 	target_link_libraries(vc4cl_dump_analyzer VC4CL ${SYSROOT_LIBRARY_FLAGS})
 	target_include_directories(vc4cl_dump_analyzer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+	target_compile_options(vc4cl_dump_analyzer PRIVATE ${VC4CL_ENABLED_WARNINGS})
 endif()
 
 if(BUILD_ICD)
