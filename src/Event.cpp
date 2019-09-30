@@ -257,6 +257,11 @@ WaitListStatus Event::getWaitListStatus() const
     return WaitListStatus::FINISHED;
 }
 
+void Event::clearWaitList()
+{
+    waitList.clear();
+}
+
 void Event::setTime(cl_ulong& field)
 {
     const auto now = std::chrono::high_resolution_clock::now();

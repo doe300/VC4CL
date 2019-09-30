@@ -138,6 +138,9 @@ static void runEventQueue()
                 if(status != CL_SUCCESS)
                     event->updateStatus(status, false);
             }
+            // clear the wait list of this event to allow resources of waited-for events to be released before we
+            // release this event itself.
+            event->clearWaitList();
             eventProcessed.notify_all();
             // we need to leave the event in the queue until it is finished processing to allow CommandQueue#finish() to
             // track it

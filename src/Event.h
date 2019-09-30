@@ -145,6 +145,8 @@ namespace vc4cl
         void setEventWaitList(cl_uint numEvents, const cl_event* events);
         CHECK_RETURN cl_int setAsResultOrRelease(cl_int condition, cl_event* event);
         WaitListStatus getWaitListStatus() const;
+        // NOTE: Only call this after it is guaranteed that the wait list is no longer required!
+        void clearWaitList();
 
         const CommandType type;
         std::unique_ptr<EventAction> action;
@@ -164,7 +166,6 @@ namespace vc4cl
         std::vector<std::tuple<cl_int, EventCallback, void*>> callbacks;
         // This keeps all wait-list events alive until this event is released, but guarantees they are alive as long
         // as we need them.
-        // TODO can we clear this list after the event has been scheduled to allow the other events to be released?
         std::vector<object_wrapper<Event>> waitList;
 
         friend class CommandQueue;

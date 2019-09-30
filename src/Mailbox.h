@@ -301,8 +301,6 @@ namespace vc4cl
         Mailbox& operator=(const Mailbox&) = delete;
         Mailbox& operator=(Mailbox&&) = delete;
 
-        // TODO default was previously L1_NONALLOCATING, but results in errors writing and reading same buffers (within
-        // same work-item)?
         DeviceBuffer* allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes = PAGE_ALIGNMENT,
             MemoryFlag flags = MemoryFlag::L1_NONALLOCATING) const;
         bool deallocateBuffer(const DeviceBuffer* buffer) const;
