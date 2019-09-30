@@ -352,22 +352,22 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
         return nullptr;
     }
 
-    uintptr_t out_ptr = reinterpret_cast<uintptr_t>(nullptr);
+    void* out_ptr = nullptr;
     //"If the image object is created with CL_MEM_USE_HOST_PTR [...]"
     if(useHostPtr && hostPtr != nullptr)
     {
         //"The host_ptr specified in clCreateImage is guaranteed to contain the latest bits [...]"
-        memcpy(hostPtr, deviceBuffer->hostPointer, hostSize);
+        memcpy(hostPtr, getDeviceHostPointerWithOffset(), hostSize);
         //"The pointer value returned by clEnqueueMapImage will be derived from the host_ptr specified when the image
         // object is created."
-        out_ptr = reinterpret_cast<uintptr_t>(hostPtr) + offset;
+        out_ptr = hostPtr;
     }
     else
     {
-        out_ptr = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset;
+        out_ptr = getDeviceHostPointerWithOffset();
     }
 
-    ImageMapping* action = newObject<ImageMapping>(this, reinterpret_cast<void*>(out_ptr), false, origin, region);
+    ImageMapping* action = newObject<ImageMapping>(this, out_ptr, false, origin, region);
     CHECK_ALLOCATION_ERROR_CODE(action, errcode_ret, void*)
     e->action.reset(action);
 

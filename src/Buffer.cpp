@@ -121,7 +121,7 @@ Buffer* Buffer::createSubBuffer(
             subBuffer->hostPtr = reinterpret_cast<uint8_t*>(hostPtr) + region->origin;
         }
         subBuffer->hostSize = region->size;
-        subBuffer->offset = region->origin;
+        subBuffer->subBufferOffset = region->origin;
         if(deviceBuffer->memHandle != 0)
         {
             subBuffer->deviceBuffer = deviceBuffer;
@@ -235,7 +235,8 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, c
 
     BufferRectAccess* access = newObject<BufferRectAccess>(this, ptr, region, false);
     CHECK_ALLOCATION(access)
-    access->bufferOffset = offset;
+    // the offset inside the (sub-buffer) is handled via the 3-dimensional rectangle
+    access->bufferOffset = 0;
     memcpy(access->bufferOrigin.data(), buffer_origin, 3 * sizeof(size_t));
     access->bufferRowPitch = buffer_row_pitch;
     access->bufferSlicePitch = buffer_slice_pitch;
@@ -277,7 +278,8 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write,
 
     BufferRectAccess* access = newObject<BufferRectAccess>(this, const_cast<void*>(ptr), region, true);
     CHECK_ALLOCATION(access)
-    access->bufferOffset = offset;
+    // the offset inside the (sub-buffer) is handled via the 3-dimensional rectangle
+    access->bufferOffset = 0;
     memcpy(access->bufferOrigin.data(), buffer_origin, 3 * sizeof(size_t));
     access->bufferRowPitch = buffer_row_pitch;
     access->bufferSlicePitch = buffer_slice_pitch;
@@ -304,12 +306,12 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
         return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to itself!");
     else if(destination->parent.get() == this)
     {
-        if(src_offset <= destination->offset && destination->offset <= src_offset + size)
+        if(src_offset <= destination->subBufferOffset && destination->subBufferOffset <= src_offset + size)
             return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its child!");
     }
     else if(parent.get() == destination)
     {
-        if(dst_offset <= offset && offset <= dst_offset + size)
+        if(dst_offset <= subBufferOffset && subBufferOffset <= dst_offset + size)
             return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its parent!");
     }
     if(!hostReadable || !destination->hostWriteable)
@@ -351,12 +353,12 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
         return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to itself!");
     else if(destination->parent.get() == this)
     {
-        if(src_offset <= destination->offset && destination->offset <= src_offset + size)
+        if(src_offset <= destination->subBufferOffset && destination->subBufferOffset <= src_offset + size)
             return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its child!");
     }
     else if(parent.get() == destination)
     {
-        if(dst_offset <= offset && offset <= dst_offset + size)
+        if(dst_offset <= subBufferOffset && subBufferOffset <= dst_offset + size)
             return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its parent!");
     }
     if(!hostReadable || !destination->hostWriteable)
@@ -548,7 +550,7 @@ cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* pa
             parent ? parent->toBase() : nullptr, param_value_size, param_value, param_value_size_ret);
     case CL_MEM_OFFSET:
         if(parent)
-            return returnValue<size_t>(offset, param_value_size, param_value, param_value_size_ret);
+            return returnValue<size_t>(subBufferOffset, param_value_size, param_value, param_value_size_ret);
         return returnValue<size_t>(0, param_value_size, param_value, param_value_size_ret);
     }
 
@@ -573,7 +575,7 @@ void Buffer::setCopyHostPointer(void* hostPtr, size_t hostSize)
 {
     copyHostPtr = true;
     this->hostSize = hostSize;
-    memcpy(deviceBuffer->hostPointer, hostPtr, hostSize);
+    memmove(deviceBuffer->hostPointer, hostPtr, hostSize);
 }
 
 cl_mem_flags Buffer::getMemFlags() const
@@ -622,8 +624,10 @@ cl_int Buffer::copyIntoHostBuffer(size_t offset, size_t size)
         // e.g. allocate host-pointer
         return CL_SUCCESS;
     uintptr_t dest = reinterpret_cast<uintptr_t>(hostPtr) + offset;
-    uintptr_t src = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset + this->offset;
-    memcpy(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), size);
+    uintptr_t src = reinterpret_cast<uintptr_t>(getDeviceHostPointerWithOffset()) + offset;
+    if(dest == src)
+        return CL_SUCCESS;
+    memmove(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), size);
     return CL_SUCCESS;
 }
 
@@ -641,9 +645,9 @@ cl_int Buffer::copyFromHostBuffer(size_t offset, size_t size)
     if(hostPtr == deviceBuffer->hostPointer)
         // e.g. allocate host-pointer
         return CL_SUCCESS;
-    uintptr_t dest = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset + this->offset;
+    uintptr_t dest = reinterpret_cast<uintptr_t>(getDeviceHostPointerWithOffset()) + offset;
     uintptr_t src = reinterpret_cast<uintptr_t>(hostPtr) + offset;
-    memcpy(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), size);
+    memmove(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), size);
     return CL_SUCCESS;
 }
 
@@ -651,6 +655,21 @@ void Buffer::setHostSize()
 {
     if(hostSize == 0)
         hostSize = deviceBuffer->size;
+}
+
+DevicePointer Buffer::getDevicePointerWithOffset()
+{
+    if(!deviceBuffer)
+        return DevicePointer{0};
+    return DevicePointer{static_cast<unsigned>(static_cast<unsigned>(deviceBuffer->qpuPointer) + subBufferOffset)};
+}
+
+void* Buffer::getDeviceHostPointerWithOffset()
+{
+    if(!deviceBuffer)
+        return nullptr;
+    auto tmp = reinterpret_cast<char*>(deviceBuffer->hostPointer) + subBufferOffset;
+    return reinterpret_cast<void*>(tmp);
 }
 
 BufferMapping::BufferMapping(Buffer* buffer, void* hostPtr, bool unmap) : buffer(buffer), hostPtr(hostPtr), unmap(unmap)
@@ -693,14 +712,14 @@ BufferAccess::~BufferAccess() = default;
 
 cl_int BufferAccess::operator()()
 {
-    if(hostPtr == buffer->deviceBuffer->hostPointer && bufferOffset == hostOffset)
+    if(hostPtr == buffer->getDeviceHostPointerWithOffset() && bufferOffset == hostOffset)
         return CL_SUCCESS;
     if(writeToBuffer)
-        memcpy(static_cast<char*>(buffer->deviceBuffer->hostPointer) + bufferOffset,
+        memmove(static_cast<char*>(buffer->getDeviceHostPointerWithOffset()) + bufferOffset,
             static_cast<char*>(hostPtr) + hostOffset, numBytes);
     else
-        memcpy(static_cast<char*>(hostPtr) + hostOffset,
-            static_cast<char*>(buffer->deviceBuffer->hostPointer) + bufferOffset, numBytes);
+        memmove(static_cast<char*>(hostPtr) + hostOffset,
+            static_cast<char*>(buffer->getDeviceHostPointerWithOffset()) + bufferOffset, numBytes);
     return CL_SUCCESS;
 }
 
@@ -718,7 +737,7 @@ cl_int BufferRectAccess::operator()()
 {
     // copied from POCL (https://github.com/pocl/pocl/blob/master/lib/CL/devices/basic/basic.c), functions
     // pocl_basic_write_rect and pocl_basic_read_rect
-    uintptr_t devicePointer = reinterpret_cast<uintptr_t>(buffer->deviceBuffer->hostPointer) + bufferOrigin[0] +
+    uintptr_t devicePointer = reinterpret_cast<uintptr_t>(buffer->getDeviceHostPointerWithOffset()) + bufferOrigin[0] +
         bufferOrigin[1] * bufferRowPitch + bufferOrigin[2] * bufferSlicePitch;
     uintptr_t hostPointer = reinterpret_cast<uintptr_t>(hostPtr) + hostOrigin[0] + hostOrigin[1] * hostRowPitch +
         hostOrigin[2] * hostSlicePitch;
@@ -730,12 +749,12 @@ cl_int BufferRectAccess::operator()()
         {
             if(writeToBuffer)
             {
-                memcpy(reinterpret_cast<void*>(devicePointer + bufferRowPitch * y + bufferSlicePitch * z),
+                memmove(reinterpret_cast<void*>(devicePointer + bufferRowPitch * y + bufferSlicePitch * z),
                     reinterpret_cast<void*>(hostPointer + hostRowPitch * y + hostSlicePitch * z), region[0]);
             }
             else
             {
-                memcpy(reinterpret_cast<void*>(hostPointer + hostRowPitch * y + hostSlicePitch * z),
+                memmove(reinterpret_cast<void*>(hostPointer + hostRowPitch * y + hostSlicePitch * z),
                     reinterpret_cast<void*>(devicePointer + bufferRowPitch * y + bufferSlicePitch * z), region[0]);
             }
         }
@@ -756,7 +775,7 @@ BufferFill::~BufferFill() = default;
 
 cl_int BufferFill::operator()()
 {
-    uintptr_t start = reinterpret_cast<uintptr_t>(buffer->deviceBuffer->hostPointer) + bufferOffset;
+    uintptr_t start = reinterpret_cast<uintptr_t>(buffer->getDeviceHostPointerWithOffset()) + bufferOffset;
     uintptr_t end = start + numBytes;
     while(start < end)
     {
@@ -775,9 +794,11 @@ BufferCopy::~BufferCopy() = default;
 
 cl_int BufferCopy::operator()()
 {
-    uintptr_t src = reinterpret_cast<uintptr_t>(sourceBuffer->deviceBuffer->hostPointer) + sourceOffset;
-    uintptr_t dest = reinterpret_cast<uintptr_t>(destBuffer->deviceBuffer->hostPointer) + destOffset;
-    memcpy(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), numBytes);
+    uintptr_t src = reinterpret_cast<uintptr_t>(sourceBuffer->getDeviceHostPointerWithOffset()) + sourceOffset;
+    uintptr_t dest = reinterpret_cast<uintptr_t>(destBuffer->getDeviceHostPointerWithOffset()) + destOffset;
+    if(dest == src)
+        return CL_SUCCESS;
+    memmove(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), numBytes);
     return CL_SUCCESS;
 }
 
@@ -794,9 +815,9 @@ cl_int BufferRectCopy::operator()()
 {
     // copied from POCL (https://github.com/pocl/pocl/blob/master/lib/CL/devices/basic/basic.c), function
     // pocl_basic_copy_rect
-    uintptr_t sourcePointer = reinterpret_cast<uintptr_t>(sourceBuffer->deviceBuffer->hostPointer) + sourceOrigin[0] +
-        sourceOrigin[1] * sourceRowPitch + sourceOrigin[2] * sourceSlicePitch;
-    uintptr_t destPointer = reinterpret_cast<uintptr_t>(destBuffer->deviceBuffer->hostPointer) + destOrigin[0] +
+    uintptr_t sourcePointer = reinterpret_cast<uintptr_t>(sourceBuffer->getDeviceHostPointerWithOffset()) +
+        sourceOrigin[0] + sourceOrigin[1] * sourceRowPitch + sourceOrigin[2] * sourceSlicePitch;
+    uintptr_t destPointer = reinterpret_cast<uintptr_t>(destBuffer->getDeviceHostPointerWithOffset()) + destOrigin[0] +
         destOrigin[1] * destRowPitch + destOrigin[2] * destSlicePitch;
 
     /* TODO: (from pocl) handle overlapping regions. Can there be any? */
@@ -804,7 +825,7 @@ cl_int BufferRectCopy::operator()()
     {
         for(std::size_t y = 0; y < region[1]; ++y)
         {
-            memcpy(reinterpret_cast<void*>(destPointer + destRowPitch * y + destSlicePitch * z),
+            memmove(reinterpret_cast<void*>(destPointer + destRowPitch * y + destSlicePitch * z),
                 reinterpret_cast<void*>(sourcePointer + sourceRowPitch * y + sourceSlicePitch * z), region[0]);
         }
     }

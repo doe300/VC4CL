@@ -83,11 +83,16 @@ namespace vc4cl
 
         void setHostSize();
 
+        DevicePointer getDevicePointerWithOffset();
+        void* getDeviceHostPointerWithOffset();
+
     protected:
         bool useHostPtr;
         bool allocHostPtr;
         bool copyHostPtr;
 
+        // the pointer to the beginning of the host-side cached data, for sub-buffers, this is the start of the
+        // sub-buffer
         void* hostPtr = nullptr;
         // the actual size of the buffer, can be less than the device-buffer size (e.g. for sub-buffers)
         size_t hostSize = 0;
@@ -95,7 +100,7 @@ namespace vc4cl
         std::vector<std::pair<BufferDestructionCallback, void*>> callbacks;
 
         object_wrapper<Buffer> parent;
-        size_t offset = 0;
+        size_t subBufferOffset = 0;
 
         CHECK_RETURN Event* createBufferActionEvent(CommandQueue* queue, CommandType command_type,
             cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_int* errcode_ret) const;

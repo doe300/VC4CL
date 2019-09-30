@@ -165,7 +165,6 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
     }
     else
     {
-        // TODO are sub-buffers allowed? Are they handled correctly?
         // argument is pointer to object, e.g. buffer, image (which too is a buffer), sampler
         //"If the argument is a memory object (buffer, image or image array), the arg_value entry will be a pointer to
         // the appropriate buffer [...]" "If the argument is a buffer object, the arg_value pointer can be NULL or point
@@ -556,7 +555,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
     }
 
     std::map<unsigned, std::unique_ptr<DeviceBuffer>> tmpBuffers;
-    std::map<unsigned, std::shared_ptr<DeviceBuffer>> persistentBuffers;
+    std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>> persistentBuffers;
     auto state = allocateAndTrackBufferArguments(tmpBuffers, persistentBuffers);
     if(state != CL_SUCCESS)
         return returnError(state, __FILE__, __LINE__, "Error while allocating and tracking buffer kernel arguments");
@@ -582,7 +581,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 
 CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
     std::map<unsigned, std::unique_ptr<DeviceBuffer>>& tmpBuffers,
-    std::map<unsigned, std::shared_ptr<DeviceBuffer>>& persistentBuffers) const
+    std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>>& persistentBuffers) const
 {
     /*
      * Allocate buffers for __local/struct parameters
@@ -633,7 +632,8 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
             // implementation (see issue referenced above).
             if(!bufferArg->buffer || !bufferArg->buffer->checkReferences() || !bufferArg->buffer->deviceBuffer)
                 return CL_INVALID_KERNEL_ARGS;
-            persistentBuffers.emplace(i, bufferArg->buffer->deviceBuffer);
+            persistentBuffers.emplace(
+                i, std::make_pair(bufferArg->buffer->deviceBuffer, bufferArg->buffer->getDevicePointerWithOffset()));
         }
     }
     return CL_SUCCESS;

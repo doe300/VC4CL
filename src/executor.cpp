@@ -270,9 +270,10 @@ cl_int executeKernel(KernelExecution& args)
             {
                 // the argument is a pointer to a buffer, use its device pointer as kernel argument value.
                 // Since the buffer pointer might be NULL, we have to check for this first
-                auto devicePtr = persistentBufferIt->second.get() ?
-                    static_cast<unsigned>(persistentBufferIt->second->qpuPointer) :
-                    0;
+                // NOTE: For sub-buffers, the offset is added to the device pointer
+                auto devicePtr = persistentBufferIt->second.first.get() ?
+                    static_cast<unsigned>(persistentBufferIt->second.second) :
+                    0u;
                 *p++ = devicePtr;
 #ifdef DEBUG_MODE
                 LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)

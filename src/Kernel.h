@@ -48,7 +48,7 @@ namespace vc4cl
     private:
         CHECK_RETURN cl_int allocateAndTrackBufferArguments(
             std::map<unsigned, std::unique_ptr<DeviceBuffer>>& tmpBuffers,
-            std::map<unsigned, std::shared_ptr<DeviceBuffer>>& persistentBuffers) const;
+            std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>>& persistentBuffers) const;
     };
 
     struct KernelArgument
@@ -160,7 +160,8 @@ namespace vc4cl
          *   See also https://github.com/KhronosGroup/OpenCL-Docs/issues/45
          */
         std::map<unsigned, std::unique_ptr<DeviceBuffer>> tmpBuffers;
-        std::map<unsigned, std::shared_ptr<DeviceBuffer>> persistentBuffers;
+        // The value is the buffer + the actual address (buffer + offset, for sub-buffers)
+        std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>> persistentBuffers;
 
         explicit KernelExecution(Kernel* kernel);
         ~KernelExecution() override;
