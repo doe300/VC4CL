@@ -40,11 +40,13 @@ Program::Program(Context* context, const std::vector<char>& code, CreationType t
         break;
     case CreationType::INTERMEDIATE_LANGUAGE:
         intermediateCode.resize(code.size() / sizeof(uint8_t), '\0');
-        memcpy(intermediateCode.data(), code.data(), code.size());
+        if(!code.empty())
+            memcpy(intermediateCode.data(), code.data(), code.size());
         break;
     case CreationType::BINARY:
         binaryCode.resize(code.size() / sizeof(uint64_t), '\0');
-        memcpy(binaryCode.data(), code.data(), code.size());
+        if(!code.empty())
+            memcpy(binaryCode.data(), code.data(), code.size());
     }
 }
 
@@ -416,8 +418,6 @@ cl_int Program::getBuildInfo(
     switch(param_name)
     {
     case CL_PROGRAM_BUILD_STATUS:
-        if(binaryCode.empty())
-            return returnValue<cl_build_status>(CL_BUILD_NONE, param_value_size, param_value, param_value_size_ret);
         return returnValue<cl_build_status>(buildInfo.status, param_value_size, param_value, param_value_size_ret);
     case CL_PROGRAM_BUILD_OPTIONS:
         return returnString(buildInfo.options, param_value_size, param_value, param_value_size_ret);

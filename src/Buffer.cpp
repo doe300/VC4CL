@@ -314,9 +314,12 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
         if(dst_offset <= subBufferOffset && subBufferOffset <= dst_offset + size)
             return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its parent!");
     }
-    if(!hostReadable || !destination->hostWriteable)
-        return returnError(
-            CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot copy from a non-readable or to a non-writeable buffer");
+    // TODO this check is not specified as such in the OpenCL 1.2 specification and causes some mem_host CTS tests to
+    // fail
+    // if(!hostReadable || !destination->hostWriteable)
+    //     return returnError(
+    //         CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot copy from a non-readable or to a non-writeable
+    //         buffer");
 
     cl_int errcode = CL_SUCCESS;
     Event* e = createBufferActionEvent(
@@ -361,9 +364,11 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
         if(dst_offset <= subBufferOffset && subBufferOffset <= dst_offset + size)
             return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its parent!");
     }
-    if(!hostReadable || !destination->hostWriteable)
-        return returnError(
-            CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannto copy from non-readable or to non-writeable buffer!");
+    // TODO this check is not specified as such in the OpenCL 1.2 specification and causes some mem_host CTS tests to
+    // fail
+    // if(!hostReadable || !destination->hostWriteable)
+    //     return returnError(
+    //         CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannto copy from non-readable or to non-writeable buffer!");
 
     cl_int errcode = CL_SUCCESS;
     Event* e = createBufferActionEvent(

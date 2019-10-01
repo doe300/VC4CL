@@ -34,7 +34,9 @@ ObjectTracker::~ObjectTracker()
     // also, we cannot simply delete all objects in order (some might not exist anymore)
     while(!liveObjects.empty())
     {
-        liveObjects.erase(liveObjects.begin());
+        // we delete from the back, since the first objects are usually things like device, context, etc. and still
+        // referenced by the other objects (since unique_ptr are sorted by address and lower addresses are used first)
+        liveObjects.erase(--liveObjects.end());
     }
 }
 

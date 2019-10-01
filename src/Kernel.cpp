@@ -168,8 +168,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
         // argument is pointer to object, e.g. buffer, image (which too is a buffer), sampler
         //"If the argument is a memory object (buffer, image or image array), the arg_value entry will be a pointer to
         // the appropriate buffer [...]" "If the argument is a buffer object, the arg_value pointer can be NULL or point
-        // to a NULL value
-        // in which case a NULL value will be used as the value for the argument declared as a pointer"
+        // to a NULL value in which case a NULL value will be used as the value for the argument declared as a pointer"
         //"If the argument is declared to be a pointer of a built-in scalar or vector type [...] the memory object
         // specified as argument value must be a buffer object (or NULL)"
         // -> no pointers to non-buffer objects are allowed! -> good, no extra checking required
@@ -455,7 +454,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
         return returnError(CL_INVALID_PROGRAM_EXECUTABLE, __FILE__, __LINE__, "Kernel was not yet compiled!");
     }
 
-    if(argsSetMask != static_cast<cl_ulong>((1 << info.params.size()) - 1))
+    if(argsSetMask != ((cl_ulong{1} << info.params.size()) - cl_ulong{1}))
     {
         return returnError(CL_INVALID_KERNEL_ARGS, __FILE__, __LINE__, "Not all kernel-arguments are set!");
     }
@@ -628,12 +627,16 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
         KernelArgument* arg = args.at(i).get();
         if(auto bufferArg = dynamic_cast<BufferArgument*>(arg))
         {
-            // NOTE: we cannot guarantee that the buffer still exists, but that is out of the scope of the OpenCL
-            // implementation (see issue referenced above).
-            if(!bufferArg->buffer || !bufferArg->buffer->checkReferences() || !bufferArg->buffer->deviceBuffer)
+            if(!bufferArg->buffer)
+                // a NULL pointer was passed in (on purpose)
+                persistentBuffers.emplace(i, std::make_pair(nullptr, 0));
+            else if(!bufferArg->buffer->checkReferences() || !bufferArg->buffer->deviceBuffer)
+                // NOTE: we cannot guarantee that the buffer still exists, but that is out of the scope of the OpenCL
+                // implementation (see issue referenced above).
                 return CL_INVALID_KERNEL_ARGS;
-            persistentBuffers.emplace(
-                i, std::make_pair(bufferArg->buffer->deviceBuffer, bufferArg->buffer->getDevicePointerWithOffset()));
+            else
+                persistentBuffers.emplace(i,
+                    std::make_pair(bufferArg->buffer->deviceBuffer, bufferArg->buffer->getDevicePointerWithOffset()));
         }
     }
     return CL_SUCCESS;

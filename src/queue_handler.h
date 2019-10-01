@@ -14,7 +14,7 @@ namespace vc4cl
     class CommandQueue;
 
     void pushEventToQueue(Event* event);
-    Event* peekQueue(CommandQueue* queue);
+    object_wrapper<Event> peekQueue(CommandQueue* queue);
     void waitForEvent(const Event* event);
     void initEventQueue();
     void deinitEventQueue();

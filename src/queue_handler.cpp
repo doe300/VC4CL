@@ -58,16 +58,16 @@ void popFromEventQueue()
     eventBuffer.pop_front();
 }
 
-Event* vc4cl::peekQueue(CommandQueue* queue)
+object_wrapper<Event> vc4cl::peekQueue(CommandQueue* queue)
 {
     std::lock_guard<std::mutex> guard(bufferMutex);
 
     for(auto& e : eventBuffer)
     {
         if(e->getCommandQueue() == queue)
-            return e.get();
+            return e;
     }
-    return nullptr;
+    return {};
 }
 
 void vc4cl::waitForEvent(const Event* event)

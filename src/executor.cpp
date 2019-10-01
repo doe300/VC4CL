@@ -213,10 +213,13 @@ cl_int executeKernel(KernelExecution& args)
 
     // Copy global data into GPU memory
     const unsigned global_data = AS_GPU_ADDRESS(p, buffer.get());
-    void* data_start = kernel->program->globalData.data();
-    const unsigned data_length = static_cast<unsigned>(kernel->program->globalData.size() * sizeof(uint64_t));
-    memcpy(p, data_start, data_length);
-    p += data_length / sizeof(unsigned);
+    if(!kernel->program->globalData.empty())
+    {
+        void* data_start = kernel->program->globalData.data();
+        const unsigned data_length = static_cast<unsigned>(kernel->program->globalData.size() * sizeof(uint64_t));
+        memcpy(p, data_start, data_length);
+        p += data_length / sizeof(unsigned);
+    }
 #ifdef DEBUG_MODE
     LOG(std::cout << "Copied " << data_length << " bytes of global data to device buffer" << std::endl)
 #endif
