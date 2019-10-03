@@ -1,0 +1,18 @@
+set (CMAKE_LIBRARY_ARCHITECTURE "arm-linux-gnueabihf")
+if(NOT CROSS_COMPILER_PATH)
+	set(CROSS_COMPILER_PATH "/usr/bin")
+endif()
+if(NOT CROSS_COMPILER_PREFIX)
+	set(CROSS_COMPILER_PREFIX "arm-linux-gnueabihf-")
+endif()
+
+if (SYSROOT_CROSS)
+	# set(CMAKE_SYSROOT ${SYSROOT_CROSS})
+	set(CMAKE_FIND_ROOT_PATH ${SYSROOT_CROSS})
+	set(SYSROOT_LIBRARY_FLAGS "-Wl,-rpath-link,${SYSROOT_CROSS}/lib/arm-linux-gnueabihf:${SYSROOT_CROSS}/usr/lib/arm-linux-gnueabihf")
+	message(STATUS "sysroot: ${SYSROOT_CROSS}")
+endif()
+
+include(cmake/RaspberryPi.cmake)
+message(STATUS "Cross compiling for Raspbian with compiler: ${CMAKE_CXX_COMPILER}")
+set(MOCK_HAL OFF)
