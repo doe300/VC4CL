@@ -192,8 +192,6 @@ namespace vc4cl
         std::vector<KernelInfo> kernelInfos;
     };
 
-    using BuildCallback = void(CL_CALLBACK*)(cl_program program, void* user_data);
-
     class Program final : public Object<_cl_program, CL_INVALID_PROGRAM>, public HasContext
     {
     public:
@@ -204,13 +202,11 @@ namespace vc4cl
          * Compiles the program from OpenCL C source to intermediate representation (SPIR/LLVM IR, SPIR-V)
          */
         CHECK_RETURN cl_int compile(const std::string& options,
-            const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders, BuildCallback callback,
-            void* userData);
+            const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders);
         /*
          * Links the intermediate representation (if supported) and compiles to machine code
          */
-        CHECK_RETURN cl_int link(const std::string& options, BuildCallback callback, void* userData,
-            const std::vector<Program*>& programs = {});
+        CHECK_RETURN cl_int link(const std::string& options, const std::vector<object_wrapper<Program>>& programs = {});
         CHECK_RETURN cl_int getInfo(
             cl_program_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret);
         CHECK_RETURN cl_int getBuildInfo(

@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iterator>
 #include <sstream>
+#include <thread>
 
 #ifdef COMPILER_HEADER
 #define CPPLOG_NAMESPACE logging
@@ -151,7 +152,8 @@ static cl_int precompile_program(Program* program, const std::string& options,
     return status;
 }
 
-static cl_int link_programs(Program* program, const std::vector<Program*>& otherPrograms, bool includeStandardLibrary)
+static cl_int link_programs(
+    Program* program, const std::vector<object_wrapper<Program>>& otherPrograms, bool includeStandardLibrary)
 {
     if(otherPrograms.empty() && !includeStandardLibrary)
         return CL_SUCCESS;
@@ -172,9 +174,9 @@ static cl_int link_programs(Program* program, const std::vector<Program*>& other
                 reinterpret_cast<const char*>(program->intermediateCode.data()), program->intermediateCode.size())));
             inputModules.emplace(streamsBuffer.back().get(), vc4c::Optional<std::string>{});
         }
-        for(const Program* p : otherPrograms)
+        for(const auto& p : otherPrograms)
         {
-            if(p != nullptr && !p->intermediateCode.empty())
+            if(p && !p->intermediateCode.empty())
             {
                 streamsBuffer.emplace_back(new std::stringstream(std::string(
                     reinterpret_cast<const char*>(p->intermediateCode.data()), p->intermediateCode.size())));
@@ -276,9 +278,8 @@ static cl_int compile_program(Program* program, const std::string& options)
 
 #endif
 
-cl_int Program::compile(const std::string& options,
-    const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders, BuildCallback callback,
-    void* userData)
+cl_int Program::compile(
+    const std::string& options, const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders)
 {
     if(sourceCode.empty())
         return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "There is no source code to compile!");
@@ -288,8 +289,6 @@ cl_int Program::compile(const std::string& options,
     moduleInfo.kernelInfos.clear();
 #if HAS_COMPILER
     cl_int state = precompile_program(this, options, embeddedHeaders);
-    if(callback != nullptr)
-        (callback)(toBase(), userData);
 #else
     buildInfo.status = CL_BUILD_NONE;
     cl_int state = CL_COMPILER_NOT_AVAILABLE;
@@ -297,8 +296,7 @@ cl_int Program::compile(const std::string& options,
     return state;
 }
 
-cl_int Program::link(
-    const std::string& options, BuildCallback callback, void* userData, const std::vector<Program*>& programs)
+cl_int Program::link(const std::string& options, const std::vector<object_wrapper<Program>>& programs)
 {
     cl_int status = CL_SUCCESS;
 #if HAS_COMPILER
@@ -326,9 +324,6 @@ cl_int Program::link(
         moduleInfo.kernelInfos.clear();
         status = extractModuleInfo();
     }
-
-    if(callback != nullptr)
-        (callback)(toBase(), userData);
 #else
     buildInfo.status = CL_BUILD_NONE;
     status = CL_COMPILER_NOT_AVAILABLE;
@@ -528,6 +523,55 @@ cl_int Program::extractKernelInfo(cl_ulong** ptr)
 
     return CL_SUCCESS;
 }
+
+using BuildCallback = void(CL_CALLBACK*)(cl_program program, void* user_data);
+
+static cl_int buildInner(object_wrapper<Program> program, std::string options, BuildCallback callback, void* userData)
+{
+    cl_int state = CL_SUCCESS;
+    if(program->getBuildStatus() != BuildStatus::COMPILED && !program->sourceCode.empty())
+        // if the program was never build, compile. If it was already built once, re-compile (only if original
+        // source is available)  since clCompileProgram overwrites the build-status, we can't call it, instead
+        // directly call Program#compile
+        state = program->compile(options, std::unordered_map<std::string, object_wrapper<Program>>{});
+    if(state == CL_SUCCESS)
+        // don't call clLinkProgram, since it creates a new program, while clBuildProgram does not
+        state = program->link(options, {});
+
+    if(state != CL_SUCCESS)
+        program->buildInfo.status = CL_BUILD_ERROR;
+    else
+        program->buildInfo.status = CL_BUILD_SUCCESS;
+    if(callback)
+        (*callback)(program->toBase(), userData);
+    return state;
+};
+
+static cl_int compileInner(object_wrapper<Program> program, std::string options,
+    std::unordered_map<std::string, object_wrapper<Program>> embeddedHeaders, BuildCallback callback, void* userData)
+{
+    cl_int state = program->compile(options, embeddedHeaders);
+    if(state != CL_SUCCESS)
+        program->buildInfo.status = CL_BUILD_ERROR;
+    else
+        program->buildInfo.status = CL_BUILD_SUCCESS;
+    if(callback)
+        (callback)(program->toBase(), userData);
+    return state;
+};
+
+static cl_int linkInner(object_wrapper<Program> program, std::string options,
+    std::vector<object_wrapper<Program>> inputPrograms, BuildCallback callback, void* userData)
+{
+    cl_int status = program->link(options, inputPrograms);
+    if(status != CL_SUCCESS)
+        program->buildInfo.status = CL_BUILD_ERROR;
+    else
+        program->buildInfo.status = CL_BUILD_SUCCESS;
+    if(callback)
+        (*callback)(program->toBase(), userData);
+    return status;
+};
 
 /*!
  * OpenCL 1.2 specification, pages 133+:
@@ -914,28 +958,18 @@ cl_int VC4CL_FUNC(clBuildProgram)(cl_program program, cl_uint num_devices, const
     if(pfn_notify == nullptr && user_data != nullptr)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "User data was set, but callback wasn't!");
 
-    cl_int state = CL_SUCCESS;
-    const std::string opts(options == nullptr ? "" : options);
+    std::string opts(options == nullptr ? "" : options);
     Program* p = toType<Program>(program);
     p->buildInfo.status = CL_BUILD_IN_PROGRESS;
-    if(p->getBuildStatus() != BuildStatus::COMPILED && !p->sourceCode.empty())
-        // if the program was never build, compile. If it was already built once, re-compile (only if original source is
-        // available)  since clCompileProgram overwrites the build-status, we can't call it, instead directly call
-        // Program#compile
-        state = p->compile(opts, std::unordered_map<std::string, object_wrapper<Program>>{}, pfn_notify, user_data);
-    if(state != CL_SUCCESS)
+    if(pfn_notify)
     {
-        p->buildInfo.status = CL_BUILD_ERROR;
-        return state;
+        // "If pfn_notify is not NULL, clBuildProgram does not need to wait for the build to complete and can return
+        // immediately once the build operation can begin"
+        std::thread t{buildInner, object_wrapper<Program>{p}, opts, pfn_notify, user_data};
+        t.detach();
+        return CL_SUCCESS;
     }
-
-    // don't call clLinkProgram, since it creates a new program, while clBuildProgram does not
-    state = p->link(opts, pfn_notify, user_data, {});
-    if(state != CL_SUCCESS)
-        p->buildInfo.status = CL_BUILD_ERROR;
-    else
-        p->buildInfo.status = CL_BUILD_SUCCESS;
-    return state;
+    return buildInner(object_wrapper<Program>{p}, opts, pfn_notify, user_data);
 }
 
 /*!
@@ -1044,12 +1078,17 @@ cl_int VC4CL_FUNC(clCompileProgram)(cl_program program, cl_uint num_devices, con
     }
 
     const std::string opts(options == nullptr ? "" : options);
-    cl_int state = toType<Program>(program)->compile(opts, embeddedHeaders, pfn_notify, user_data);
-    if(state != CL_SUCCESS)
-        toType<Program>(program)->buildInfo.status = CL_BUILD_ERROR;
-    else
-        toType<Program>(program)->buildInfo.status = CL_BUILD_SUCCESS;
-    return state;
+    if(pfn_notify)
+    {
+        // "If pfn_notify is not NULL, clCompileProgram does not need to wait for the compiler to complete and can
+        // return immediately once the compilation can begin."
+        std::thread t{compileInner, object_wrapper<Program>{toType<Program>(program)}, opts, embeddedHeaders,
+            pfn_notify, user_data};
+        t.detach();
+        return CL_SUCCESS;
+    }
+    return compileInner(
+        object_wrapper<Program>{toType<Program>(program)}, opts, std::move(embeddedHeaders), pfn_notify, user_data);
 }
 
 /*!
@@ -1144,7 +1183,7 @@ cl_program VC4CL_FUNC(clLinkProgram)(cl_context context, cl_uint num_devices, co
     if(num_input_programs == 0 || input_programs == nullptr)
         return returnError<cl_program>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Invalid input program");
 
-    std::vector<Program*> inputPrograms;
+    std::vector<object_wrapper<Program>> inputPrograms;
     inputPrograms.reserve(num_input_programs);
     for(cl_uint i = 0; i < num_input_programs; ++i)
     {
@@ -1158,16 +1197,24 @@ cl_program VC4CL_FUNC(clLinkProgram)(cl_context context, cl_uint num_devices, co
     CHECK_ALLOCATION_ERROR_CODE(newProgram, errcode_ret, cl_program)
 
     newProgram->buildInfo.status = CL_BUILD_IN_PROGRESS;
-    cl_int status = newProgram->link(options == nullptr ? "" : options, pfn_notify, user_data, inputPrograms);
-
-    if(status != CL_SUCCESS)
+    const std::string opts(options == nullptr ? "" : options);
+    if(pfn_notify)
     {
-        newProgram->buildInfo.status = CL_BUILD_ERROR;
-        return returnError<cl_program>(status, errcode_ret, __FILE__, __LINE__, "Linking failed!");
+        // "If pfn_notify is not NULL, clLinkProgram does not need to wait for the linker to complete and can return
+        // immediately once the linking operation can begin."
+        std::thread t{linkInner, object_wrapper<Program>(newProgram), opts, inputPrograms, pfn_notify, user_data};
+        t.detach();
     }
     else
-        newProgram->buildInfo.status = CL_BUILD_SUCCESS;
-
+    {
+        cl_int status = linkInner(object_wrapper<Program>(newProgram), opts, inputPrograms, pfn_notify, user_data);
+        if(status != CL_SUCCESS)
+        {
+            // on linker error, we need to discard the newly created program, otherwise it will be leaked
+            ignoreReturnValue(newProgram->release(), __FILE__, __LINE__, "This should never fail!");
+            return returnError<cl_program>(status, errcode_ret, __FILE__, __LINE__, "Linking failed!");
+        }
+    }
     RETURN_OBJECT(newProgram->toBase(), errcode_ret)
 }
 
