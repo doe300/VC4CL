@@ -34,6 +34,8 @@ public:
     void tear_down() override;
     
     unsigned num_callback;
+    // for asynchronous compilation
+    unsigned num_pendingCallbacks;
     
 private:
     cl_context context;

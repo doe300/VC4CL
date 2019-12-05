@@ -13,12 +13,13 @@
 using namespace vc4cl;
 
 uint32_t hello_world_vector_hex[] = {
-    #include "hello_world_vector.hex"
+#include "hello_world_vector.hex"
 };
 
 static std::string sourceCode;
 
-TestProgram::TestProgram() : num_callback(0), context(nullptr), source_program(nullptr), binary_program(nullptr)
+TestProgram::TestProgram() :
+    num_callback(0), num_pendingCallbacks(0), context(nullptr), source_program(nullptr), binary_program(nullptr)
 {
     TEST_ADD(TestProgram::testCreateProgramWithSource);
     TEST_ADD(TestProgram::testCreateProgramWithBinary);
@@ -49,7 +50,7 @@ void TestProgram::testCreateProgramWithSource()
     source_program = VC4CL_FUNC(clCreateProgramWithSource)(context, 1, nullptr, &sourceLength, &errcode);
     TEST_ASSERT(errcode != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, source_program);
-    
+
     const char* strings[1] = {sourceCode.data()};
     source_program = VC4CL_FUNC(clCreateProgramWithSource)(context, 1, strings, &sourceLength, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
@@ -63,11 +64,12 @@ void TestProgram::testCreateProgramWithBinary()
     binary_program = VC4CL_FUNC(clCreateProgramWithBinary)(context, 1, &device_id, nullptr, nullptr, nullptr, &errcode);
     TEST_ASSERT(errcode != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, binary_program);
-    
+
     cl_int binary_state = CL_SUCCESS;
     size_t binary_size = sizeof(hello_world_vector_hex);
     const unsigned char* strings[1] = {reinterpret_cast<const unsigned char*>(hello_world_vector_hex)};
-    binary_program = VC4CL_FUNC(clCreateProgramWithBinary)(context, 1, &device_id, &binary_size, strings, &binary_state, &errcode);
+    binary_program =
+        VC4CL_FUNC(clCreateProgramWithBinary)(context, 1, &device_id, &binary_size, strings, &binary_state, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
     TEST_ASSERT(binary_program != nullptr);
     TEST_ASSERT_EQUALS(CL_SUCCESS, binary_state);
@@ -84,53 +86,69 @@ void TestProgram::testCreateProgramWithBuiltinKernels()
 
 struct CallbackData
 {
-	TestProgram* prog;
-	unsigned val;
+    TestProgram* prog;
+    unsigned val;
 };
 
 static void build_callback(cl_program prog, void* test)
 {
-	reinterpret_cast<CallbackData*>(test)->prog->num_callback += reinterpret_cast<CallbackData*>(test)->val;
+    reinterpret_cast<CallbackData*>(test)->prog->num_callback += reinterpret_cast<CallbackData*>(test)->val;
+    --reinterpret_cast<CallbackData*>(test)->prog->num_pendingCallbacks;
 }
 
 void TestProgram::testBuildProgram()
 {
-	CallbackData data{this, 1};
-	cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
+    CallbackData data{this, 1};
+    ++num_pendingCallbacks;
+    cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
     cl_int state = VC4CL_FUNC(clBuildProgram)(binary_program, 1, &device_id, nullptr, &build_callback, &data);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    // wait until the build is finished
+    while(num_pendingCallbacks != 0)
+        std::this_thread::sleep_for(std::chrono::milliseconds{100});
 }
 
 void TestProgram::testCompileProgram()
 {
-	CallbackData data{this, 4};
-	cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    cl_int state = VC4CL_FUNC(clCompileProgram)(source_program, 1, &device_id, "-Wall", 0, nullptr, nullptr, &build_callback, &data);
+    CallbackData data{this, 4};
+    ++num_pendingCallbacks;
+    cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
+    cl_int state = VC4CL_FUNC(clCompileProgram)(
+        source_program, 1, &device_id, "-Wall", 0, nullptr, nullptr, &build_callback, &data);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+    // wait until the build is finished
+    while(num_pendingCallbacks != 0)
+        std::this_thread::sleep_for(std::chrono::milliseconds{100});
 }
 
 void TestProgram::testLinkProgram()
 {
-	CallbackData data{this, 8};
+    CallbackData data{this, 8};
+    ++num_pendingCallbacks;
     cl_int errcode = CL_SUCCESS;
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-    cl_program program = VC4CL_FUNC(clLinkProgram)(context, 1, &device_id, nullptr, 1, &source_program, &build_callback, &data, &errcode);
+    cl_program program = VC4CL_FUNC(clLinkProgram)(
+        context, 1, &device_id, nullptr, 1, &source_program, &build_callback, &data, &errcode);
     TEST_ASSERT_EQUALS(CL_SUCCESS, errcode);
-    //clLinkProgram is specified to create a new program object
+    // clLinkProgram is specified to create a new program object
     TEST_ASSERT(source_program != program);
-    
+
     VC4CL_FUNC(clReleaseProgram)(source_program);
     // this pointer is used for further access
     source_program = program;
+    // wait until the build is finished
+    while(num_pendingCallbacks != 0)
+        std::this_thread::sleep_for(std::chrono::milliseconds{100});
 }
 
 void TestProgram::testUnloadPlatformCompiler()
 {
     cl_int state = VC4CL_FUNC(clUnloadPlatformCompiler)(nullptr);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    
-    //1 + 4 + 8 = 13
-    //The callback is only fired once in #testBuildProgram(), since the program is already compiled (and only need to be linked)
+
+    // 1 + 4 + 8 = 13
+    // The callback is only fired once in #testBuildProgram(), since the program is already compiled (and only need to
+    // be linked)
     TEST_ASSERT_EQUALS(13u, num_callback);
 }
 
@@ -138,23 +156,28 @@ void TestProgram::testGetProgramBuildInfo()
 {
     size_t info_size = 0;
     char buffer[2048];
-    cl_int state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_PROGRAM_BUILD_STATUS, 2048, buffer, &info_size);
+    cl_int state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program,
+        Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_PROGRAM_BUILD_STATUS, 2048, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_build_status), info_size);
     TEST_ASSERT_EQUALS(CL_BUILD_SUCCESS, *reinterpret_cast<cl_build_status*>(buffer));
-    
-    state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_PROGRAM_BUILD_OPTIONS, 2048, buffer, &info_size);
+
+    state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
+        CL_PROGRAM_BUILD_OPTIONS, 2048, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT(info_size > 0u);
-    
-    state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_PROGRAM_BUILD_LOG, 2048, buffer, &info_size);
+
+    state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
+        CL_PROGRAM_BUILD_LOG, 2048, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT(info_size > 0u);
-    
-    state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), CL_PROGRAM_BINARY_TYPE, 2048, buffer, &info_size);
+
+    state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
+        CL_PROGRAM_BINARY_TYPE, 2048, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_program_binary_type), info_size);
-    TEST_ASSERT_EQUALS(static_cast<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_EXECUTABLE), *reinterpret_cast<cl_program_binary_type*>(buffer));
+    TEST_ASSERT_EQUALS(static_cast<cl_program_binary_type>(CL_PROGRAM_BINARY_TYPE_EXECUTABLE),
+        *reinterpret_cast<cl_program_binary_type*>(buffer));
 }
 
 void TestProgram::testGetProgramInfo()
@@ -165,51 +188,51 @@ void TestProgram::testGetProgramInfo()
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
     TEST_ASSERT_EQUALS(1u, *reinterpret_cast<cl_uint*>(buffer));
-    
+
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_CONTEXT, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_context), info_size);
     TEST_ASSERT_EQUALS(context, *reinterpret_cast<cl_context*>(buffer));
-    
+
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_NUM_DEVICES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_uint), info_size);
     TEST_ASSERT_EQUALS(1u, *reinterpret_cast<cl_uint*>(buffer));
-    
+
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_DEVICES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_device_id), info_size);
     TEST_ASSERT_EQUALS(Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), *reinterpret_cast<cl_device_id*>(buffer));
-    
-    //XXX not valid anymore, source_program is not the original source_program
+
+    // XXX not valid anymore, source_program is not the original source_program
     // state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_SOURCE, 128, buffer, &info_size);
     // TEST_ASSERT_EQUALS(CL_INVALID_VALUE, state);   //buffer-size!
     // TEST_ASSERT(info_size > 0u);
-    
+
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_SOURCE, 2048, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT(info_size > 0u && info_size < 2048u);
-    
+
     state = VC4CL_FUNC(clGetProgramInfo)(binary_program, CL_PROGRAM_SOURCE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(1u, info_size);
-    
+
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_BINARY_SIZES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(size_t), info_size);
-    
+
     auto ptr = reinterpret_cast<void*>(buffer);
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_BINARIES, 1024, &ptr, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    
+
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_NUM_KERNELS, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(size_t), info_size);
     TEST_ASSERT_EQUALS(1u, *reinterpret_cast<size_t*>(buffer));
-    
+
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, CL_PROGRAM_KERNEL_NAMES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    
+
     state = VC4CL_FUNC(clGetProgramInfo)(source_program, 0xDEADBEAF, 1024, buffer, &info_size);
     TEST_ASSERT(state != CL_SUCCESS);
 }
@@ -219,7 +242,7 @@ void TestProgram::testRetainProgram()
     TEST_ASSERT_EQUALS(1u, toType<Program>(source_program)->getReferences());
     cl_int state = VC4CL_FUNC(clRetainProgram)(source_program);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    
+
     TEST_ASSERT_EQUALS(2u, toType<Program>(source_program)->getReferences());
     state = VC4CL_FUNC(clReleaseProgram)(source_program);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
@@ -231,7 +254,7 @@ void TestProgram::testReleaseProgram()
     TEST_ASSERT_EQUALS(1u, toType<Program>(source_program)->getReferences());
     cl_int state = VC4CL_FUNC(clReleaseProgram)(source_program);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    
+
     TEST_ASSERT_EQUALS(1u, toType<Program>(binary_program)->getReferences());
     state = VC4CL_FUNC(clReleaseProgram)(binary_program);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
