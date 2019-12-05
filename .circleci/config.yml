@@ -96,6 +96,12 @@ jobs:
     steps:
       - attach_workspace:
           at: /root/project
+      # TODO move to docker image
+      - run: apt-get update && apt-get --assume-yes install wget
+      - run: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
+      - run: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/$(.circleci/build_num.py /tmp/json build)/artifacts" --output /tmp/dump
+      - run: wget -O /tmp/vc4cl-stdlib.deb $(python .circleci/get_url.py "vc4cl-stdlib-" "/tmp/dump")
+      - run: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
       - run: dpkg -i /tmp/vc4cl-stdlib.deb /tmp/vc4c.deb build/vc4cl-0.4-Linux.deb
       - run: ln -s `pwd`/build/cpptest-lite/src/cpptest-lite-project-build/libcpptest-lite.so.0.9 /usr/lib/libcpptest-lite.so.1.1.2
       - run: ldconfig
@@ -105,7 +111,8 @@ workflows:
   version: 2
   commit:
     jobs:
-      - check-code-style
+      # TODO enable
+      # - check-code-style
       - build
       - cross
       - test:
