@@ -87,6 +87,8 @@ jobs:
       - persist_to_workspace:
           root: /root/project
           paths:
+            - .circleci/build_num.py
+            - .circleci/get_url.py
             - build/test/TestVC4CL
             - build/cpptest-lite/src/cpptest-lite-project-build/libcpptest-lite.so.0.9
             - build/vc4cl-0.4-Linux.deb
