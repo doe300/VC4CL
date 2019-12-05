@@ -50,7 +50,7 @@ jobs:
     steps:
       - checkout
       # TODO move to docker image
-      - run: sudo apt-get update && sudo apt-get --assume-yes install wget
+      - run: apt-get update && apt-get --assume-yes install wget
       - run:
           name: get json
           command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
@@ -65,7 +65,7 @@ jobs:
           command: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
       - run:
           name: unpack dependencies
-          command: sudo dpkg-deb -x /tmp/vc4cl-stdlib.deb / && sudo dpkg-deb -x /tmp/vc4c.deb /
+          command: dpkg-deb -x /tmp/vc4cl-stdlib.deb / && dpkg-deb -x /tmp/vc4c.deb /
       - run:
           name: configure
           command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DBUILD_TESTING=ON -DBUILD_DEBUG=ON -DINCLUDE_COMPILER=ON -DMOCK_HAL=ON
