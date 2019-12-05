@@ -11,6 +11,8 @@ jobs:
       - image: nomaddo/cross-rpi:0.2
     steps:
       - checkout
+      # TODO move to docker image
+      - run: sudo apt-get --assume-yes install wget
       - run:
           name: get json
           command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json

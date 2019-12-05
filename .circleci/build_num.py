@@ -5,7 +5,7 @@ import json
 import sys
 
 def main():
-  assert (len (sys.argv) == 2 || len (sys.argv) == 3)
+  assert (len (sys.argv) == 2 or len (sys.argv) == 3)
   items = json.load (open (sys.argv[1], 'r'))
   job = sys.argv[2] if len (sys.argv) == 3 else 'cross'
 
