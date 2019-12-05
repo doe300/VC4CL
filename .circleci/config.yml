@@ -71,11 +71,10 @@ jobs:
           command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DBUILD_TESTING=ON -DINCLUDE_COMPILER=ON -DMOCK_HAL=ON
       - run:
           name: make
-          # TODO CicleCI runs out of memory
-          command: cd build && make # -j`nproc`
+          command: cd build && make -j`nproc`
       - run:
           name: deb-packing
-          command: cd build && cpack -G DEB && cpack -G DEB --config ../VC4CLStdLib/CPackConfig.cmake
+          command: cd build && cpack -G DEB
       - store_artifacts:
           path: build/src/libVC4CL.so.0.4
           distination: libVC4CL.so.0.4
@@ -106,7 +105,7 @@ workflows:
   version: 2
   commit:
     jobs:
-      # - check-code-style
+      - check-code-style
       - build
       - cross
       - test:
