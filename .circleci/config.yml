@@ -92,6 +92,7 @@ jobs:
             - build/test/TestVC4CL
             - build/cpptest-lite/src/cpptest-lite-project-build/libcpptest-lite.so.0.9
             - build/vc4cl-0.4-Linux.deb
+            - test/hello_world_vector.cl
   test:
     docker:
       - image: nomaddo/native
