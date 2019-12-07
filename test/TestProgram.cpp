@@ -161,6 +161,15 @@ void TestProgram::testGetProgramBuildInfo()
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_build_status), info_size);
     TEST_ASSERT_EQUALS(CL_BUILD_SUCCESS, *reinterpret_cast<cl_build_status*>(buffer));
+    if(CL_BUILD_SUCCESS != *reinterpret_cast<cl_build_status*>(buffer))
+    {
+        // for better error debugging
+        std::array<char, 40960> log = {0};
+        state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
+            CL_PROGRAM_BUILD_LOG, log.size(), log.data(), nullptr);
+        TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+        std::cerr << "Build log: " << log.data() << std::endl;
+    }
 
     state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
         CL_PROGRAM_BUILD_OPTIONS, 2048, buffer, &info_size);
