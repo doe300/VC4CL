@@ -34,6 +34,23 @@ TestProgram::TestProgram() :
     TEST_ADD(TestProgram::testReleaseProgram);
 }
 
+void TestProgram::checkBuildStatus(const cl_program program)
+{
+    size_t info_size = 0;
+    cl_build_status status = 1;
+    cl_int state = VC4CL_FUNC(clGetProgramBuildInfo)(program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
+        CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, &info_size);
+    if(CL_BUILD_SUCCESS != status)
+    {
+        // for better error debugging
+        std::array<char, 40960> log = {0};
+        state = VC4CL_FUNC(clGetProgramBuildInfo)(program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
+            CL_PROGRAM_BUILD_LOG, log.size(), log.data(), nullptr);
+        std::cerr << "Build log: " << log.data() << std::endl;
+        TEST_ASSERT_EQUALS(CL_BUILD_SUCCESS, status)
+    }
+}
+
 bool TestProgram::setup()
 {
     cl_int errcode = CL_SUCCESS;
@@ -106,6 +123,7 @@ void TestProgram::testBuildProgram()
     // wait until the build is finished
     while(num_pendingCallbacks != 0)
         std::this_thread::sleep_for(std::chrono::milliseconds{100});
+    checkBuildStatus(binary_program);
 }
 
 void TestProgram::testCompileProgram()
@@ -119,6 +137,7 @@ void TestProgram::testCompileProgram()
     // wait until the build is finished
     while(num_pendingCallbacks != 0)
         std::this_thread::sleep_for(std::chrono::milliseconds{100});
+    checkBuildStatus(source_program);
 }
 
 void TestProgram::testLinkProgram()
@@ -139,6 +158,7 @@ void TestProgram::testLinkProgram()
     // wait until the build is finished
     while(num_pendingCallbacks != 0)
         std::this_thread::sleep_for(std::chrono::milliseconds{100});
+    checkBuildStatus(program);
 }
 
 void TestProgram::testUnloadPlatformCompiler()
@@ -161,15 +181,6 @@ void TestProgram::testGetProgramBuildInfo()
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(cl_build_status), info_size);
     TEST_ASSERT_EQUALS(CL_BUILD_SUCCESS, *reinterpret_cast<cl_build_status*>(buffer));
-    if(CL_BUILD_SUCCESS != *reinterpret_cast<cl_build_status*>(buffer))
-    {
-        // for better error debugging
-        std::array<char, 40960> log = {0};
-        state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
-            CL_PROGRAM_BUILD_LOG, log.size(), log.data(), nullptr);
-        TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-        std::cerr << "Build log: " << log.data() << std::endl;
-    }
 
     state = VC4CL_FUNC(clGetProgramBuildInfo)(source_program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
         CL_PROGRAM_BUILD_OPTIONS, 2048, buffer, &info_size);

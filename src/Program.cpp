@@ -71,7 +71,7 @@ static cl_int extractLog(std::string& log, std::wstringstream& logStream)
     {
         std::vector<char> logTmp(numCharacters + 1 /* \0 byte */);
         numCharacters = std::wcstombs(logTmp.data(), logStream.str().data(), numCharacters);
-        log = std::string(logTmp.data(), numCharacters);
+        log.append(logTmp.data(), numCharacters);
     }
 
     return CL_SUCCESS;
@@ -136,8 +136,9 @@ static cl_int precompile_program(Program* program, const std::string& options,
     catch(vc4c::CompilationError& e)
     {
 #ifdef DEBUG_MODE
-        LOG(std::cout << "Compilation error: " << e.what() << std::endl)
+        LOG(std::cout << "Precompilation error: " << e.what() << std::endl)
 #endif
+        program->buildInfo.log.append("Precompilation error:\n\t").append(e.what()).append("\n");
         status = CL_COMPILE_PROGRAM_FAILURE;
     }
     // copy log whether build failed or not
@@ -195,8 +196,9 @@ static cl_int link_programs(
     catch(vc4c::CompilationError& e)
     {
 #ifdef DEBUG_MODE
-        LOG(std::cout << "Compilation error: " << e.what() << std::endl)
+        LOG(std::cout << "Link error: " << e.what() << std::endl)
 #endif
+        program->buildInfo.log.append("Link error:\n\t").append(e.what()).append("\n");
         status = CL_LINK_PROGRAM_FAILURE;
     }
     // copy log whether build failed or not
@@ -253,6 +255,7 @@ static cl_int compile_program(Program* program, const std::string& options)
 #ifdef DEBUG_MODE
         LOG(std::cout << "Compilation error: " << e.what() << std::endl)
 #endif
+        program->buildInfo.log.append("Compilation error:\n\t").append(e.what()).append("\n");
         status = CL_BUILD_PROGRAM_FAILURE;
     }
     // copy log whether build failed or not
