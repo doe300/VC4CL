@@ -35,6 +35,23 @@ TestKernel::TestKernel() : context(nullptr), program(nullptr), queue(nullptr), i
     TEST_ADD(TestKernel::testReleaseKernel);
 }
 
+static bool checkBuildStatus(const cl_program program)
+{
+    size_t info_size = 0;
+    cl_build_status status = 1;
+    cl_int state = VC4CL_FUNC(clGetProgramBuildInfo)(program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
+        CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, &info_size);
+    if(CL_BUILD_SUCCESS != status)
+    {
+        // for better error debugging
+        std::array<char, 40960> log = {0};
+        state = VC4CL_FUNC(clGetProgramBuildInfo)(program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
+            CL_PROGRAM_BUILD_LOG, log.size(), log.data(), nullptr);
+        std::cerr << "Build log: " << log.data() << std::endl;
+    }
+    return CL_BUILD_SUCCESS == status;
+}
+
 bool TestKernel::setup()
 {
     cl_int errcode = CL_SUCCESS;
@@ -48,7 +65,7 @@ bool TestKernel::setup()
     errcode = VC4CL_FUNC(clBuildProgram)(program, 1, &device_id, nullptr, nullptr, nullptr);
     in_buffer = VC4CL_FUNC(clCreateBuffer)(context, 0, (work_size[0] * work_size[1] * work_size[2]) * sizeof(cl_char16), nullptr, &errcode);
     out_buffer = VC4CL_FUNC(clCreateBuffer)(context, 0, (work_size[0] * work_size[1] * work_size[2]) * sizeof(cl_char16), nullptr, &errcode);
-    return errcode == CL_SUCCESS && context != nullptr && queue != nullptr && program != nullptr && in_buffer != nullptr && out_buffer != nullptr;
+    return errcode == CL_SUCCESS && context && queue && program && checkBuildStatus(program) && in_buffer && out_buffer;
 }
 
 void TestKernel::testCreateKernel()
