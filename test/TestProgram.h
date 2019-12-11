@@ -11,6 +11,8 @@
 
 #include "cpptest.h"
 
+#include <atomic>
+
 class TestProgram : public Test::Suite
 {
 public:
@@ -34,7 +36,7 @@ public:
 
     unsigned num_callback;
     // for asynchronous compilation
-    unsigned num_pendingCallbacks;
+    std::atomic<unsigned> num_pendingCallbacks;
 
 private:
     cl_context context;

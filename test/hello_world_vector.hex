@@ -1,75 +1,78 @@
-// Module with 1 kernels, global data with 0 words (64-bit each), starting at offset 15 words and 0 words of stack-frame
+// Module with 1 kernels, global data with 0 words (64-bit each), starting at offset 14 words and 0 words of stack-frame
 0xdeadbeaf, 0xdeadbeaf, 
-0x00003c01, 0x00000000, 
-// Kernel 'hello_world', offset 16, with following parameters: __global const in <16 x i8>* in (4 B, 1 items), __global out <16 x i8>* out (4 B, 1 items)
-0x3a000010, 0x0202c000, 
+0x00003801, 0x00000000, 
+// Kernel 'hello_world' with 57 instructions, offset 15, with following parameters: __global in const char16* in (4 B, 1 items), __global out char16* out (4 B, 1 items) (offX, unifAddr, maxGidX, maxGidY, maxGidZ)
+0x3900000f, 0x0202c000, 
 0x00010001, 0x00000001, 
+0x0001e200, 0x00000000, 
 0x6c6c6568, 0x6f775f6f, 
 0x00646c72, 0x00000000, 
-0x00020104, 0x1121000a, 
+0xc0082004, 0x11004401, 
 0x00006e69, 0x00000000, 
-0x2036313c, 0x38692078, 
-0x00002a3e, 0x00000000, 
-0x00030104, 0x1220000a, 
+0x72616863, 0x002a3631, 
+0xc00c2004, 0x11000801, 
 0x0074756f, 0x00000000, 
-0x2036313c, 0x38692078, 
-0x00002a3e, 0x00000000, 
+0x72616863, 0x002a3631, 
 0x00000000, 0x00000000, 
 0x00000000, 0x00000000, 
-0x15827d80, 0x100209e7, //or -, unif, unif
-0x15827d80, 0x10020867, //or r1, unif, unif
-0x15827d80, 0x100200e7, //or ra3, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
+// kernel hello_world, label: %group_id_initializer (wg_loop)
+0x959c0fff, 0xd0025001, //or rb0, 0 (0), 0 (0); v8min ra1, 0 (0), 0 (0)
+0x159c0fc0, 0xd0020027, //or ra0, 0 (0), 0 (0)
+// label: %start_of_function
 0x15827d80, 0x10020827, //or r0, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
-0x15827d80, 0x10020027, //or ra0, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
-0x15827d80, 0x100209e7, //or -, unif, unif
-0x15827d80, 0x100200a7, //or ra2, unif, unif
-0x15827d80, 0x10020067, //or ra1, unif, unif
-0x959c003f, 0xd00248e0, //or r3, r0, r0; v8min r0, 0 (0), 0 (0)
-0x0e9e7200, 0x10020827, //shr r0, r1, r0
-0x000000ff, 0xe0021867, //ldi r1, 255
-0x149e7040, 0x100208a7, //and r2, r0, r1
-0x95000dbf, 0xd0024020, //or ra0, ra0, ra0; v8min r0, 0 (0), 0 (0)
-0x0e0e7c00, 0x10020827, //shr r0, ra3, r0
-0x149e7040, 0x10020867, //and r1, r0, r1
-0x409e701a, 0x100049e0, //mul24 r0, r3, r2
-0x0c027c00, 0x10020827, //add r0, ra0, r0
-0x0c9e7040, 0x10020867, //add r1, r0, r1
-0x009e7000, 0x100009e7, //nop.never 
-0x159e7240, 0x10020827, //or r0, r1, r1
+0x15827d80, 0x100208e7, //or r3, unif, unif
+0x0c9c01c0, 0x10020827, //add r0, r0, rb0
+0x119c41c0, 0xd00208a7, //shl r2, r0, 4 (4)
 0x119c41c0, 0xd0020827, //shl r0, r0, 4 (4)
-0x0c0a7c00, 0x10020827, //add r0, ra2, r0
+0x0c827c00, 0x10020867, //add r1, unif, r0
 0x15ce7d80, 0x100209e7, //or -, mutex_acq, mutex_acq
-0x80011000, 0xe0020c67, //ldi vpr_setup, 2147553280
-0x90000010, 0xe0020c67, //ldi vpr_setup, 2415919120
-0x159e7000, 0x10020ca7, //or vpr_addr, r0, r0
-0x159e7240, 0x10020827, //or r0, r1, r1
+0xc0014000, 0xe0020c67, //ldi vpr_setup, vdr_setup(rows: 1, elements: 16 bytes, address: h32(0,0))
+0x90000000, 0xe0020c67, //ldi vpr_setup, vdr_setup(memory pitch: 0 bytes)
+0x0c9e7680, 0x10020ca7, //add vpr_addr, r3, r2
+0x159c0fc0, 0x10020827, //or r0, rb0, rb0
+0x0c9c11c0, 0xd0021027, //add rb0, r0, 1 (1)
 0x15ca7d80, 0x100209e7, //or -, vpr_wait, vpr_wait
-0x00104800, 0xe0020c67, //ldi vpr_setup, 1067008
-0x15c27d80, 0x10020867, //or r1, vpm, vpm
-0x159c1fc0, 0xd0020ce7, //or mutex_rel, 1 (1), 1 (1)
-0x119c41c0, 0xd0020827, //shl r0, r0, 4 (4)
-0x0c067c00, 0x10020827, //add r0, ra1, r0
-0x15ce7d80, 0x100209e7, //or -, mutex_acq, mutex_acq
-0x00004800, 0xe0021c67, //ldi vpw_setup, 18432
-0x159e7240, 0x10020c27, //or vpm, r1, r1
-0x80904004, 0xe0021c67, //ldi vpw_setup, 2156937220
-0xc0010000, 0xe0021c67, //ldi vpw_setup, 3221291008
-0x159e7000, 0x10021ca7, //or vpw_addr, r0, r0
+0x80904004, 0xe0021c67, //ldi vpw_setup, vdw_setup(rows: 1, elements: 16 bytes, address: h32(0,0))
+0xc0010000, 0xe0021c67, //ldi vpw_setup, vdw_setup(memory stride: 0 bytes)
+0x159e7240, 0x10021ca7, //or vpw_addr, r1, r1
 0x159f2fc0, 0x100209e7, //or -, vpw_wait, vpw_wait
 0x159c1fc0, 0xd0020ce7, //or mutex_rel, 1 (1), 1 (1)
+0x15827d80, 0x100208e7, //or r3, unif, unif
 0x15827d80, 0x10020827, //or r0, unif, unif
+0x15827d80, 0x100208a7, //or r2, unif, unif
+0x15827d80, 0x10020867, //or r1, unif, unif
+0x159e76c0, 0x10020a27, //or unif_addr, r3, r3
+0x009e7000, 0x100009e7, //nop.never 
+0x139c01c0, 0x100229e7, //max.setf -, r0, rb0
+0x969c1fff, 0xd00f8820, //xor.ifcc r0, 1 (1), 1 (1); v8min.ifc r0, 1 (1), 1 (1)
 0x159a7c00, 0x100229e7, //or.setf -, elem_num, r0
-0xfffffe50, 0xf01809e7, //brr.ifallzc (pc+4) + -54
+0xffffff08, 0xf01809e7, //brr.ifallzc (pc+4) + -31 // to %start_of_function
 0x009e7000, 0x100009e7, //nop.never 
 0x009e7000, 0x100009e7, //nop.never 
 0x009e7000, 0x100009e7, //nop.never 
+// label: %repeat_group_id_y (wg_loop)
+0x15067d80, 0x10020827, //or r0, ra1, ra1
+0x0c9c11c0, 0xd0020067, //add ra1, r0, 1 (1)
+0x159c0fc0, 0xd0020827, //or r0, 0 (0), 0 (0)
+0x13067580, 0x100229e7, //max.setf -, r2, ra1
+0x969c1fff, 0xd00f8820, //xor.ifcc r0, 1 (1), 1 (1); v8min.ifc r0, 1 (1), 1 (1)
+0x159a7c00, 0x100229e7, //or.setf -, elem_num, r0
+0xfffffeb8, 0xf01809e7, //brr.ifallzc (pc+4) + -41 // to %start_of_function
+0x009e7000, 0x100009e7, //nop.never 
+0x009e7000, 0x100009e7, //nop.never 
+0x009e7000, 0x100009e7, //nop.never 
+// label: %repeat_group_id_z (wg_loop)
+0x15027d80, 0x10020827, //or r0, ra0, ra0
+0x0c9c11c0, 0xd0020027, //add ra0, r0, 1 (1)
+0x159c0fc0, 0xd00208a7, //or r2, 0 (0), 0 (0)
+0x13027380, 0x100229e7, //max.setf -, r1, ra0
+0x969c1fff, 0xd00f8820, //xor.ifcc r0, 1 (1), 1 (1); v8min.ifc r0, 1 (1), 1 (1)
+0x159a7c00, 0x100229e7, //or.setf -, elem_num, r0
+0xfffffe68, 0xf01809e7, //brr.ifallzc (pc+4) + -51 // to %start_of_function
+0x009e7000, 0x100009e7, //nop.never 
+0x009e7000, 0x100009e7, //nop.never 
+0x009e7000, 0x100009e7, //nop.never 
+// label: %end_of_function
 0x179e6e00, 0x100209a7, //not irq, qpu_num
 0x009e7000, 0x300009e7, //nop.thrend.never 
 0x009e7000, 0x100009e7, //nop.never 

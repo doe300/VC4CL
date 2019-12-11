@@ -558,6 +558,7 @@ static cl_int compileInner(object_wrapper<Program> program, std::string options,
         program->buildInfo.status = CL_BUILD_ERROR;
     else
         program->buildInfo.status = CL_BUILD_SUCCESS;
+    printf("TEST: %d\n", state);
     if(callback)
         (callback)(program->toBase(), userData);
     return state;
