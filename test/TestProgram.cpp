@@ -149,7 +149,8 @@ void TestProgram::testCompileProgram()
     // wait until the build is finished
     waitForCallback(num_pendingCallbacks);
     checkBuildStatus(source_program);
-    system("ls ./test/");
+    system("ls -Alh ./test/");
+    system("whoami");
 }
 
 void TestProgram::testLinkProgram()
