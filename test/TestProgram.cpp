@@ -113,6 +113,19 @@ static void build_callback(cl_program prog, void* test)
     --reinterpret_cast<CallbackData*>(test)->prog->num_pendingCallbacks;
 }
 
+static void waitForCallback(const std::atomic<unsigned>& counter)
+{
+    // wait for a limited amount to not loop infinite
+    auto remainingTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds{5});
+    while(counter != 0)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds{100});
+        remainingTime -= std::chrono::milliseconds{100};
+        if(remainingTime.count() <= 0)
+            return;
+    }
+}
+
 void TestProgram::testBuildProgram()
 {
     CallbackData data{this, 1};
@@ -121,8 +134,7 @@ void TestProgram::testBuildProgram()
     cl_int state = VC4CL_FUNC(clBuildProgram)(binary_program, 1, &device_id, nullptr, &build_callback, &data);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     // wait until the build is finished
-    while(num_pendingCallbacks != 0)
-        std::this_thread::sleep_for(std::chrono::milliseconds{100});
+    waitForCallback(num_pendingCallbacks);
     checkBuildStatus(binary_program);
 }
 
@@ -135,9 +147,9 @@ void TestProgram::testCompileProgram()
         source_program, 1, &device_id, "-Wall", 0, nullptr, nullptr, &build_callback, &data);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     // wait until the build is finished
-    while(num_pendingCallbacks != 0)
-        std::this_thread::sleep_for(std::chrono::milliseconds{100});
+    waitForCallback(num_pendingCallbacks);
     checkBuildStatus(source_program);
+    system("ls ./test/");
 }
 
 void TestProgram::testLinkProgram()
@@ -156,8 +168,7 @@ void TestProgram::testLinkProgram()
     // this pointer is used for further access
     source_program = program;
     // wait until the build is finished
-    while(num_pendingCallbacks != 0)
-        std::this_thread::sleep_for(std::chrono::milliseconds{100});
+    waitForCallback(num_pendingCallbacks);
     checkBuildStatus(program);
 }
 
