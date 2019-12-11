@@ -8,6 +8,7 @@
 
 #include "types.h"
 
+#include <array>
 #include <cstring>
 #include <exception>
 #include <iostream>
@@ -89,9 +90,9 @@ namespace vc4cl
     template <typename... T>
     CHECK_RETURN inline std::string buildString(const char* format, T... args)
     {
-        char tmp[4096];
-        int num = snprintf(tmp, 4096, format, std::forward<T>(args)...);
-        return std::string(tmp, static_cast<unsigned>(num));
+        std::array<char, 4096> tmp = {0};
+        int num = snprintf(tmp.data(), tmp.size(), format, std::forward<T>(args)...);
+        return std::string(tmp.data(), static_cast<unsigned>(num));
     }
 
     template <typename T, typename Src>
@@ -243,7 +244,7 @@ namespace vc4cl
     }
 
     template <typename T, typename... U>
-    std::ostream& printAPICallInternal(std::ostream& s, const char* const paramName, T param, U... args)
+    std::ostream& printAPICallInternal(std::ostream& s, const char* paramName, T param, U... args)
     {
         printAPICallInternal(s, paramName, param) << ", ";
         return printAPICallInternal(s, args...);

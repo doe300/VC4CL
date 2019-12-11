@@ -9,6 +9,7 @@
 #include "Buffer.h"
 #include "Event.h"
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
@@ -33,7 +34,7 @@ static std::mutex eventMutex;
 
 static std::mutex queuesMutex;
 static std::thread eventHandler;
-static cl_uint numCommandQueues;
+static std::atomic<uint32_t> numCommandQueues;
 
 void vc4cl::pushEventToQueue(Event* event)
 {
@@ -165,7 +166,7 @@ static void runEventQueue()
 void vc4cl::initEventQueue()
 {
     std::lock_guard<std::mutex> guard(queuesMutex);
-    numCommandQueues++;
+    ++numCommandQueues;
     if(!eventHandler.joinable())
     {
 #ifdef DEBUG_MODE
@@ -178,8 +179,7 @@ void vc4cl::initEventQueue()
 void vc4cl::deinitEventQueue()
 {
     std::lock_guard<std::mutex> guard(queuesMutex);
-    numCommandQueues--;
-    if(numCommandQueues == 0 && eventHandler.joinable())
+    if(--numCommandQueues == 0 && eventHandler.joinable())
     {
 #ifdef DEBUG_MODE
         LOG(std::cout << "Stopping queue handler thread..." << std::endl)

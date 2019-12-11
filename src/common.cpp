@@ -32,7 +32,7 @@ std::string vc4cl::joinStrings(const std::vector<std::string>& strings, const st
 cl_int vc4cl::returnValue(const void* value, const size_t value_size, const size_t value_count, size_t output_size,
     void* output, size_t* output_size_ret)
 {
-    if(output != nullptr)
+    if(output != nullptr && value != nullptr)
     {
         if(output_size < value_size * value_count)
             // not enough space on output parameter

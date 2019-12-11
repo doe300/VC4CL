@@ -62,8 +62,7 @@ namespace vc4cl
         {
             if(!checkReferences())
                 return returnError(invalidObjectCode, __FILE__, __LINE__, "Object reference check failed!");
-            --referenceCount;
-            if(referenceCount == 0)
+            if(--referenceCount == 0)
                 ObjectTracker::removeObject(this);
             return CL_SUCCESS;
         }

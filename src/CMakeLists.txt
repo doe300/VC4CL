@@ -1,6 +1,6 @@
 add_library( VC4CL SHARED "")
 target_compile_definitions(VC4CL PUBLIC -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
-target_include_directories(VC4CL PUBLIC ${OpenCL_INCLUDE_DIRS})
+target_include_directories(VC4CL SYSTEM PUBLIC ${OpenCL_INCLUDE_DIRS})
 
 # append usage of C++ to compiler flags, also optimize for speed and enable all warnings
 target_compile_options(VC4CL PRIVATE ${VC4CL_ENABLED_WARNINGS})
@@ -23,7 +23,10 @@ elseif(CROSS_COMPILE OR EXISTS "/opt/vc/include/bcm_host.h")
 	find_library(BCMHOST_LIBRARY NAMES bcm_host libbcm_host HINTS "/opt/vc/lib")
 	target_link_libraries(VC4CL ${BCMHOST_LIBRARY} ${SYSROOT_LIBRARY_FLAGS})
 endif()
-
+if(ENABLE_COVERAGE)
+	target_compile_options(VC4CL PRIVATE -fprofile-arcs -ftest-coverage --coverage)
+	target_link_libraries(VC4CL gcov "-fprofile-arcs -ftest-coverage")
+endif(ENABLE_COVERAGE)
 if(CROSS_COMPILE)
 	target_link_libraries(VC4CL rt ${SYSROOT_LIBRARY_FLAGS})
 endif()
@@ -33,7 +36,7 @@ if(BUILD_ICD)
 	target_compile_definitions(VC4CL PUBLIC -Dcl_khr_icd=1 -Duse_cl_khr_icd=1)
 
 	if(NOT CROSS_COMPILE)
-		target_include_directories(VC4CL PRIVATE ${OCL_ICD_INCLUDEDIR})
+		target_include_directories(VC4CL SYSTEM PRIVATE ${OCL_ICD_INCLUDEDIR})
 	endif()
 endif()
 

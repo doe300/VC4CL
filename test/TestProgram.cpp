@@ -176,6 +176,9 @@ void TestProgram::testUnloadPlatformCompiler()
     cl_int state = VC4CL_FUNC(clUnloadPlatformCompiler)(nullptr);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
 
+    state = VC4CL_FUNC(clUnloadCompiler)();
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state);
+
     // 1 + 4 + 8 = 13
     // The callback is only fired once in #testBuildProgram(), since the program is already compiled (and only need to
     // be linked)

@@ -17,6 +17,8 @@ public:
     TestCommandQueue();
     
     void testCreateCommandQueue();
+    void testCreateCommandQueueWithProperties();
+    void testSetCommandQueueProperties();
     void testGetCommandQueueInfo();
     void testRetainCommandQueue();
     void testReleaseCommandQueue();

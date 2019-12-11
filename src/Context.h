@@ -14,7 +14,7 @@ namespace vc4cl
     using ContextCallback = void(CL_CALLBACK*)(
         const char* errinfo, const void* private_info, size_t cb, void* user_data);
 
-    enum ContextProperty
+    enum class ContextProperty
     {
         NONE = 0,
         USER_SYNCHRONISATION = 1,
@@ -22,6 +22,16 @@ namespace vc4cl
         // provided by cl_khr_initialize_memory
         INITIALIZE_MEMORY = 4,
     };
+
+    constexpr ContextProperty operator|(ContextProperty one, ContextProperty other) noexcept
+    {
+        return static_cast<ContextProperty>(static_cast<unsigned>(one) | static_cast<unsigned>(other));
+    }
+
+    constexpr bool operator&(ContextProperty one, ContextProperty other) noexcept
+    {
+        return (static_cast<unsigned>(one) & static_cast<unsigned>(other)) != 0;
+    }
 
     class Context final : public Object<_cl_context, CL_INVALID_CONTEXT>
     {

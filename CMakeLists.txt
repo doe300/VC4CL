@@ -18,6 +18,8 @@ option(BUILD_DEBUG "Build with debugging symbols. Otherwise build for performanc
 option(CROSS_COMPILE "Cross compile for Raspbian" OFF)
 # Option whether to emulate the hardware interface for testing purposes
 option(MOCK_HAL "Emulate hardware interface" OFF)
+# Option whether to enable code coverage analysis via gcov
+option(ENABLE_COVERAGE "Enables collection of code coverage via gcov" OFF)
 # Option whether to enable more compile-time checks
 option(ADVANCED_CHECKS "Enable advanced compile-time checks" OFF)
 

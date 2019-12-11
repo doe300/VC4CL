@@ -49,7 +49,7 @@ static bool checkBuildStatus(const cl_program program)
             CL_PROGRAM_BUILD_LOG, log.size(), log.data(), nullptr);
         std::cerr << "Build log: " << log.data() << std::endl;
     }
-    return CL_BUILD_SUCCESS == status;
+    return CL_SUCCESS == state && CL_BUILD_SUCCESS == status;
 }
 
 bool TestKernel::setup()

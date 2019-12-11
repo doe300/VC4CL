@@ -61,7 +61,7 @@ cl_int VC4CL_FUNC(clEnqueueMarkerWithWaitList)(
     // since our commands are always executed in-order, no special handling is necessary (it always waits for all
     // events to finish)
     cl_int errcode = CL_SUCCESS;
-    Event* e = newOpenCLObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::MARKER);
+    auto e = newOpenCLObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::MARKER);
     CHECK_ALLOCATION(e)
     EventAction* action = newObject<NoAction>(CL_SUCCESS);
     CHECK_ALLOCATION(action)
@@ -126,7 +126,7 @@ cl_int VC4CL_FUNC(clEnqueueBarrierWithWaitList)(
     // since our commands are always executed in-order, no special handling is necessary (it always waits for all events
     // to finish)
     cl_int errcode = CL_SUCCESS;
-    Event* e = newOpenCLObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::BARRIER);
+    auto e = newOpenCLObject<Event>(toType<CommandQueue>(command_queue)->context(), CL_QUEUED, CommandType::BARRIER);
     CHECK_ALLOCATION(e)
     EventAction* action = newObject<NoAction>(CL_SUCCESS);
     CHECK_ALLOCATION(action)

@@ -26,19 +26,19 @@ cl_int Context::getInfo(
     size_t propertiesSize = 0;
     std::array<cl_context_properties, 7> props{};
     // this makes sure, only the explicit set properties are returned
-    if((explicitProperties & ContextProperty::PLATFORM) == ContextProperty::PLATFORM)
+    if(explicitProperties & ContextProperty::PLATFORM)
     {
         props.at(propertiesSize) = CL_CONTEXT_PLATFORM;
         props.at(propertiesSize + 1) = reinterpret_cast<cl_context_properties>(platform->toBase());
         propertiesSize += 2;
     }
-    if((explicitProperties & ContextProperty::USER_SYNCHRONISATION) == ContextProperty::USER_SYNCHRONISATION)
+    if(explicitProperties & ContextProperty::USER_SYNCHRONISATION)
     {
         props.at(propertiesSize) = CL_CONTEXT_INTEROP_USER_SYNC;
         props.at(propertiesSize + 1) = userSync ? CL_TRUE : CL_FALSE;
         propertiesSize += 2;
     }
-    if((explicitProperties & ContextProperty::INITIALIZE_MEMORY) == ContextProperty::INITIALIZE_MEMORY)
+    if(explicitProperties & ContextProperty::INITIALIZE_MEMORY)
     {
         props.at(propertiesSize) = CL_CONTEXT_MEMORY_INITIALIZE_KHR;
         props.at(propertiesSize + 1) = memoryToInitialize;
@@ -83,7 +83,7 @@ void Context::fireCallback(const std::string& errorInfo, const void* privateInfo
 
 bool Context::initializeMemoryToZero(cl_context_properties memoryType) const
 {
-    return (explicitProperties & ContextProperty::INITIALIZE_MEMORY) != 0 && (memoryToInitialize & memoryType) != 0;
+    return (explicitProperties & ContextProperty::INITIALIZE_MEMORY) && (memoryToInitialize & memoryType) != 0;
 }
 
 const Context* HasContext::context() const
@@ -162,23 +162,21 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
         {
             if(*ptr == CL_CONTEXT_PLATFORM)
             {
-                explicitProperties = static_cast<ContextProperty>(explicitProperties | ContextProperty::PLATFORM);
+                explicitProperties = explicitProperties | ContextProperty::PLATFORM;
                 ++ptr;
                 platform = reinterpret_cast<cl_platform_id>(*ptr);
                 ++ptr;
             }
             else if(*ptr == CL_CONTEXT_INTEROP_USER_SYNC)
             {
-                explicitProperties =
-                    static_cast<ContextProperty>(explicitProperties | ContextProperty::USER_SYNCHRONISATION);
+                explicitProperties = explicitProperties | ContextProperty::USER_SYNCHRONISATION;
                 ++ptr;
                 user_sync = *ptr == CL_TRUE;
                 ++ptr;
             }
             else if(*ptr == CL_CONTEXT_MEMORY_INITIALIZE_KHR)
             {
-                explicitProperties =
-                    static_cast<ContextProperty>(explicitProperties | ContextProperty::INITIALIZE_MEMORY);
+                explicitProperties = explicitProperties | ContextProperty::INITIALIZE_MEMORY;
                 ++ptr;
                 memoryToInitialize = *ptr;
                 ++ptr;
