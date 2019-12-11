@@ -44,9 +44,82 @@ jobs:
       - store_artifacts:
           path: build/vc4cl-0.4-Linux.deb
           distination: vc4cl-0.4-Linux.deb
+  build:
+    docker:
+      - image: nomaddo/native
+    steps:
+      - checkout
+      # TODO move to docker image
+      - run: apt-get update && apt-get --assume-yes install wget
+      - run:
+          name: get json
+          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
+      - run:
+          name: get vc4c url
+          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/$(.circleci/build_num.py /tmp/json build)/artifacts" --output /tmp/dump
+      - run:
+          name: get vc4cl-stdlib package
+          command: wget -O /tmp/vc4cl-stdlib.deb $(python .circleci/get_url.py "vc4cl-stdlib-" "/tmp/dump")
+      - run:
+          name: get vc4c package
+          command: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
+      - run:
+          name: unpack dependencies
+          command: dpkg-deb -x /tmp/vc4cl-stdlib.deb / && dpkg-deb -x /tmp/vc4c.deb /
+      - run:
+          name: configure
+          command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DBUILD_TESTING=ON -DINCLUDE_COMPILER=ON -DMOCK_HAL=ON
+      - run:
+          name: make
+          command: cd build && make -j`nproc`
+      - run:
+          name: deb-packing
+          command: cd build && cpack -G DEB
+      - store_artifacts:
+          path: build/src/libVC4CL.so.0.4
+          distination: libVC4CL.so.0.4
+      - store_artifacts:
+          path: build/test/TestVC4CL
+          distination: TestVC4CL
+      - store_artifacts:
+          path: build/vc4cl-0.4-Linux.deb
+          distination: vc4cl-0.4-Linux.deb
+      - persist_to_workspace:
+          root: /root/project
+          paths:
+            - .circleci/build_num.py
+            - .circleci/get_url.py
+            - build/test/TestVC4CL
+            - build/cpptest-lite/src/cpptest-lite-project-build/libcpptest-lite.so.0.9
+            - build/vc4cl-0.4-Linux.deb
+            - test/hello_world_vector.cl
+  test:
+    docker:
+      - image: nomaddo/native
+    steps:
+      - attach_workspace:
+          at: /root/project
+      # TODO move to docker image
+      - run: apt-get update && apt-get --assume-yes install wget
+      - run: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
+      - run: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/$(.circleci/build_num.py /tmp/json build)/artifacts" --output /tmp/dump
+      - run: wget -O /tmp/vc4cl-stdlib.deb $(python .circleci/get_url.py "vc4cl-stdlib-" "/tmp/dump")
+      - run: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
+      - run: dpkg -i /tmp/vc4cl-stdlib.deb /tmp/vc4c.deb build/vc4cl-0.4-Linux.deb
+      - run: ln -s `pwd`/build/cpptest-lite/src/cpptest-lite-project-build/libcpptest-lite.so.0.9 /usr/lib/libcpptest-lite.so.1.1.2
+      - run: ldconfig
+      - run: vc4c --version
+      - run: v3d_info
+      - run: build/test/TestVC4CL --output=plain --mode=verbose --buffer --context --device --events --platform --programs --queue --system --kernels
+      - run: dpkg -r vc4cl vc4c vc4cl-stdlib
 workflows:
   version: 2
   commit:
     jobs:
+      # TODO enable
       # - check-code-style
+      - build
       - cross
+      - test:
+          requires:
+            - build

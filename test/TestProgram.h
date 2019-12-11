@@ -11,14 +11,15 @@
 
 #include "cpptest.h"
 
+#include <atomic>
+
 class TestProgram : public Test::Suite
 {
 public:
     TestProgram();
-    
 
     bool setup() override;
-    
+
     void testCreateProgramWithSource();
     void testCreateProgramWithBinary();
     void testCreateProgramWithBuiltinKernels();
@@ -30,16 +31,19 @@ public:
     void testUnloadPlatformCompiler();
     void testGetProgramInfo();
     void testGetProgramBuildInfo();
-    
+
     void tear_down() override;
-    
+
     unsigned num_callback;
-    
+    // for asynchronous compilation
+    std::atomic<unsigned> num_pendingCallbacks;
+
 private:
     cl_context context;
     cl_program source_program;
     cl_program binary_program;
+
+    void checkBuildStatus(const cl_program program);
 };
 
 #endif /* TESTPROGRAM_H */
-
