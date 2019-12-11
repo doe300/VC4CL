@@ -86,8 +86,12 @@ static cl_int precompile_program(Program* program, const std::string& options,
     vc4c::SourceType sourceType = vc4c::Precompiler::getSourceType(sourceCode);
     if(sourceType == vc4c::SourceType::UNKNOWN || sourceType == vc4c::SourceType::QPUASM_BIN ||
         sourceType == vc4c::SourceType::QPUASM_HEX)
+    {
+        program->buildInfo.log.append("Invalid source-code type:");
+        program->buildInfo.log.append(program->sourceCode.data(), program->sourceCode.size());
         return returnError(
             CL_COMPILE_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Invalid source-code type %d", sourceType));
+    }
 
     vc4c::Configuration config;
 
@@ -558,7 +562,6 @@ static cl_int compileInner(object_wrapper<Program> program, std::string options,
         program->buildInfo.status = CL_BUILD_ERROR;
     else
         program->buildInfo.status = CL_BUILD_SUCCESS;
-    printf("TEST: %d\n", state);
     if(callback)
         (callback)(program->toBase(), userData);
     return state;

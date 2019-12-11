@@ -16,8 +16,6 @@ uint32_t hello_world_vector_hex[] = {
 #include "hello_world_vector.hex"
 };
 
-static std::string sourceCode;
-
 TestProgram::TestProgram() :
     num_callback(0), num_pendingCallbacks(0), context(nullptr), source_program(nullptr), binary_program(nullptr)
 {
@@ -62,8 +60,10 @@ bool TestProgram::setup()
 void TestProgram::testCreateProgramWithSource()
 {
     cl_int errcode = CL_SUCCESS;
-    sourceCode = readFile("./test/hello_world_vector.cl");
+    auto sourceCode = readFile("./test/hello_world_vector.cl");
     const std::size_t sourceLength = sourceCode.size();
+    TEST_ASSERT(sourceLength != 0);
+    TEST_ASSERT(sourceCode.find("__kernel") != std::string::npos);
     source_program = VC4CL_FUNC(clCreateProgramWithSource)(context, 1, nullptr, &sourceLength, &errcode);
     TEST_ASSERT(errcode != CL_SUCCESS);
     TEST_ASSERT_EQUALS(nullptr, source_program);
