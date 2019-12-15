@@ -9,6 +9,7 @@
 
 #include "Event.h"
 
+#include <atomic>
 #include <condition_variable>
 #include <deque>
 #include <memory>
@@ -52,17 +53,19 @@ namespace vc4cl
     private:
         EventQueue();
 
-        bool continueRunning;
-        std::thread eventHandler;
+        std::atomic_bool continueRunning;
 
-        std::deque<object_wrapper<Event>> eventBuffer;
+        std::deque<object_wrapper<Event>> eventBuffer{};
         // this is triggered after every finished cl_event
-        std::condition_variable eventProcessed;
+        std::condition_variable eventProcessed{};
         // this is triggered if a new event is available
-        std::condition_variable eventAvailable;
-        std::mutex listenMutex;
-        std::mutex bufferMutex;
-        std::mutex eventMutex;
+        std::condition_variable eventAvailable{};
+        std::mutex listenMutex{};
+        std::mutex bufferMutex{};
+        std::mutex eventMutex{};
+
+        // the actual thread needs to be initialized after all the mutices
+        std::thread eventHandler;
 
         Event* peekQueue();
         void popFromEventQueue();

@@ -36,7 +36,7 @@ public:
 
     unsigned num_callback;
     // for asynchronous compilation
-    std::atomic<unsigned> num_pendingCallbacks;
+    std::atomic<unsigned> num_pendingCallbacks{};
 
 private:
     cl_context context;
