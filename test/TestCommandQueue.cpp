@@ -9,6 +9,7 @@
 #include "src/Context.h"
 #include "src/Device.h"
 #include "src/Platform.h"
+#include "src/extensions.h"
 #include "src/icd_loader.h"
 
 using namespace vc4cl;
