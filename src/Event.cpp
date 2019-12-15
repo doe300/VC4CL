@@ -144,7 +144,7 @@ cl_int Event::waitFor() const
 
     if(!isFinished())
         // no need to lock the queue mutex if we are already done
-        waitForEvent(this);
+        EventQueue::getInstance()->waitForEvent(this);
     return status;
 }
 

@@ -13,15 +13,12 @@
 using namespace vc4cl;
 
 CommandQueue::CommandQueue(Context* context, const bool outOfOrderExecution, const bool profiling) :
-    HasContext(context), outOfOrderExecution(outOfOrderExecution), profiling(profiling)
+    HasContext(context), outOfOrderExecution(outOfOrderExecution), profiling(profiling),
+    queue(EventQueue::getInstance())
 {
-    initEventQueue();
 }
 
-CommandQueue::~CommandQueue()
-{
-    deinitEventQueue();
-}
+CommandQueue::~CommandQueue() noexcept = default;
 
 cl_int CommandQueue::getInfo(
     cl_command_queue_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const
@@ -86,7 +83,7 @@ cl_int CommandQueue::enqueueEvent(Event* event)
 
     // add to queue
     if(status == CL_SUCCESS)
-        pushEventToQueue(event);
+        queue->pushEvent(event);
 
     return status;
 }
@@ -112,7 +109,7 @@ cl_int CommandQueue::finish()
     // have completed"
 
     // wait_for_event_finish for all events in THIS queue
-    while(auto event = peekQueue(this))
+    while(auto event = queue->peek(this))
         ignoreReturnValue(event->waitFor(), __FILE__, __LINE__,
             "This method does not check the states of the single events as per specification");
 

@@ -11,12 +11,13 @@
 namespace vc4cl
 {
     class Event;
+    class EventQueue;
 
     class CommandQueue final : public Object<_cl_command_queue, CL_INVALID_COMMAND_QUEUE>, public HasContext
     {
     public:
         CommandQueue(Context* context, bool outOfOrderExecution, bool profiling);
-        ~CommandQueue() override;
+        ~CommandQueue() noexcept override;
 
         CHECK_RETURN cl_int getInfo(cl_command_queue_info param_name, size_t param_value_size, void* param_value,
             size_t* param_value_size_ret) const;
@@ -34,6 +35,7 @@ namespace vc4cl
         // properties
         bool outOfOrderExecution;
         bool profiling;
+        std::shared_ptr<EventQueue> queue;
     };
 
 } /* namespace vc4cl */
