@@ -158,7 +158,7 @@ ExecutionHandle Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint3
     {
 #ifdef DEBUG_MODE
         LOG(std::cout << "Timeout is too big, needs fit into a 32-bit integer: " << timeout.count() << std::endl)
-        return false;
+        return ExecutionHandle{false};
 #endif
     }
     /*
