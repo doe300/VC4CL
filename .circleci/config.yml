@@ -130,14 +130,14 @@ jobs:
       - store_artifacts:
           path: build/vc4cl-0.4-Linux.deb
           distination: vc4cl-0.4-Linux.deb
-  build-offline:
+  cross-offline:
     docker:
-      - image: nomaddo/native
+      - image: nomaddo/cross-rpi:0.2
     steps:
       - checkout
       - run:
           name: configure
-          command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DBUILD_TESTING=ON -DINCLUDE_COMPILER=OFF -DMOCK_HAL=ON
+          command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DINCLUDE_COMPILER=OFF -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
       - run:
           name: make
           command: cd build && make -j`nproc`
@@ -180,7 +180,7 @@ workflows:
       # - check-code-style
       - build
       - build-debug
-      - build-offline
+      - cross-offline
       - cross
       - test:
           requires:

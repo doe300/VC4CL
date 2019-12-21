@@ -90,8 +90,8 @@ if(IMAGE_SUPPORT)
 endif()
 
 if(MOCK_HAL)
-	if(NOT VC4C_HEADER_PATH)
-		message(ERROR "Cannot run in emulation mode without compiler available!")
+	if(NOT (INCLUDE_COMPILER AND VC4C_HEADER_PATH))
+		message(SEND_ERROR "Cannot run in emulation mode without compiler available!")
 	endif()
 	# Disable ICD loading to support directly forcing the emulation runtime
 	# (e.g. via LD_PRELOAD)
