@@ -114,8 +114,10 @@ namespace vc4cl
         BITFIELD_ENTRY(ByValue, bool, 49, Bit)
 
         //// 2 Bits of decoration currently unused
-        //// 3 Bits unused
+        //// 2 Bits unused
 
+        // whether the parameter is lowered (e.g. into VPM) and does not need any (temporary) buffer allocated for it
+        BITFIELD_ENTRY(Lowered, bool, 54, Bit)
         // the parameter's address space, only valid for pointers
         // OpenCL default address space is "private"
         BITFIELD_ENTRY(AddressSpace, AddressSpace, 55, Quadruple)

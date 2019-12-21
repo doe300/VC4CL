@@ -219,10 +219,10 @@ cl_int executeKernel(KernelExecution& args)
         const unsigned data_length = static_cast<unsigned>(kernel->program->globalData.size() * sizeof(uint64_t));
         memcpy(p, data_start, data_length);
         p += data_length / sizeof(unsigned);
-    }
 #ifdef DEBUG_MODE
-    LOG(std::cout << "Copied " << data_length << " bytes of global data to device buffer" << std::endl)
+        LOG(std::cout << "Copied " << data_length << " bytes of global data to device buffer" << std::endl)
 #endif
+    }
 
     // Reserve space for stack-frames and fill it with zeros (e.g. for cl_khr_initialize_memory extension)
     uint32_t maxQPUS = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
@@ -260,14 +260,26 @@ cl_int executeKernel(KernelExecution& args)
             auto persistentBufferIt = args.persistentBuffers.find(u);
             if(tmpBufferIt != args.tmpBuffers.end())
             {
-                // there exists a temporary buffer for the __local/struct parameter, so set its address as kernel
-                // argument
-                *p++ = static_cast<unsigned>(tmpBufferIt->second->qpuPointer);
+                if(!tmpBufferIt->second)
+                {
+                    // the __local parameter is lowered into VPM, so there is no temporary buffer
+                    *p++ = 0u;
 #ifdef DEBUG_MODE
-                LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
-                              << " to temporary buffer 0x" << std::hex << tmpBufferIt->second->qpuPointer << std::dec
-                              << std::endl)
+                    LOG(std::cout << "Setting lowered parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                                  << " to null-pointer" << std::endl)
 #endif
+                }
+                else
+                {
+                    // there exists a temporary buffer for the __local/struct parameter, so set its address as
+                    // kernel argument
+                    *p++ = static_cast<unsigned>(tmpBufferIt->second->qpuPointer);
+#ifdef DEBUG_MODE
+                    LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                                  << " to temporary buffer 0x" << std::hex << tmpBufferIt->second->qpuPointer
+                                  << std::dec << std::endl)
+#endif
+                }
             }
             else if(persistentBufferIt != args.persistentBuffers.end())
             {

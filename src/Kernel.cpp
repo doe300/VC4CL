@@ -594,25 +594,40 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
         const KernelArgument* arg = args.at(i).get();
         if(auto localArg = dynamic_cast<const TemporaryBufferArgument*>(arg))
         {
-            auto bufIt = tmpBuffers.emplace(i, mailbox().allocateBuffer(localArg->sizeToAllocate)).first;
-            if(!bufIt->second)
-                // failed to allocate the temporary buffer
-                return CL_OUT_OF_RESOURCES;
-            if(!localArg->data.empty())
+            if(info.params.at(i).getLowered())
             {
-                // copy the parameter values to the buffer
-                memcpy(bufIt->second->hostPointer, localArg->data.data(),
-                    std::min(static_cast<unsigned>(localArg->data.size()), localArg->sizeToAllocate));
-            }
-            else if(program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR))
-            {
-                // we need to initialize the local memory to zero
-                memset(bufIt->second->hostPointer, '\0', localArg->sizeToAllocate);
-            }
+                // don't need to reserve temporary buffer, it will be unused anyway
+                // TODO the zeroing below is not applied for these parameters!
+                tmpBuffers.emplace(i, nullptr);
 #ifdef DEBUG_MODE
-            LOG(std::cout << "Reserved " << localArg->sizeToAllocate << " bytes of buffer for local/struct parameter: "
-                          << info.params.at(i).type << " " << info.params.at(i).name << std::endl)
+                LOG(std::cout << "Skipping reserving of " << localArg->sizeToAllocate
+                              << " bytes of buffer for lowered local parameter: " << info.params.at(i).type << " "
+                              << info.params.at(i).name << std::endl)
 #endif
+            }
+            else
+            {
+                auto bufIt = tmpBuffers.emplace(i, mailbox().allocateBuffer(localArg->sizeToAllocate)).first;
+                if(!bufIt->second)
+                    // failed to allocate the temporary buffer
+                    return CL_OUT_OF_RESOURCES;
+                if(!localArg->data.empty())
+                {
+                    // copy the parameter values to the buffer
+                    memcpy(bufIt->second->hostPointer, localArg->data.data(),
+                        std::min(static_cast<unsigned>(localArg->data.size()), localArg->sizeToAllocate));
+                }
+                else if(program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR))
+                {
+                    // we need to initialize the local memory to zero
+                    memset(bufIt->second->hostPointer, '\0', localArg->sizeToAllocate);
+                }
+#ifdef DEBUG_MODE
+                LOG(std::cout << "Reserved " << localArg->sizeToAllocate
+                              << " bytes of buffer for local/struct parameter: " << info.params.at(i).type << " "
+                              << info.params.at(i).name << std::endl)
+#endif
+            }
         }
     }
 
