@@ -466,31 +466,18 @@ cl_int VC4CL_FUNC(clGetDeviceIDs)(cl_platform_id platform, cl_device_type device
 
     cl_uint num_found = 0;
 
-    bool device_found = false;
-    if(hasFlag<cl_device_type>(device_type, CL_DEVICE_TYPE_ACCELERATOR))
-    {
-        // OpenCL accelerator device queried -> not supported
-    }
-    if(hasFlag<cl_device_type>(device_type, CL_DEVICE_TYPE_CPU))
-    {
-        // CPU device queried -> not supported
-    }
-    if(hasFlag<cl_device_type>(device_type, CL_DEVICE_TYPE_CUSTOM))
-    {
-        // custom device queried -> not supported
-    }
     if(hasFlag<cl_device_type>(device_type, CL_DEVICE_TYPE_DEFAULT) ||
         hasFlag<cl_device_type>(device_type, CL_DEVICE_TYPE_GPU))
     {
-        device_found = true;
         // default device queried -> GPU
         if(devices != nullptr)
             devices[num_found] = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
-        ++num_found;
+        num_found = 1;
     }
-    if(!device_found)
+    else
         return returnError(CL_DEVICE_NOT_FOUND, __FILE__, __LINE__,
             buildString("No device for the given criteria: platform %p, type: %d!", platform, device_type));
+
     if(num_devices != nullptr)
     {
         *num_devices = num_found;

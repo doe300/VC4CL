@@ -34,6 +34,15 @@ namespace vc4cl
         param;                                                                                                         \
     }
 
+    inline bool isDebugLogEnabled()
+    {
+#ifdef DEBUG_MODE
+        return true;
+#else
+        return std::getenv("VC4CL_DEBUG") != nullptr;
+#endif
+    }
+
     CHECK_RETURN std::string joinStrings(const std::vector<std::string>& strings, const std::string& delim = " ");
 
     CHECK_RETURN cl_int returnValue(const void* value, size_t value_size, size_t value_count, size_t output_size,
@@ -55,10 +64,9 @@ namespace vc4cl
     CHECK_RETURN inline T returnError(
         cl_int error, cl_int* errcode_ret, const char* file, unsigned line, const std::string& reason)
     {
-#ifdef DEBUG_MODE
-        LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ":" << reason
-                      << std::endl)
-#endif
+        if(isDebugLogEnabled())
+            LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ": " << reason
+                          << std::endl)
         if(errcode_ret != nullptr)
             *errcode_ret = error;
         return nullptr;
@@ -66,25 +74,18 @@ namespace vc4cl
 
     CHECK_RETURN inline cl_int returnError(cl_int error, const char* file, unsigned line, const std::string& reason)
     {
-#ifdef DEBUG_MODE
-        LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ":" << reason
-                      << std::endl)
-#endif
+        if(isDebugLogEnabled())
+            LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ": " << reason
+                          << std::endl)
         return error;
     }
 
-#ifndef DEBUG_MODE
-    constexpr
-#endif
-        inline void
-        ignoreReturnValue(cl_int state, const char* file, unsigned line, const char* reasonForIgnoring)
+    inline void ignoreReturnValue(cl_int state, const char* file, unsigned line, const char* reasonForIgnoring)
     {
-    // used to hide warnings of unused return-values
-    // the reason is for documentation only
-#ifdef DEBUG_MODE
-        if(state != CL_SUCCESS)
+        // used to hide warnings of unused return-values
+        // the reason is for documentation only
+        if(isDebugLogEnabled() && state != CL_SUCCESS)
             LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << state << std::endl);
-#endif
     }
 
     template <typename... T>
@@ -253,12 +254,7 @@ namespace vc4cl
     template <typename... T>
     inline void printAPICall(const char* const retType, const char* const funcName, T... args)
     {
-#ifdef DEBUG_MODE
-        static bool printAPICalls = true;
-#else
-        static bool printAPICalls = std::getenv("VC4CL_DEBUG") != nullptr;
-#endif
-        if(printAPICalls)
+        if(isDebugLogEnabled())
         {
             LOG(std::cout << "API call: " << retType << " " << funcName << "(";
                 printAPICallInternal(std::cout, args...) << ")" << std::endl)

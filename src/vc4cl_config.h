@@ -133,7 +133,7 @@ namespace vc4cl
         static constexpr cl_uint PREFERRED_VECTOR_WIDTH = 16;
         // since the QPU is a 16-way 32-bit processor, the maximum supported type is a 16-element 32-bit vector
         static constexpr cl_uint BUFFER_ALIGNMENT = sizeof(cl_int16);
-        // according to tests, values are always rounded to zero
+        // according to tests, values are always rounded to zero (i.e. for fmul, fadd and fsub operations)
         static constexpr cl_uint FLOATING_POINT_CONFIG = CL_FP_ROUND_TO_ZERO;
     } // namespace device_config
 

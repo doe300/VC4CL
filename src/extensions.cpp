@@ -55,9 +55,8 @@ void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platfo
     if(strcmp("clResetPerformanceCounterVC4CL", funcname) == 0)
         return reinterpret_cast<void*>(&VC4CL_FUNC(clResetPerformanceCounterValueVC4CL));
 
-#ifdef DEBUG_MODE
-    LOG(std::cout << "extension function address not found for: " << funcname << std::endl)
-#endif
+    if(isDebugLogEnabled())
+        LOG(std::cout << "extension function address not found for: " << funcname << std::endl)
 
     return nullptr;
 }

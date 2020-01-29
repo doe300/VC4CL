@@ -139,9 +139,9 @@ static cl_int precompile_program(Program* program, const std::string& options,
     }
     catch(vc4c::CompilationError& e)
     {
-#ifdef DEBUG_MODE
-        LOG(std::cout << "Precompilation error: " << e.what() << std::endl)
-#endif
+        if(isDebugLogEnabled())
+            LOG(std::cout << "Precompilation error: " << e.what() << std::endl)
+
         program->buildInfo.log.append("Precompilation error:\n\t").append(e.what()).append("\n");
         status = CL_COMPILE_PROGRAM_FAILURE;
     }
@@ -199,9 +199,9 @@ static cl_int link_programs(
     }
     catch(vc4c::CompilationError& e)
     {
-#ifdef DEBUG_MODE
-        LOG(std::cout << "Link error: " << e.what() << std::endl)
-#endif
+        if(isDebugLogEnabled())
+            LOG(std::cout << "Link error: " << e.what() << std::endl)
+
         program->buildInfo.log.append("Link error:\n\t").append(e.what()).append("\n");
         status = CL_LINK_PROGRAM_FAILURE;
     }
@@ -256,9 +256,9 @@ static cl_int compile_program(Program* program, const std::string& options)
     }
     catch(vc4c::CompilationError& e)
     {
-#ifdef DEBUG_MODE
-        LOG(std::cout << "Compilation error: " << e.what() << std::endl)
-#endif
+        if(isDebugLogEnabled())
+            LOG(std::cout << "Compilation error: " << e.what() << std::endl)
+
         program->buildInfo.log.append("Compilation error:\n\t").append(e.what()).append("\n");
         status = CL_BUILD_PROGRAM_FAILURE;
     }

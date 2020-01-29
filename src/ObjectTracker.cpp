@@ -19,15 +19,17 @@ static ObjectTracker liveObjectsTracker;
 
 ObjectTracker::~ObjectTracker()
 {
-// since this is called at the end of the program,
-// all objects still alive here are leaked!
-#ifdef DEBUG_MODE
-    for(const auto& obj : liveObjects)
+    // since this is called at the end of the program,
+    // all objects still alive here are leaked!
+    if(isDebugLogEnabled() && !liveObjects.empty())
     {
-        std::cout << "[VC4CL] Leaked object with " << obj->referenceCount << " references: " << obj->typeName << "\n";
+        for(const auto& obj : liveObjects)
+        {
+            LOG(std::cout << "[VC4CL] Leaked object with " << obj->referenceCount << " references: " << obj->typeName
+                          << "\n")
+        }
+        LOG(std::cout << std::endl);
     }
-    std::cout << std::endl;
-#endif
 
     // the remaining objects reference one another
     // since deleting one object may remove another, we cannot use the cleanup-function of the container's destructor
@@ -59,10 +61,8 @@ void ObjectTracker::removeObject(BaseObject* obj)
         [obj](const std::unique_ptr<BaseObject>& ptr) -> bool { return ptr.get() == obj; });
     if(it != liveObjectsTracker.liveObjects.end())
         liveObjectsTracker.liveObjects.erase(it);
-#ifdef DEBUG_MODE
-    else
+    else if(isDebugLogEnabled())
         LOG(std::cout << "Removing object not previously tracked: " << obj->typeName << std::endl)
-#endif
 }
 
 void ObjectTracker::iterateObjects(ReportFunction func, void* userData)
