@@ -97,7 +97,17 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
     if(!paramInfo.getPointer() || paramInfo.getByValue())
     {
         // literal (scalar, vector or struct) argument
-        if(arg_size != paramInfo.getSize())
+        if(paramInfo.getVectorElements() == 3 && arg_size * 4 == paramInfo.getSize() * 3)
+        {
+            /*
+             * pocl accepts size of base*3 and base*4 for base3 vectors. Standard seems not to say anything about that!
+             * See pocl/regression/test_vectors_as_args. Mesa only checks given size to be <= stored argument size, so
+             * it also accepts both base*3 and base*4 sizes...
+             */
+            // simply skipping the below check works, since below only the actually given (3-element) size is taken into
+            // account, not the stored (4-element) size.
+        }
+        else if(arg_size != paramInfo.getSize())
         {
             return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__,
                 buildString("Invalid arg size: %u, must be %d", arg_size, paramInfo.getSize()));
@@ -112,56 +122,63 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                     "Multiple vector elements for literal struct arguments are not supported");
             }
             args[arg_index].reset(new TemporaryBufferArgument(static_cast<unsigned>(arg_size), arg_value));
-        }
-        const size_t elementSize = arg_size / paramInfo.getVectorElements();
-        ScalarArgument* scalarArg = new ScalarArgument(paramInfo.getVectorElements());
-        args[arg_index].reset(scalarArg);
-        for(cl_uchar i = 0; i < paramInfo.getVectorElements(); ++i)
-        {
-            // arguments are all 32-bit, since UNIFORMS are always 32-bit
-            if(elementSize == 1 /* [u]char-types */)
-            {
-                // expand 8-bit to 32-bit
-                if(!paramInfo.getFloatingType() && paramInfo.getSigned())
-                {
-                    cl_int tmp = static_cast<const cl_char*>(arg_value)[i];
-                    scalarArg->addScalar(tmp);
-                }
-                else
-                {
-                    cl_uint tmp = 0xFF & static_cast<const cl_uchar*>(arg_value)[i];
-                    scalarArg->addScalar(tmp);
-                }
-            }
-            else if(elementSize == 2 /* [u]short-types, also half */)
-            {
-                // expand 16-bit to 32-bit
-                if(!paramInfo.getFloatingType() && paramInfo.getSigned())
-                {
-                    cl_int tmp = static_cast<const cl_short*>(arg_value)[i];
-                    scalarArg->addScalar(tmp);
-                }
-                else
-                {
-                    cl_uint tmp = 0xFFFF & static_cast<const cl_ushort*>(arg_value)[i];
-                    scalarArg->addScalar(tmp);
-                }
-            }
-            else if(elementSize > 4)
-            {
-                // not supported
-                return returnError(
-                    CL_INVALID_ARG_SIZE, __FILE__, __LINE__, buildString("Invalid arg size: %u", arg_size));
-            }
-            else /* [u]int, float */
-            {
-                scalarArg->addScalar(static_cast<const cl_uint*>(arg_value)[i]);
-            }
-        }
 #ifdef DEBUG_MODE
-        LOG(std::cout << "Setting kernel-argument " << arg_index << " to scalar " << args[arg_index]->to_string()
-                      << std::endl)
+            LOG(std::cout << "Setting kernel-argument " << arg_index << " to temporary buffer "
+                          << args[arg_index]->to_string() << std::endl)
 #endif
+        }
+        else
+        {
+            const size_t elementSize = arg_size / paramInfo.getVectorElements();
+            ScalarArgument* scalarArg = new ScalarArgument(paramInfo.getVectorElements());
+            args[arg_index].reset(scalarArg);
+            for(cl_uchar i = 0; i < paramInfo.getVectorElements(); ++i)
+            {
+                // arguments are all 32-bit, since UNIFORMS are always 32-bit
+                if(elementSize == 1 /* [u]char-types */)
+                {
+                    // expand 8-bit to 32-bit
+                    if(!paramInfo.getFloatingType() && paramInfo.getSigned())
+                    {
+                        cl_int tmp = static_cast<const cl_char*>(arg_value)[i];
+                        scalarArg->addScalar(tmp);
+                    }
+                    else
+                    {
+                        cl_uint tmp = 0xFF & static_cast<const cl_uchar*>(arg_value)[i];
+                        scalarArg->addScalar(tmp);
+                    }
+                }
+                else if(elementSize == 2 /* [u]short-types, also half */)
+                {
+                    // expand 16-bit to 32-bit
+                    if(!paramInfo.getFloatingType() && paramInfo.getSigned())
+                    {
+                        cl_int tmp = static_cast<const cl_short*>(arg_value)[i];
+                        scalarArg->addScalar(tmp);
+                    }
+                    else
+                    {
+                        cl_uint tmp = 0xFFFF & static_cast<const cl_ushort*>(arg_value)[i];
+                        scalarArg->addScalar(tmp);
+                    }
+                }
+                else if(elementSize > 4)
+                {
+                    // not supported
+                    return returnError(
+                        CL_INVALID_ARG_SIZE, __FILE__, __LINE__, buildString("Invalid arg size: %u", arg_size));
+                }
+                else /* [u]int, float */
+                {
+                    scalarArg->addScalar(static_cast<const cl_uint*>(arg_value)[i]);
+                }
+            }
+#ifdef DEBUG_MODE
+            LOG(std::cout << "Setting kernel-argument " << arg_index << " to scalar " << args[arg_index]->to_string()
+                          << std::endl)
+#endif
+        }
     }
     else
     {
