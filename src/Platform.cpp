@@ -6,6 +6,8 @@
 
 #include "Platform.h"
 
+#include "extensions.h"
+
 #include <dlfcn.h>
 #include <memory>
 #include <pthread.h>
@@ -47,13 +49,24 @@ cl_int Platform::getInfo(
         return returnString(platform_config::VERSION, param_value_size, param_value, param_value_size_ret);
     case CL_PLATFORM_EXTENSIONS:
         //"Returns a space separated list of extension names [...] supported by the platform."
-        return returnString(
-            joinStrings(platform_config::EXTENSIONS), param_value_size, param_value, param_value_size_ret);
+        return returnString(joinStrings(platform_config::EXTENSIONS, [](const Extension& e) { return e.name; }),
+            param_value_size, param_value, param_value_size_ret);
     case CL_PLATFORM_ICD_SUFFIX_KHR:
         // enabled by the cl_khr_icd extension
         //"The function name suffix used to identify extension functions to be directed to this platform by the ICD
         // Loader."
         return returnString(platform_config::ICD_SUFFIX, param_value_size, param_value, param_value_size_ret);
+    case CL_PLATFORM_NUMERIC_VERSION_KHR:
+        // enabled by the cl_khr_extended_versioning extension
+        // "Returns detailed (major, minor, patch) numeric version information. The major and minor version numbers
+        // returned must match those returned via `CL_PLATFORM_VERSION`."
+        return returnValue<cl_version_khr>(
+            CL_MAKE_VERSION_KHR(1, 2, 0), param_value_size, param_value, param_value_size_ret);
+    case CL_PLATFORM_EXTENSIONS_WITH_VERSION_KHR:
+        // enabled by the cl_khr_extended_versioning extension
+        // "Returns an array of description (name and version) structures. The same extension name must not be reported
+        // more than once. The list of extensions reported must match the list reported via `CL_PLATFORM_EXTENSIONS`."
+        return returnExtensions(platform_config::EXTENSIONS, param_value_size, param_value, param_value_size_ret);
     default:
         // invalid parameter-type
         return returnError(

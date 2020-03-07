@@ -25,13 +25,17 @@ extern "C"
 // SPIRV-LLVM and "standard" CLang (4.0) support SPIR 1.2 (for OpenCL 1.2)
 #define SPIR_PREFIX "SPIR_"
 #define SPIR_VERSION "1.2"
+#define SPIR_VERSION_MAJOR 1
+#define SPIR_VERSION_MINOR 2
 
 /*
  * Khronos Intermediate Language Programs (cl_khr_il_program)
  * https://www.khronos.org/registry/OpenCL/specs/opencl-1.2-extensions.pdf#page=165
  */
-// SPIR-V 1.2 is the currently latest SPIR-V version
-#define SPIRV_VERSION "SPIR-V_1.2"
+// SPIR-V 1.5 is the currently latest SPIR-V version
+#define SPIRV_VERSION "SPIR-V_1.5"
+#define SPIRV_VERSION_MAJOR 1
+#define SPIRV_VERSION_MINOR 5
 
 // somehow, except in the OpenCL 2.0 extension specification, this extension, constant and the function added
 // ("clCreateProgramWithILKHR") are nowhere to be found  maybe due to the fact, that they are included in core
@@ -179,6 +183,77 @@ extern "C"
  */
 #ifndef CL_DEVICE_COMPUTE_UNITS_BITFIELD_ARM
 #define CL_DEVICE_COMPUTE_UNITS_BITFIELD_ARM 0x40BF
+#endif
+
+/*
+ * Khronos extended versioning (cl_khr_extended_versioning)
+ * https://github.com/KhronosGroup/OpenCL-Docs/pull/218/files
+ *
+ * Adds some more queries for better/more accurate versioning support
+ */
+#ifndef CL_VERSION_MAJOR_BITS_KHR
+#define CL_VERSION_MAJOR_BITS_KHR (10u)
+#endif
+#ifndef CL_VERSION_MINOR_BITS_KHR
+#define CL_VERSION_MINOR_BITS_KHR (10u)
+#endif
+#ifndef CL_VERSION_PATCH_BITS_KHR
+#define CL_VERSION_PATCH_BITS_KHR (12u)
+#endif
+#ifndef CL_VERSION_MAJOR_MASK_KHR
+#define CL_VERSION_MAJOR_MASK_KHR ((1u << CL_VERSION_MAJOR_BITS_KHR) - 1u)
+#endif
+#ifndef CL_VERSION_MINOR_MASK_KHR
+#define CL_VERSION_MINOR_MASK_KHR ((1u << CL_VERSION_MINOR_BITS_KHR) - 1u)
+#endif
+#ifndef CL_VERSION_PATCH_MASK_KHR
+#define CL_VERSION_PATCH_MASK_KHR ((1u << CL_VERSION_PATCH_BITS_KHR) - 1u)
+#endif
+#ifndef CL_VERSION_MAJOR_KHR
+#define CL_VERSION_MAJOR_KHR(version) ((version) >> (CL_VERSION_MINOR_BITS_KHR + CL_VERSION_PATCH_BITS_KHR))
+#endif
+#ifndef CL_VERSION_MINOR_KHR
+#define CL_VERSION_MINOR_KHR(version) (((version) >> CL_VERSION_PATCH_BITS_KHR) & CL_VERSION_MINOR_MASK_KHR)
+#endif
+#ifndef CL_VERSION_PATCH_KHR
+#define CL_VERSION_PATCH_KHR(version) ((version) &CL_VERSION_PATCH_MASK_KHR)
+#endif
+#ifndef CL_MAKE_VERSION_KHR
+#define CL_MAKE_VERSION_KHR(major, minor, patch)                                                                       \
+    ((((major) &CL_VERSION_MAJOR_MASK_KHR) << (CL_VERSION_MINOR_BITS_KHR + CL_VERSION_PATCH_BITS_KHR)) |               \
+        (((minor) &CL_VERSION_MINOR_MASK_KHR) << CL_VERSION_PATCH_BITS_KHR) | ((patch) &CL_VERSION_PATCH_MASK_KHR))
+#endif
+#ifndef CL_NAME_VERSION_MAX_NAME_SIZE_KHR
+#define CL_NAME_VERSION_MAX_NAME_SIZE_KHR 64
+    typedef cl_uint cl_version_khr;
+    // NOTA: the structure below must be packed so that the OpenCL implementation
+    //       and application use the same layout in memory.
+    typedef struct _cl_name_version_khr
+    {
+        cl_version_khr version;
+        char name[CL_NAME_VERSION_MAX_NAME_SIZE_KHR];
+    } cl_name_version_khr;
+#endif
+#ifndef CL_PLATFORM_NUMERIC_VERSION_KHR
+#define CL_PLATFORM_NUMERIC_VERSION_KHR 0x0906
+#endif
+#ifndef CL_PLATFORM_EXTENSIONS_WITH_VERSION_KHR
+#define CL_PLATFORM_EXTENSIONS_WITH_VERSION_KHR 0x0907
+#endif
+#ifndef CL_DEVICE_NUMERIC_VERSION_KHR
+#define CL_DEVICE_NUMERIC_VERSION_KHR 0x105E
+#endif
+#ifndef CL_DEVICE_OPENCL_C_NUMERIC_VERSION_KHR
+#define CL_DEVICE_OPENCL_C_NUMERIC_VERSION_KHR 0x105F
+#endif
+#ifndef CL_DEVICE_EXTENSIONS_WITH_VERSION_KHR
+#define CL_DEVICE_EXTENSIONS_WITH_VERSION_KHR 0x1060
+#endif
+#ifndef CL_DEVICE_ILS_WITH_VERSION_KHR
+#define CL_DEVICE_ILS_WITH_VERSION_KHR 0x1061
+#endif
+#ifndef CL_DEVICE_BUILT_IN_KERNELS_WITH_VERSION_KHR
+#define CL_DEVICE_BUILT_IN_KERNELS_WITH_VERSION_KHR 0x1062
 #endif
 
     /*

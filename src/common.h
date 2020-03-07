@@ -11,6 +11,7 @@
 #include <array>
 #include <cstring>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -45,12 +46,24 @@ namespace vc4cl
 
     CHECK_RETURN std::string joinStrings(const std::vector<std::string>& strings, const std::string& delim = " ");
 
+    template <typename T, typename Func = std::function<std::string(const T&)>>
+    CHECK_RETURN std::string joinStrings(const std::vector<T>& objects, Func&& f, const std::string& delim = " ")
+    {
+        std::vector<std::string> strings;
+        strings.reserve(objects.size());
+        for(const auto& obj : objects)
+            strings.emplace_back(f(obj));
+        return joinStrings(strings, delim);
+    }
+
     CHECK_RETURN cl_int returnValue(const void* value, size_t value_size, size_t value_count, size_t output_size,
         void* output, size_t* output_size_ret);
     CHECK_RETURN cl_int returnString(
         const std::string& string, size_t output_size, void* output, size_t* output_size_ret);
     CHECK_RETURN cl_int returnBuffers(const std::vector<void*>& buffers, const std::vector<size_t>& sizes,
         size_t type_size, size_t output_size, void* output, size_t* output_size_ret);
+    CHECK_RETURN cl_int returnExtensions(const std::vector<Extension>& extensions, size_t output_size,
+        void* output, size_t* output_size_ret);
 
     template <typename T>
     CHECK_RETURN typename std::enable_if<std::is_arithmetic<T>::value | std::is_pointer<T>::value, cl_int>::type

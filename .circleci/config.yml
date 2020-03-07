@@ -49,8 +49,6 @@ jobs:
       - image: nomaddo/native
     steps:
       - checkout
-      # TODO move to docker image
-      - run: apt-get update && apt-get --assume-yes install wget
       - run:
           name: get json
           command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
@@ -98,8 +96,6 @@ jobs:
       - image: nomaddo/native
     steps:
       - checkout
-      # TODO move to docker image
-      - run: apt-get update && apt-get --assume-yes install wget
       - run:
           name: get json
           command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
@@ -159,8 +155,6 @@ jobs:
     steps:
       - attach_workspace:
           at: /root/project
-      # TODO move to docker image
-      - run: apt-get update && apt-get --assume-yes install wget
       - run: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
       - run: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/$(.circleci/build_num.py /tmp/json build)/artifacts" --output /tmp/dump
       - run: wget -O /tmp/vc4cl-stdlib.deb $(python .circleci/get_url.py "vc4cl-stdlib-" "/tmp/dump")

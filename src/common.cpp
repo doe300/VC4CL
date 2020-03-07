@@ -5,6 +5,7 @@
  */
 
 #include "common.h"
+#include "extensions.h"
 
 #include <CL/opencl.h>
 
@@ -71,6 +72,31 @@ CHECK_RETURN cl_int vc4cl::returnBuffers(const std::vector<void*>& buffers, cons
     }
     if(output_size_ret != nullptr)
         *output_size_ret = inputSize;
+    return CL_SUCCESS;
+}
+
+cl_int vc4cl::returnExtensions(
+    const std::vector<Extension>& extensions, size_t output_size, void* output, size_t* output_size_ret)
+{
+    auto requiredSize = sizeof(cl_name_version_khr) * extensions.size();
+    if(output != nullptr)
+    {
+        if(output_size < requiredSize)
+            // not enough space on output parameter
+            return CL_INVALID_VALUE;
+        std::vector<cl_name_version_khr> items;
+        items.reserve(extensions.size());
+        for(const auto& ext : extensions)
+        {
+            cl_name_version_khr item{CL_MAKE_VERSION_KHR(ext.majorVersion, ext.minorVersion, 0), ""};
+            strncpy(item.name, ext.name.data(), CL_NAME_VERSION_MAX_NAME_SIZE_KHR);
+            items.emplace_back(std::move(item));
+        }
+        memcpy(output, items.data(), requiredSize);
+    }
+
+    if(output_size_ret != nullptr)
+        *output_size_ret = requiredSize;
     return CL_SUCCESS;
 }
 

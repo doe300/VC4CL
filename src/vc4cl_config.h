@@ -18,6 +18,14 @@
 
 namespace vc4cl
 {
+    // Container to store extension name and version
+    struct Extension
+    {
+        std::string name;
+        uint16_t majorVersion;
+        uint16_t minorVersion;
+    };
+
     /*
      * Platform configuration
      */
@@ -38,25 +46,28 @@ namespace vc4cl
             std::string("OpenCL ") + OPENCL_VERSION + std::string(" VC4CL ") + VC4CL_VERSION;
 
         static const std::string ICD_SUFFIX = "VC4CL";
-        static const std::string VC4CL_PERFORMANCE_EXTENSION = "cl_vc4cl_performance_counters";
-        static const std::vector<std::string> EXTENSIONS = {
+        static const Extension VC4CL_PERFORMANCE_EXTENSION{"cl_vc4cl_performance_counters", 0, 0};
+        static const std::vector<Extension> EXTENSIONS = {
 #if HAS_COMPILER
             // supports SPIR-V code as input for programs (OpenCL 2.0 extension)
-            "cl_khr_il_program",
+            {"cl_khr_il_program", 0, 0},
             // supports SPIR (subset of LLVM IR) code as input for programs
             // SPIR is supported by both supported LLVM version ("default" and SPIRV-LLVM)
-            "cl_khr_spir",
+            {"cl_khr_spir", 0, 0},
 #endif
             // supports creating of command queue with properties for OpenCL 1.x
-            "cl_khr_create_command_queue",
+            {"cl_khr_create_command_queue", 0, 0},
             // supports querying the device temperature with clGetDeviceInfo
-            "cl_altera_device_temperature",
+            {"cl_altera_device_temperature", 0, 0},
             // supports additional functions to query all currently live OpenCL objects
-            "cl_altera_live_object_tracking",
+            {"cl_altera_live_object_tracking", 0, 0},
 #if use_cl_khr_icd
             // supports being used by the Khronos ICD loader
-            "cl_khr_icd",
+            {"cl_khr_icd", 0, 0},
 #endif
+            // extended version queries
+            {"cl_khr_extended_versioning", 1, 0},
+            // custom performance counter support
             VC4CL_PERFORMANCE_EXTENSION};
     } // namespace platform_config
 
@@ -71,7 +82,8 @@ namespace vc4cl
         static const std::string NAME = "VideoCore IV GPU";
 #endif
         static const std::string VENDOR = "Broadcom";
-        static constexpr cl_uint VENDOR_ID = 0x0A5C;
+        // This is the "PCI vendor ID", as reported by https://pcisig.com/membership/member-companies
+        static constexpr cl_uint VENDOR_ID = 0x14E4;
         static const std::string COMPILER_VERSION = std::string("OpenCL C ") + platform_config::OPENCL_VERSION + " ";
         // CACHE
         // http://maazl.de/project/vc4asm/doc/VideoCoreIV-addendum.html
@@ -92,35 +104,36 @@ namespace vc4cl
         // "cl_nv_pragma_unroll" simply specifies, that a "#pragma unroll <factor>" is available as hint to unroll
         // loops, which is natively supported by CLang "cl_arm_get_core_id" offers a method to get the core-ID (OpenCL
         // Compute Unit), the work-group runs on, this is always 0 here
-        static const std::vector<std::string> EXTENSIONS = {
+        static const std::vector<Extension> EXTENSIONS = {
             // 32-bit atomics, required to be supported by OpenCL 1.2
-            "cl_khr_global_int32_base_atomics",
+            {"cl_khr_global_int32_base_atomics", 0, 0},
             // 32-bit atomics, required to be supported by OpenCL 1.2
-            "cl_khr_global_int32_extended_atomics",
+            {"cl_khr_global_int32_extended_atomics", 0, 0},
             // 32-bit atomics, required to be supported by OpenCL 1.2
-            "cl_khr_local_int32_base_atomics",
+            {"cl_khr_local_int32_base_atomics", 0, 0},
             // 32-bit atomics, required to be supported by OpenCL 1.2
-            "cl_khr_local_int32_extended_atomics",
+            {"cl_khr_local_int32_extended_atomics", 0, 0},
             // byte-wise addressable storage, required to be supported by OpenCL 1.2
-            "cl_khr_byte_addressable_store",
+            {"cl_khr_byte_addressable_store", 0, 0},
 #ifdef IMAGE_SUPPORT
             // Supports writing of 3D images
-            "cl_khr_3d_image_writes",
+            {"cl_khr_3d_image_writes", 0, 0},
             // Support for packed YUV image-types
-            "cl_intel_packed_yuv",
+            {"cl_intel_packed_yuv", 1, 0},
 #endif
             // officially supports the "#pragma unroll <factor>
-            "cl_nv_pragma_unroll",
+            {"cl_nv_pragma_unroll", 0, 0},
             // adds function to OpenCL C to query current compute unit
-            "cl_arm_core_id",
+            {"cl_arm_core_id", 2, 0},
             // adds a pair of atomic_inc/atomic_dec functions for a 32-bit counter-type, alias to standard
             // atomic_inc/atomic_dec
-            "cl_ext_atomic_counters_32",
+            {"cl_ext_atomic_counters_32", 5, 0},
             // allows local/private memory to be initialized with zeroes before kernel execution
-            "cl_khr_initialize_memory",
+            {"cl_khr_initialize_memory", 0, 0},
             // adds a list of integer dot products
-            "cl_arm_integer_dot_product_int8", "cl_arm_integer_dot_product_accumulate_int8",
-            "cl_arm_integer_dot_product_accumulate_int16", "cl_arm_integer_dot_product_accumulate_saturate_int8"};
+            {"cl_arm_integer_dot_product_int8", 3, 0}, {"cl_arm_integer_dot_product_accumulate_int8", 3, 0},
+            {"cl_arm_integer_dot_product_accumulate_int16", 3, 0},
+            {"cl_arm_integer_dot_product_accumulate_saturate_int8", 3, 0}};
 
         /*
          * "The work-items in a given work-group execute concurrently on the processing elements of a single compute

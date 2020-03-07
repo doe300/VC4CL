@@ -316,7 +316,8 @@ cl_int Device::getInfo(
         // TODO are all platform extensions always also device extensions?? Or is my associated wrong?
         // OpenCL CTS expects e.g. "cl_khr_spir" and "cl_khr_icd" to be device extensions (see
         // https://github.com/KhronosGroup/OpenCL-CTS/blob/cl12_trunk/test_conformance/compiler/test_compiler_defines_for_extensions.cpp)
-        return returnString(joinStrings(device_config::EXTENSIONS) + " " + joinStrings(platform_config::EXTENSIONS),
+        return returnString(joinStrings(device_config::EXTENSIONS, [](const Extension& e) { return e.name; }) + " " +
+                joinStrings(platform_config::EXTENSIONS, [](const Extension& e) { return e.name; }),
             param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_PRINTF_BUFFER_SIZE:
         //"Maximum size of the internal buffer that holds the output of printf calls from a kernel.
@@ -388,6 +389,50 @@ cl_int Device::getInfo(
         // cl_arm_core_id - https://www.khronos.org/registry/OpenCL/extensions/arm/cl_arm_get_core_id.txt
         // "returns a bitfield where each bit set represents the presence of compute unit whose ID is the bit position."
         return returnValue<cl_ulong>(1, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_NUMERIC_VERSION_KHR:
+        // cl_khr_extended_versioning
+        // "Returns detailed (major, minor, patch) numeric version information. The major and minor version numbers
+        // returned must match those returned via `CL_DEVICE_VERSION`."
+        return returnValue<cl_version_khr>(
+            CL_MAKE_VERSION_KHR(1, 2, 0), param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_OPENCL_C_NUMERIC_VERSION_KHR:
+        // cl_khr_extended_versioning
+        // "Returns detailed (major, minor, patch) numeric version information. The major and minor version numbers
+        // returned must match those returned via `CL_DEVICE_OPENCL_C_VERSION`."
+        return returnValue<cl_version_khr>(
+            CL_MAKE_VERSION_KHR(1, 2, 0), param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_EXTENSIONS_WITH_VERSION_KHR:
+    {
+        // cl_khr_extended_versioning
+        // "Returns an array of description (name and version) structures. The same extension name must not be reported
+        // more than once. The list of extensions reported must match the list reported via `CL_DEVICE_EXTENSIONS`."
+        // TODO see CL_DEVICE_EXTENSIONS for the discussion whether all platform extensions also have to be listed for
+        // the device
+        auto allExtensions = device_config::EXTENSIONS;
+        allExtensions.insert(
+            allExtensions.end(), platform_config::EXTENSIONS.begin(), platform_config::EXTENSIONS.end());
+        return returnExtensions(allExtensions, param_value_size, param_value, param_value_size_ret);
+    }
+    case CL_DEVICE_ILS_WITH_VERSION_KHR:
+    {
+        // cl_khr_extended_versioning
+        // "Returns an array of descriptions (name and version) for all supported Intermediate Languages. Intermediate
+        // Languages with the same name may be reported more than once but each name and major/minor version combination
+        // may only be reported once. The list of intermediate languages reported must match the list reported via
+        // `CL_DEVICE_IL_VERSION`."
+        std::vector<cl_name_version_khr> data{
+            cl_name_version_khr{CL_MAKE_VERSION_KHR(SPIR_VERSION_MAJOR, SPIR_VERSION_MINOR, 0), "SPIR"},
+            cl_name_version_khr{CL_MAKE_VERSION_KHR(SPIRV_VERSION_MAJOR, SPIRV_VERSION_MINOR, 0), "SPIR-V"}};
+        return returnValue(
+            data.data(), sizeof(cl_name_version_khr), data.size(), param_value_size, param_value, param_value_size_ret);
+    }
+    case CL_DEVICE_BUILT_IN_KERNELS_WITH_VERSION_KHR:
+        // cl_khr_extended_versioning
+        // "Returns an array of descriptions for the built-in kernels supported by the device. Each built-in kernel may
+        // only be reported once. The list of reported kernels must match the list returned via
+        // `CL_DEVICE_BUILT_IN_KERNELS`."
+        return returnValue(
+            nullptr, sizeof(cl_name_version_khr), 0, param_value_size, param_value, param_value_size_ret);
     default:
         // invalid parameter-name
         return returnError(
