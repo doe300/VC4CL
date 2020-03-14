@@ -147,6 +147,77 @@ static ExecutionHandle executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigne
 #endif
 }
 
+static void dumpBuffer(std::ostream& os, const DeviceBuffer* buffer)
+{
+    if(!buffer)
+    {
+        uint32_t numWords = 1;
+        os.write(reinterpret_cast<char*>(&numWords), sizeof(unsigned));
+        uint32_t address = 0;
+        os.write(reinterpret_cast<char*>(&address), sizeof(unsigned));
+    }
+    else
+    {
+        // TODO for sub-buffers, the address and contents of the whole buffer is dumped
+        uint32_t numWords = 0x80000000 | static_cast<uint32_t>(buffer->size / sizeof(unsigned));
+        os.write(reinterpret_cast<char*>(&numWords), sizeof(unsigned));
+        os.write(reinterpret_cast<const char*>(buffer->hostPointer), buffer->size);
+    }
+}
+
+static void dumpMemoryState(std::ostream& os, const Kernel* kernel, const KernelExecution& args,
+    DeviceBuffer& mainBuffer, const uint32_t* qpu_code, uint32_t* firstUniformPointer, bool printHead)
+{
+    // add additional pointers for the dump-analyzer
+    // qpu base-pointer (global-data pointer) | qpu code-pointer | qpu UNIFORM-pointer | num uniforms
+    // | implicit uniform bit-field
+    if(printHead)
+    {
+        unsigned tmp = static_cast<unsigned>(mainBuffer.qpuPointer);
+        os.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+        tmp = AS_GPU_ADDRESS(qpu_code, &mainBuffer);
+        os.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+        tmp = AS_GPU_ADDRESS(firstUniformPointer, &mainBuffer);
+        os.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+        tmp = static_cast<uint32_t>(
+            kernel->info.uniformsUsed.countUniforms() + 1 /* re-run flag */ + kernel->info.getExplicitUniformCount());
+        os.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+        tmp = static_cast<unsigned>(kernel->info.uniformsUsed.value);
+        os.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+        // write buffer contents
+        os.write(reinterpret_cast<char*>(mainBuffer.hostPointer), static_cast<uint32_t>(mainBuffer.size));
+    }
+    // append additionally the kernel parameter for this execution
+    // append 0-word as border between sections for initial dump and all bits set for end-of-execution dump
+    unsigned tmp = printHead ? 0 : 0xFFFFFFFFu;
+    os.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+    // parameter have this format: pointer-bit| # words | <data (direct or buffer contents)>
+    for(unsigned i = 0; i < kernel->args.size(); ++i)
+    {
+        const auto& arg = kernel->args[i];
+        auto bufferIt = args.persistentBuffers.find(i);
+        auto tmpIt = args.tmpBuffers.find(i);
+        if(bufferIt != args.persistentBuffers.end())
+        {
+            dumpBuffer(os, bufferIt->second.first.get());
+        }
+        else if(tmpIt != args.tmpBuffers.end())
+        {
+            dumpBuffer(os, tmpIt->second.get());
+        }
+        else if(auto scalar = dynamic_cast<const ScalarArgument*>(arg.get()))
+        {
+            tmp = static_cast<uint32_t>(scalar->scalarValues.size());
+            os.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+            for(const auto elem : scalar->scalarValues)
+            {
+                tmp = elem.getUnsigned();
+                os.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
+            }
+        }
+    }
+}
+
 cl_int executeKernel(KernelExecution& args)
 {
     Kernel* kernel = args.kernel.get();
@@ -358,97 +429,15 @@ cl_int executeKernel(KernelExecution& args)
         *p++ = AS_GPU_ADDRESS(qpu_code, buffer.get());
     }
 
-#if 0
     const std::string dumpFile("/tmp/vc4cl-dump-" + kernel->info.name + "-" + std::to_string(rand()) + ".bin");
-    std::map<unsigned, const DeviceBuffer*> bufferArguments;
+    std::ofstream f;
+    if(isDebugLogEnabled())
     {
+        // Dump all memory content accessed by this kernel execution
         LOG(std::cout << "Dumping kernel buffer to " << dumpFile << std::endl)
-        std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
-        // add additional pointers for the dump-analyzer
-        // qpu base-pointer (global-data pointer) | qpu code-pointer | qpu UNIFORM-pointer | num uniforms per iteration
-        // | num iterations | implicit uniform bit-field
-        unsigned tmp = static_cast<unsigned>(buffer->qpuPointer);
-        f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-        tmp = AS_GPU_ADDRESS(qpu_code, buffer.get());
-        f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-        tmp = AS_GPU_ADDRESS(qpu_uniform, buffer.get());
-        f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-        uint16_t tmp16 = static_cast<uint16_t>(
-            kernel->info.uniformsUsed.countUniforms() + 1 /* re-run flag */ + kernel->info.getExplicitUniformCount());
-        f.write(reinterpret_cast<char*>(&tmp16), sizeof(uint16_t));
-        tmp16 = static_cast<uint16_t>(numIterations);
-        f.write(reinterpret_cast<char*>(&tmp16), sizeof(uint16_t));
-        tmp = static_cast<unsigned>(kernel->info.uniformsUsed.value);
-        f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-        // write buffer contents
-        f.write(reinterpret_cast<char*>(buffer->hostPointer), static_cast<uint32_t>(buffer_size));
-        // append additionally the kernel parameter for this execution
-        // append 0-word as border between sections
-        tmp = 0;
-        f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-        // parameter have this format: pointer-bit| # words | <data (direct or buffer contents)>
-        for(unsigned i = 0; i < kernel->args.size(); ++i)
-        {
-            const auto& info = kernel->info.params[i];
-            const auto& arg = kernel->args[i];
-            if(info.getPointer() && arg.scalarValues.at(0).getUnsigned() == global_data)
-            {
-                tmp = 0x80000000 | static_cast<uint32_t>(data_length / sizeof(unsigned));
-                f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                f.write(reinterpret_cast<const char*>(buffer->hostPointer), data_length);
-            }
-            else if(info.getPointer())
-            {
-                // search for local/struct buffers allocated by the kernel execution
-                const DeviceBuffer* buffer = nullptr;
-                if(tmpBuffers.find(i) != tmpBuffers.end())
-                    buffer = tmpBuffers[i].get();
-                else
-                {
-                    // fall back to global memory objects
-                    auto tmpBuffer = static_cast<const Buffer*>(
-                        ObjectTracker::findTrackedObject([&](const BaseObject& base) -> bool {
-                            if(base.typeName == _cl_mem::TYPE_NAME || strcmp(base.typeName, _cl_mem::TYPE_NAME) == 0)
-                            {
-                                const auto& buffer = static_cast<const vc4cl::Buffer&>(base);
-                                const auto& devBuffer = buffer.deviceBuffer;
-                                return devBuffer &&
-                                    static_cast<uint32_t>(devBuffer->qpuPointer) ==
-                                    arg.scalarValues.at(0).getUnsigned();
-                            }
-                            return false;
-                        }));
-                    if(tmpBuffer)
-                        buffer = tmpBuffer->deviceBuffer.get();
-                }
-                if(buffer == nullptr)
-                {
-                    tmp = 1;
-                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                    tmp = arg.scalarValues.front().getUnsigned();
-                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                }
-                else
-                {
-                    bufferArguments.emplace(i, buffer);
-                    tmp = 0x80000000 | static_cast<uint32_t>(buffer->size / sizeof(unsigned));
-                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                    f.write(reinterpret_cast<const char*>(buffer->hostPointer), buffer->size);
-                }
-            }
-            else
-            {
-                tmp = static_cast<uint32_t>(arg.scalarValues.size());
-                f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                for(const auto elem : arg.scalarValues)
-                {
-                    tmp = elem.getUnsigned();
-                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                }
-            }
-        }
+        f.open(dumpFile, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
+        dumpMemoryState(f, kernel, args, *buffer, qpu_code, uniformPointers[0][0], true);
     }
-#endif
 
         //
         // EXECUTION
@@ -504,55 +493,11 @@ cl_int executeKernel(KernelExecution& args)
 #endif
     }
 
-#if 0
+    if(isDebugLogEnabled())
     {
-        std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::app | std::ios_base::binary);
-        // append additionally the kernel parameter for this execution
-        // append all-bits-set-word as border between sections
-        unsigned tmp = 0xFFFFFFFF;
-        f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-        // parameter have this format: pointer-bit| # words | <data (direct or buffer contents)>
-        for(unsigned i = 0; i < kernel->args.size(); ++i)
-        {
-            const auto& info = kernel->info.params[i];
-            const auto& arg = kernel->args[i];
-            if(info.getPointer() && arg.scalarValues.at(0).getUnsigned() == global_data)
-            {
-                tmp = 0x80000000 | static_cast<uint32_t>(data_length / sizeof(unsigned));
-                f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                f.write(reinterpret_cast<const char*>(buffer->hostPointer), data_length);
-            }
-            else if(info.getPointer())
-            {
-                auto bufferIt = bufferArguments.find(i);
-                if(bufferIt == bufferArguments.end())
-                {
-                    tmp = 1;
-                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                    tmp = arg.scalarValues.front().getUnsigned();
-                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                }
-                else
-                {
-                    //FIXME SEGFAULTS if buffer already freed! -> error in client
-                    tmp = 0x80000000 | static_cast<uint32_t>(bufferIt->second->size / sizeof(unsigned));
-                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                    f.write(reinterpret_cast<const char*>(bufferIt->second->hostPointer), bufferIt->second->size);
-                }
-            }
-            else
-            {
-                tmp = static_cast<uint32_t>(arg.scalarValues.size());
-                f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                for(const auto elem : arg.scalarValues)
-                {
-                    tmp = elem.getUnsigned();
-                    f.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
-                }
-            }
-        }
+        // Append the buffers after the kernel execution
+        dumpMemoryState(f, kernel, args, *buffer, qpu_code, uniformPointers[0][0], false);
     }
-#endif
 
     //
     // CLEANUP
