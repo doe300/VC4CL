@@ -40,6 +40,7 @@ Program::Program(Context* context, const std::vector<char>& code, CreationType t
         sourceCode = code;
         break;
     case CreationType::INTERMEDIATE_LANGUAGE:
+    case CreationType::LIBRARY:
         intermediateCode.resize(code.size() / sizeof(uint8_t), '\0');
         if(!code.empty())
             memcpy(intermediateCode.data(), code.data(), code.size());
@@ -81,14 +82,18 @@ static cl_int precompile_program(Program* program, const std::string& options,
     const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders)
 {
     std::istringstream sourceCode;
-    sourceCode.str(std::string(program->sourceCode.data(), program->sourceCode.size()));
+    // to avoid the warning about "null character ignored"
+    auto length = program->sourceCode.size();
+    if(length > 0 && program->sourceCode.back() == '\0')
+        --length;
+    sourceCode.str(std::string(program->sourceCode.data(), length));
 
     vc4c::SourceType sourceType = vc4c::Precompiler::getSourceType(sourceCode);
     if(sourceType == vc4c::SourceType::UNKNOWN || sourceType == vc4c::SourceType::QPUASM_BIN ||
         sourceType == vc4c::SourceType::QPUASM_HEX)
     {
         program->buildInfo.log.append("Invalid source-code type:");
-        program->buildInfo.log.append(program->sourceCode.data(), program->sourceCode.size());
+        program->buildInfo.log.append(program->sourceCode.data(), length);
         return returnError(
             CL_COMPILE_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Invalid source-code type %d", sourceType));
     }
@@ -320,12 +325,16 @@ cl_int Program::link(const std::string& options, const std::vector<object_wrappe
         // if the program is created from machine code, this is never called
         status = link_programs(this, programs, creationType == CreationType::INTERMEDIATE_LANGUAGE);
 
-        if(status == CL_SUCCESS)
+        if(status == CL_SUCCESS && creationType != CreationType::LIBRARY)
+            /*
+             * If we create a library, don't compile it to machine code yet, leave it as intermediate code.
+             * This is okay, since a library on its own has to be linked again into another program anyway to be useful.
+             */
             status = compile_program(this, options);
     }
 
     // extract kernel-info
-    if(status == CL_SUCCESS)
+    if(status == CL_SUCCESS && creationType != CreationType::LIBRARY)
     {
         // if the program was already compiled, clear all results
         moduleInfo.kernelInfos.clear();
@@ -433,8 +442,12 @@ cl_int Program::getBuildInfo(
         // the intermediate code is set, but the final code is not -> not yet linked
         // XXX for programs loaded via SPIR input (cl_khr_spir), need to return CL_PROGRAM_BINARY_TYPE_INTERMEDIATE here
         if(binaryCode.empty())
-            return returnValue<cl_program_binary_type>(
-                CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT, param_value_size, param_value, param_value_size_ret);
+        {
+            cl_program_binary_type type = creationType == CreationType::LIBRARY ?
+                CL_PROGRAM_BINARY_TYPE_LIBRARY :
+                CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT;
+            return returnValue<cl_program_binary_type>(type, param_value_size, param_value, param_value_size_ret);
+        }
         return returnValue<cl_program_binary_type>(
             CL_PROGRAM_BINARY_TYPE_EXECUTABLE, param_value_size, param_value, param_value_size_ret);
     }
@@ -1199,12 +1212,13 @@ cl_program VC4CL_FUNC(clLinkProgram)(cl_context context, cl_uint num_devices, co
     }
 
     // create a new empty program the result of the linking is inserted into
-    Program* newProgram =
-        newOpenCLObject<Program>(toType<Context>(context), std::vector<char>{}, CreationType::INTERMEDIATE_LANGUAGE);
+    const std::string opts(options == nullptr ? "" : options);
+    auto type =
+        opts.find("-create-library") == std::string::npos ? CreationType::INTERMEDIATE_LANGUAGE : CreationType::LIBRARY;
+    Program* newProgram = newOpenCLObject<Program>(toType<Context>(context), std::vector<char>{}, type);
     CHECK_ALLOCATION_ERROR_CODE(newProgram, errcode_ret, cl_program)
 
     newProgram->buildInfo.status = CL_BUILD_IN_PROGRESS;
-    const std::string opts(options == nullptr ? "" : options);
     if(pfn_notify)
     {
         // "If pfn_notify is not NULL, clLinkProgram does not need to wait for the linker to complete and can return

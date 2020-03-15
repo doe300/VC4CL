@@ -49,6 +49,9 @@ namespace vc4cl
         SOURCE,
         // program was created from SPIR/SPIR-V IL
         INTERMEDIATE_LANGUAGE,
+        // fake a completely compiled library. This behaves mostly like INTERMEDIATE_LANGUAGE, but reports the library
+        // binary type
+        LIBRARY,
         // program was created from pre-compiled binary
         BINARY
     };
