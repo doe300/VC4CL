@@ -50,20 +50,20 @@ namespace vc4cl
         static const std::vector<Extension> EXTENSIONS = {
 #if HAS_COMPILER
             // supports SPIR-V code as input for programs (OpenCL 2.0 extension)
-            {"cl_khr_il_program", 0, 0},
+            {"cl_khr_il_program", 1, 0},
             // supports SPIR (subset of LLVM IR) code as input for programs
             // SPIR is supported by both supported LLVM version ("default" and SPIRV-LLVM)
-            {"cl_khr_spir", 0, 0},
+            {"cl_khr_spir", 1, 0},
 #endif
             // supports creating of command queue with properties for OpenCL 1.x
-            {"cl_khr_create_command_queue", 0, 0},
+            {"cl_khr_create_command_queue", 1, 0},
             // supports querying the device temperature with clGetDeviceInfo
             {"cl_altera_device_temperature", 0, 0},
             // supports additional functions to query all currently live OpenCL objects
             {"cl_altera_live_object_tracking", 0, 0},
 #if use_cl_khr_icd
             // supports being used by the Khronos ICD loader
-            {"cl_khr_icd", 0, 0},
+            {"cl_khr_icd", 1, 0},
 #endif
             // extended version queries
             {"cl_khr_extended_versioning", 1, 0},
@@ -106,18 +106,18 @@ namespace vc4cl
         // Compute Unit), the work-group runs on, this is always 0 here
         static const std::vector<Extension> EXTENSIONS = {
             // 32-bit atomics, required to be supported by OpenCL 1.2
-            {"cl_khr_global_int32_base_atomics", 0, 0},
+            {"cl_khr_global_int32_base_atomics", 1, 0},
             // 32-bit atomics, required to be supported by OpenCL 1.2
-            {"cl_khr_global_int32_extended_atomics", 0, 0},
+            {"cl_khr_global_int32_extended_atomics", 1, 0},
             // 32-bit atomics, required to be supported by OpenCL 1.2
-            {"cl_khr_local_int32_base_atomics", 0, 0},
+            {"cl_khr_local_int32_base_atomics", 1, 0},
             // 32-bit atomics, required to be supported by OpenCL 1.2
-            {"cl_khr_local_int32_extended_atomics", 0, 0},
+            {"cl_khr_local_int32_extended_atomics", 1, 0},
             // byte-wise addressable storage, required to be supported by OpenCL 1.2
-            {"cl_khr_byte_addressable_store", 0, 0},
+            {"cl_khr_byte_addressable_store", 1, 0},
 #ifdef IMAGE_SUPPORT
             // Supports writing of 3D images
-            {"cl_khr_3d_image_writes", 0, 0},
+            {"cl_khr_3d_image_writes", 1, 0},
             // Support for packed YUV image-types
             {"cl_intel_packed_yuv", 1, 0},
 #endif
@@ -129,7 +129,7 @@ namespace vc4cl
             // atomic_inc/atomic_dec
             {"cl_ext_atomic_counters_32", 5, 0},
             // allows local/private memory to be initialized with zeroes before kernel execution
-            {"cl_khr_initialize_memory", 0, 0},
+            {"cl_khr_initialize_memory", 1, 0},
             // adds a list of integer dot products
             {"cl_arm_integer_dot_product_int8", 3, 0}, {"cl_arm_integer_dot_product_accumulate_int8", 3, 0},
             {"cl_arm_integer_dot_product_accumulate_int16", 3, 0},
