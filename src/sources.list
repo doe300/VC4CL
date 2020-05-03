@@ -19,6 +19,7 @@ target_sources(VC4CL
     Program.cpp
     queue_handler.cpp
     TextureFormat.cpp
+    unsupported.cpp
     V3D.cpp
 )
 

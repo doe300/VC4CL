@@ -549,6 +549,11 @@ cl_int Sampler::getInfo(
         return returnValue<cl_addressing_mode>(addressing_mode, param_value_size, param_value, param_value_size_ret);
     case CL_SAMPLER_FILTER_MODE:
         return returnValue<cl_filter_mode>(filter_mode, param_value_size, param_value, param_value_size_ret);
+#ifdef CL_VERSION_3_0
+    case CL_SAMPLER_PROPERTIES:
+        // TODO return actual values
+        return returnValue<cl_sampler_properties>(0, param_value_size, param_value, param_value_size_ret);
+#endif
     }
 
     return returnError(
@@ -2033,3 +2038,110 @@ cl_int VC4CL_FUNC(clGetSamplerInfo)(cl_sampler sampler, cl_sampler_info param_na
     CHECK_SAMPLER(toType<Sampler>(sampler))
     return toType<Sampler>(sampler)->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }
+
+/*!
+ * OpenCL 3.0 specification:
+ *
+ *  An image object may also be created with additional properties using the function clCreateImageWithProperties(...):
+ *
+ *  \param context is a valid OpenCL context used to create the image object.
+ *
+ *  \param properties is an optional list of properties for the image object and their corresponding values. The list is
+ * terminated with the special property 0. If no properties are required, properties may be NULL. OpenCL 3.0 does not
+ * define any optional properties for images.
+ *
+ *  \param flags is a bit-field that is used to specify allocation and usage information about the image memory object
+ * being created and is described in the supported memory flag values table.
+ *
+ *  \param image_format is a pointer to a structure that describes format properties of the image to be allocated. A 1D
+ * image buffer or 2D image can be created from a buffer by specifying a buffer object in the image_desc→mem_object. A
+ * 2D image can be created from another 2D image object by specifying an image object in the image_desc→mem_object.
+ * Refer to the Image Format Descriptor section for a detailed description of the image format descriptor.
+ *
+ *  \param image_desc is a pointer to a structure that describes type and dimensions of the image to be allocated. Refer
+ * to the Image Descriptor section for a detailed description of the image descriptor.
+ *
+ *  \param host_ptr is a pointer to the image data that may already be allocated by the application. It is only used to
+ * initialize the image, and can be freed after the call to clCreateImage or clCreateImageWithProperties. Refer to the
+ * table below for a description of how large the buffer that host_ptr points to must be.
+ *
+ *  \param errcode_ret will return an appropriate error code. If errcode_ret is NULL, no error code is returned.
+ *
+ * The alignment requirements for data stored in image objects are described in Alignment of Application Data Types.
+ *
+ * For all image types except CL_​MEM_​OBJECT_​IMAGE1D_​BUFFER, if the value specified for flags is 0, the
+ * default is used which is CL_​MEM_​READ_​WRITE.
+ *
+ * For CL_​MEM_​OBJECT_​IMAGE1D_​BUFFER image type, or an image created from another memory object (image or
+ * buffer), if the CL_​MEM_​READ_​WRITE, CL_​MEM_​READ_​ONLY or CL_​MEM_​WRITE_​ONLY values are not
+ * specified in flags, they are inherited from the corresponding memory access qualifiers associated with mem_object.
+ * The CL_​MEM_​USE_​HOST_​PTR, CL_​MEM_​ALLOC_​HOST_​PTR and CL_​MEM_​COPY_​HOST_​PTR values
+ * cannot be specified in flags but are inherited from the corresponding memory access qualifiers associated with
+ * mem_object. If CL_​MEM_​COPY_​HOST_​PTR is specified in the memory access qualifier values associated with
+ * mem_object it does not imply any additional copies when the image is created from mem_object. If the
+ * CL_​MEM_​HOST_​WRITE_​ONLY, CL_​MEM_​HOST_​READ_​ONLY or CL_​MEM_​HOST_​NO_​ACCESS values are
+ * not specified in flags, they are inherited from the corresponding memory access qualifiers associated with
+ * mem_object.
+ *
+ * For a 3D image or 2D image array, the image data specified by host_ptr is stored as a linear sequence of adjacent 2D
+ * image slices or 2D images respectively. Each 2D image is a linear sequence of adjacent scanlines. Each scanline is a
+ * linear sequence of image elements.
+ *
+ * For a 2D image, the image data specified by host_ptr is stored as a linear sequence of adjacent scanlines. Each
+ * scanline is a linear sequence of image elements.
+ *
+ * For a 1D image array, the image data specified by host_ptr is stored as a linear sequence of adjacent 1D images. Each
+ * 1D image is stored as a single scanline which is a linear sequence of adjacent elements.
+ *
+ * For 1D image or 1D image buffer, the image data specified by host_ptr is stored as a single scanline which is a
+ * linear sequence of adjacent elements.
+ *
+ * Image elements are stored according to their image format as described in the Image Format Descriptor section.
+ *
+ *  \return clCreateImage and clCreateImageWithProperties returns a valid non-zero image object and errcode_ret is set
+ * to CL_​SUCCESS if the image object is created successfully. Otherwise, they return a NULL value with one of the
+ * following error values returned in errcode_ret:
+ * - CL_​INVALID_​CONTEXT if context is not a valid context.
+ * - CL_​INVALID_​PROPERTY if a property name in properties is not a supported property name, if the value specified
+ * for a supported property name is not valid, or if the same property name is specified more than once.
+ * - CL_​INVALID_​VALUE if values specified in flags are not valid.
+ * - CL_​INVALID_​IMAGE_​FORMAT_​DESCRIPTOR if values specified in image_format are not valid or if image_format
+ * is NULL.
+ * - CL_​INVALID_​IMAGE_​FORMAT_​DESCRIPTOR if a 2D image is created from a buffer and the row pitch and base
+ * address alignment does not follow the rules described for creating a 2D image from a buffer.
+ * - CL_​INVALID_​IMAGE_​FORMAT_​DESCRIPTOR if a 2D image is created from a 2D image object and the rules
+ * described above are not followed.
+ * - CL_​INVALID_​IMAGE_​DESCRIPTOR if values specified in image_desc are not valid or if image_desc is NULL.
+ * - CL_​INVALID_​IMAGE_​SIZE if image dimensions specified in image_desc exceed the maximum image dimensions
+ * described in the Device Queries table for all devices in context.
+ * - CL_​INVALID_​HOST_​PTR if host_ptr is NULL and CL_​MEM_​USE_​HOST_​PTR or
+ * CL_​MEM_​COPY_​HOST_​PTR are set in flags or if host_ptr is not NULL but CL_​MEM_​COPY_​HOST_​PTR or
+ * CL_​MEM_​USE_​HOST_​PTR are not set in flags.
+ * - CL_​INVALID_​VALUE if an image is being created from another memory object (buffer or image) under one of the
+ * following circumstances: 1) mem_object was created with CL_​MEM_​WRITE_​ONLY and flags specifies
+ * CL_​MEM_​READ_​WRITE or CL_​MEM_​READ_​ONLY, 2) mem_object was created with CL_​MEM_​READ_​ONLY and
+ * flags specifies CL_​MEM_​READ_​WRITE or CL_​MEM_​WRITE_​ONLY, 3) flags specifies
+ * CL_​MEM_​USE_​HOST_​PTR or CL_​MEM_​ALLOC_​HOST_​PTR or CL_​MEM_​COPY_​HOST_​PTR.
+ * - CL_​INVALID_​VALUE if an image is being created from another memory object (buffer or image) and mem_object was
+ * created with CL_​MEM_​HOST_​WRITE_​ONLY and flags specifies CL_​MEM_​HOST_​READ_​ONLY, or if
+ * mem_object was created with CL_​MEM_​HOST_​READ_​ONLY and flags specifies CL_​MEM_​HOST_​WRITE_​ONLY,
+ * or if mem_object was created with CL_​MEM_​HOST_​NO_​ACCESS and_flags_ specifies
+ * CL_​MEM_​HOST_​READ_​ONLY or CL_​MEM_​HOST_​WRITE_​ONLY.
+ * - CL_​IMAGE_​FORMAT_​NOT_​SUPPORTED if the image_format is not supported.
+ * - CL_​MEM_​OBJECT_​ALLOCATION_​FAILURE if there is a failure to allocate memory for image object.
+ * - CL_​INVALID_​OPERATION if there are no devices in context that support images (i.e.
+ * CL_​DEVICE_​IMAGE_​SUPPORT specified in the Device Queries table is CL_​FALSE).
+ * - CL_​OUT_​OF_​RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on
+ * the device.
+ * - CL_​OUT_​OF_​HOST_​MEMORY if there is a failure to allocate resources required by the OpenCL implementation
+ * on the host.
+ */
+#ifdef CL_VERSION_3_0
+cl_mem VC4CL_FUNC(clCreateImageWithProperties)(cl_context context, const cl_mem_properties* properties,
+    cl_mem_flags flags, const cl_image_format* image_format, const cl_image_desc* image_desc, void* host_ptr,
+    cl_int* errcode_ret)
+{
+    // "OpenCL 3.0 does not define any optional properties for images."
+    return VC4CL_FUNC(clCreateImage)(context, flags, image_format, image_desc, host_ptr, errcode_ret);
+}
+#endif

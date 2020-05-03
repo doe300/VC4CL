@@ -99,6 +99,13 @@ Kernel::Kernel(Program* program, const KernelInfo& info) : program(program), inf
     args.resize(info.params.size());
 }
 
+Kernel::Kernel(const Kernel& other) : program(other.program), info(other.info), argsSetMask(other.argsSetMask)
+{
+    args.reserve(other.args.size());
+    for(const auto& arg : other.args)
+        args.emplace_back(arg->clone());
+}
+
 Kernel::~Kernel() noexcept = default;
 
 cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
@@ -1385,4 +1392,53 @@ cl_int VC4CL_FUNC(clEnqueueNativeKernel)(cl_command_queue command_queue, void(CL
 
     // no native kernels are supported
     return CL_INVALID_OPERATION;
+}
+
+/*!
+ * OpenCL 2.1 specification:
+ *
+ *  To clone a kernel object, call the function clCloneKernel(...).
+ *
+ *  \param source_kernel is a valid cl_kernel object that will be copied. source_kernel will not be modified in any way
+ * by this function.
+ *
+ *  \param errcode_ret will be assigned an appropriate error code. If errcode_ret is NULL, no error code is returned.
+ *
+ * Cloning is used to make a shallow copy of the kernel object, its arguments and any information passed to the kernel
+ * object using clSetKernelExecInfo. If the kernel object was ready to be enqueued before copying it, the clone of the
+ * kernel object is ready to enqueue.
+ *
+ * The returned kernel object is an exact copy of source_kernel, with one caveat: the reference count on the returned
+ * kernel object is set as if it had been returned by clCreateKernel. The reference count of source_kernel will not be
+ * changed.
+ *
+ * The resulting kernel will be in the same state as if clCreateKernel is called to create the resultant kernel with the
+ * same arguments as those used to create source_kernel, the latest call to clSetKernelArg or clSetKernelArgSVMPointer
+ * for each argument index applied to kernel and the last call to clSetKernelExecInfo for each value of the param name
+ * parameter are applied to the new kernel object.
+ *
+ * All arguments of the new kernel object must be intact and it may be correctly used in the same situations as kernel
+ * except those that assume a pre-existing reference count. Setting arguments on the new kernel object will not affect
+ * source_kernel except insofar as the argument points to a shared underlying entity and in that situation behavior is
+ * as if two kernel objects had been created and the same argument applied to each. Only the data stored in the kernel
+ * object is copied; data referenced by the kernels arguments are not copied. For example, if a buffer or pointer
+ * argument is set on a kernel object, the pointer is copied but the underlying memory allocation is not.
+ *
+ * \return clCloneKernel returns a valid non-zero kernel object and errcode_ret is set to CL_​SUCCESS if the kernel is
+ * successfully copied. Otherwise it returns a NULL value with one of the following error values returned in
+ * errcode_ret:
+ * - CL_​INVALID_​KERNEL if kernel is not a valid kernel object.
+ * - CL_​OUT_​OF_​RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on
+ * the device.
+ * - CL_​OUT_​OF_​HOST_​MEMORY if there is a failure to allocate resources required by the OpenCL implementation
+ * on the host.
+ */
+cl_kernel VC4CL_FUNC(clCloneKernel)(cl_kernel source_kernel, cl_int* errcode_ret)
+{
+    VC4CL_PRINT_API_CALL("cl_int", clCloneKernel, "cl_kernel", source_kernel, "cl_int*", errcode_ret);
+    CHECK_KERNEL_ERROR_CODE(toType<Kernel>(source_kernel), errcode_ret, cl_kernel)
+
+    Kernel* kernel = newOpenCLObject<Kernel>(*toType<Kernel>(source_kernel));
+    CHECK_ALLOCATION_ERROR_CODE(kernel, errcode_ret, cl_kernel)
+    RETURN_OBJECT(kernel->toBase(), errcode_ret)
 }

@@ -67,6 +67,11 @@ cl_int Platform::getInfo(
         // "Returns an array of description (name and version) structures. The same extension name must not be reported
         // more than once. The list of extensions reported must match the list reported via `CL_PLATFORM_EXTENSIONS`."
         return returnExtensions(platform_config::EXTENSIONS, param_value_size, param_value, param_value_size_ret);
+#ifdef CL_VERSION_2_1 /* these are not really supported, but required to be present for OpenCL 3.0 support */
+    case CL_PLATFORM_HOST_TIMER_RESOLUTION:
+        //"This value must be 0 for devices that do not support Device and Host Timer Synchronization."
+        return returnValue<cl_ulong>(0, param_value_size, param_value, param_value_size_ret);
+#endif
     default:
         // invalid parameter-type
         return returnError(

@@ -30,6 +30,7 @@ namespace vc4cl
     {
     public:
         Kernel(Program* program, const KernelInfo& info);
+        Kernel(const Kernel& other);
         ~Kernel() noexcept override;
 
         CHECK_RETURN cl_int setArg(cl_uint arg_index, size_t arg_size, const void* arg_value);

@@ -197,6 +197,13 @@ namespace vc4cl
         std::vector<KernelInfo> kernelInfos;
     };
 
+    using ProgramReleaseCallback = void(CL_CALLBACK*)(cl_program program, void* user_data);
+    struct SPIRVSpecializationConstant
+    {
+        uint32_t constantId;
+        std::vector<uint8_t> data;
+    };
+
     class Program final : public Object<_cl_program, CL_INVALID_PROGRAM>, public HasContext
     {
     public:
@@ -241,9 +248,16 @@ namespace vc4cl
 
         BuildStatus getBuildStatus() const __attribute__((pure));
 
+        CHECK_RETURN cl_int setReleaseCallback(ProgramReleaseCallback callback, void* userData);
+
+        CHECK_RETURN cl_int setSpecializationConstant(cl_uint id, std::size_t numBytes, const void* data);
+
     private:
         cl_int extractModuleInfo();
         cl_int extractKernelInfo(cl_ulong** ptr);
+
+        std::vector<std::pair<ProgramReleaseCallback, void*>> callbacks;
+        std::vector<SPIRVSpecializationConstant> specializations;
     };
 
 } /* namespace vc4cl */

@@ -697,6 +697,11 @@ cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* pa
         if(parent)
             return returnValue<size_t>(subBufferOffset, param_value_size, param_value, param_value_size_ret);
         return returnValue<size_t>(0, param_value_size, param_value, param_value_size_ret);
+#ifdef CL_VERSION_3_0
+    case CL_MEM_PROPERTIES:
+        // "OpenCL 3.0 does not define any optional properties for buffers."
+        return returnValue<cl_mem_properties>(0, param_value_size, param_value, param_value_size_ret);
+#endif
     }
 
     return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_mem_info value %u", param_name));
@@ -2180,3 +2185,63 @@ cl_int VC4CL_FUNC(clGetMemObjectInfo)(
     CHECK_BUFFER(toType<Buffer>(memobj))
     return toType<Buffer>(memobj)->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }
+
+/*!
+ * OpenCL 3.0 specification:
+ *
+ *  A buffer object may also be created with additional properties using the function clCreateBufferWithProperties(...):
+ *
+ *  \param context is a valid OpenCL context used to create the buffer object.
+ *
+ *  \param properties is an optional list of properties for the buffer object and their corresponding values. The list
+ * is terminated with the special property 0. If no properties are required, properties may be NULL. OpenCL 3.0 does not
+ * define any optional properties for buffers.
+ *
+ *  \param flags is a bit-field that is used to specify allocation and usage information about the image memory object
+ * being created and is described in the supported memory flag values table.
+ *
+ *  \param size is the size in bytes of the buffer memory object to be allocated.
+ *
+ *  \param host_ptr is a pointer to the buffer data that may already be allocated by the application. The size of the
+ * buffer that host_ptr points to must be greater than or equal to size bytes.
+ *
+ *  \param errcode_ret may return an appropriate error code. If errcode_ret is NULL, no error code is returned.
+ *
+ * The alignment requirements for data stored in buffer objects are described in Alignment of Application Data Types.
+ *
+ * If clCreateBuffer or clCreateBufferWithProperties is called with CL_​MEM_​USE_​HOST_​PTR set in its flags
+ * argument, the contents of the memory pointed to by host_ptr at the time of the clCreateBuffer call define the initial
+ * contents of the buffer object.
+ *
+ * If clCreateBuffer or clCreateBufferWithProperties is called with a pointer returned by clSVMAlloc as its host_ptr
+ * argument, and CL_​MEM_​USE_​HOST_​PTR is set in its flags argument, clCreateBuffer or
+ * clCreateBufferWithProperties will succeed and return a valid non-zero buffer object as long as the size argument is
+ * no larger than the size argument passed in the original clSVMAlloc call. The new buffer object returned has the
+ * shared memory as the underlying storage. Locations in the buffers underlying shared memory can be operated on using
+ * atomic operations to the devices level of support as defined in the memory model.
+ *
+ *  \return clCreateBuffer and clCreateBufferWithProperties returns a valid non-zero buffer object and errcode_ret is
+ * set to CL_​SUCCESS if the buffer object is created successfully. Otherwise, they return a NULL value with one of
+ * the following error values returned in errcode_ret:
+ * - CL_​INVALID_​CONTEXT if context is not a valid context.
+ * - CL_​INVALID_​PROPERTY if a property name in properties is not a supported property name, if the value specified
+ * for a supported property name is not valid, or if the same property name is specified more than once.
+ * - CL_​INVALID_​VALUE if values specified in flags are not valid as defined in the Memory Flags table.
+ * - CL_​INVALID_​BUFFER_​SIZE if size is 0.
+ * - CL_​INVALID_​HOST_​PTR if host_ptr is NULL and CL_​MEM_​USE_​HOST_​PTR or
+ * CL_​MEM_​COPY_​HOST_​PTR are set in flags or if host_ptr is not NULL but CL_​MEM_​COPY_​HOST_​PTR or
+ * CL_​MEM_​USE_​HOST_​PTR are not set in flags.
+ * - CL_​MEM_​OBJECT_​ALLOCATION_​FAILURE if there is a failure to allocate memory for buffer object.
+ * - CL_​OUT_​OF_​RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on
+ * the device.
+ * - CL_​OUT_​OF_​HOST_​MEMORY if there is a failure to allocate resources required by the OpenCL implementation
+ * on the host.
+ */
+#ifdef CL_VERSION_3_0
+cl_mem VC4CL_FUNC(clCreateBufferWithProperties)(cl_context context, const cl_mem_properties* properties,
+    cl_mem_flags flags, size_t size, void* host_ptr, cl_int* errcode_ret)
+{
+    // "OpenCL 3.0 does not define any optional properties for buffers."
+    return VC4CL_FUNC(clCreateBuffer)(context, flags, size, host_ptr, errcode_ret);
+}
+#endif

@@ -96,7 +96,10 @@ namespace detail
 
     DEFINE_MEMBER_TYPE(clCreateCommandQueueWithProperties, clUnknown123)
     DEFINE_MEMBER_TYPE(clCreateSamplerWithProperties, clUnknown133)
+    DEFINE_MEMBER_TYPE(clCloneKernel, clUnknown137)
     DEFINE_MEMBER_TYPE(clCreateProgramWithIL, clUnknown138)
+    DEFINE_MEMBER_TYPE(clSetProgramReleaseCallback, clUnknown144)
+    DEFINE_MEMBER_TYPE(clSetProgramSpecializationConstant, clUnknown145)
 
 } // namespace detail
 
@@ -256,7 +259,20 @@ _cl_icd_dispatch vc4cl_dispatch = {
     /* OpenCL 2.0 */
     reinterpret_cast<MEMBER_TYPE(clCreateCommandQueueWithProperties, clUnknown123)>(
         &VC4CL_clCreateCommandQueueWithPropertiesKHR), /* clCreateCommandQueueWithProperties */
-
+#ifdef CL_VERSION_2_0
+    &VC4CL_clCreatePipe,                  /* clCreatePipe */
+    &VC4CL_clGetPipeInfo,                 /* clGetPipeInfo */
+    &VC4CL_clSVMAlloc,                    /* clSVMAlloc */
+    &VC4CL_clSVMFree,                     /* clSVMFree */
+    &VC4CL_clEnqueueSVMFree,              /* clEnqueueSVMFree */
+    &VC4CL_clEnqueueSVMMemcpy,            /* clEnqueueSVMMemcpy */
+    &VC4CL_clEnqueueSVMMemFill,           /* clEnqueueSVMMemFill */
+    &VC4CL_clEnqueueSVMMap,               /* clEnqueueSVMMap */
+    &VC4CL_clEnqueueSVMUnmap,             /* clEnqueueSVMUnmap */
+    &VC4CL_clCreateSamplerWithProperties, /* clCreateSamplerWithProperties */
+    &VC4CL_clSetKernelArgSVMPointer,      /* clSetKernelArgSVMPointer */
+    &VC4CL_clSetKernelExecInfo,           /* clSetKernelExecInfo */
+#else
     nullptr, /* clCreatePipe */
     nullptr, /* clGetPipeInfo */
     nullptr, /* clSVMAlloc */
@@ -266,30 +282,51 @@ _cl_icd_dispatch vc4cl_dispatch = {
     nullptr, /* clEnqueueSVMMemFill */
     nullptr, /* clEnqueueSVMMap */
     nullptr, /* clEnqueueSVMUnmap */
-#ifdef CL_VERSION_2_0
-    &VC4CL_clCreateSamplerWithProperties, /* clCreateSamplerWithProperties */
-#else
     nullptr, /* clCreateSamplerWithProperties */
-#endif
     nullptr, /* clSetKernelArgSVMPointer */
     nullptr, /* clSetKernelExecInfo */
-    /* cl_khr_sub_groups */
+#endif
+
+/* cl_khr_sub_groups */
+#ifdef CL_VERSION_2_1
+    &VC4CL_clGetKernelSubGroupInfo, /* clGetKernelSubGroupInfoKHR */
+#else
     nullptr, /* clGetKernelSubGroupInfoKHR */
+#endif
 
     /* OpenCL 2.1 */
-    nullptr, /* clCloneKernel */
+    reinterpret_cast<MEMBER_TYPE(clCloneKernel, clUnknown137)>(&VC4CL_clCloneKernel), /* clCloneKernel */
     reinterpret_cast<MEMBER_TYPE(clCreateProgramWithIL, clUnknown138)>(
         &VC4CL_clCreateProgramWithILKHR), /* clCreateProgramWithIL */
 
+#ifdef CL_VERSION_2_1
+    &VC4CL_clEnqueueSVMMigrateMem,         /* clEnqueueSVMMigrateMem */
+    &VC4CL_clGetDeviceAndHostTimer,        /* clGetDeviceAndHostTimer */
+    &VC4CL_clGetHostTimer,                 /* clGetHostTimer */
+    &VC4CL_clGetKernelSubGroupInfo,        /* clGetKernelSubGroupInfo */
+    &VC4CL_clSetDefaultDeviceCommandQueue, /* clSetDefaultDeviceCommandQueue */
+#else
     nullptr, /* clEnqueueSVMMigrateMem */
     nullptr, /* clGetDeviceAndHostTimer */
     nullptr, /* clGetHostTimer */
     nullptr, /* clGetKernelSubGroupInfo */
     nullptr, /* clSetDefaultDeviceCommandQueue */
+#endif
 
     /* OpenCL 2.2 */
-    nullptr, /* clSetProgramReleaseCallback */
-    nullptr  /* clSetProgramSpecializationConstant */
+    reinterpret_cast<MEMBER_TYPE(clSetProgramReleaseCallback, clUnknown144)>(
+        &VC4CL_clSetProgramReleaseCallback), /* clSetProgramReleaseCallback */
+    reinterpret_cast<MEMBER_TYPE(clSetProgramSpecializationConstant, clUnknown145)>(
+        &VC4CL_clSetProgramSpecializationConstant), /* clSetProgramSpecializationConstant */
+
+/* OpenCL 3.0 */
+#ifdef CL_VERSION_3_0
+    &VC4CL_clCreateBufferWithProperties, /* clCreateBufferWithProperties */
+    &VC4CL_clCreateImageWithProperties   /* clCreateImageWithProperties */
+#else
+    nullptr, /* clCreateBufferWithProperties */
+    nullptr  /* clCreateImageWithProperties */
+#endif
 };
 #pragma GCC diagnostic pop
 #endif

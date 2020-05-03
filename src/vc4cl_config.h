@@ -8,7 +8,7 @@
 #define VC4CL_CONFIG_H
 
 // For unified OpenCL specification, we need to define the target version
-#define CL_TARGET_OPENCL_VERSION 120
+#define CL_TARGET_OPENCL_VERSION 300
 
 #include <CL/opencl.h>
 
@@ -149,6 +149,22 @@ namespace vc4cl
         static constexpr cl_uint BUFFER_ALIGNMENT = sizeof(cl_int16);
         // according to tests, values are always rounded to zero (i.e. for fmul, fadd and fsub operations)
         static constexpr cl_uint FLOATING_POINT_CONFIG = CL_FP_ROUND_TO_ZERO;
+
+        /*
+         * "Because OpenCL 3.0 is backwards compatible with OpenCL C 1.2, and OpenCL C 1.2 is backwards compatible with
+         * OpenCL C 1.1 and OpenCL C 1.0, support for at least OpenCL C 3.0, OpenCL C 1.2, OpenCL C 1.1, and OpenCL
+         * C 1.0 is required for an OpenCL 3.0 device."
+         *
+         * "Support for OpenCL C 1.2, OpenCL C 1.1, and OpenCL C 1.0 is required for an OpenCL 1.2 device."
+         */
+        static const std::vector<Extension> OPENCL_C_VERSIONS = {
+            {"OpenCL C", 1, 0}, {"OpenCL C", 1, 1}, {"OpenCL C", 1, 2}};
+
+        /*
+         * "an array of optional OpenCL C features supported by the compiler for the device alongside the OpenCL C
+         * version for which they are supported."
+         */
+        static const std::vector<Extension> OPENCL_C_FEATURES = {};
     } // namespace device_config
 
     /*

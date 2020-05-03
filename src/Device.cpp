@@ -435,6 +435,61 @@ cl_int Device::getInfo(
         // `CL_DEVICE_BUILT_IN_KERNELS`."
         return returnValue(
             nullptr, sizeof(cl_name_version_khr), 0, param_value_size, param_value, param_value_size_ret);
+#ifdef CL_VERSION_2_0 /* these are not really supported, but required to be present for OpenCL 3.0 support */
+    case CL_DEVICE_SVM_CAPABILITIES:
+        //"For other device versions there is no mandated minimum capability."
+        return returnValue<cl_device_svm_capabilities>(0, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_PREFERRED_PLATFORM_ATOMIC_ALIGNMENT:
+    case CL_DEVICE_PREFERRED_GLOBAL_ATOMIC_ALIGNMENT:
+    case CL_DEVICE_PREFERRED_LOCAL_ATOMIC_ALIGNMENT:
+        //"This query can return 0 which indicates that the preferred alignment is aligned to the natural size of the
+        // type."
+        return returnValue<cl_uint>(0, param_value_size, param_value, param_value_size_ret);
+#endif
+#ifdef CL_VERSION_2_1 /* these are not really supported, but required to be present for OpenCL 3.0 support */
+    case CL_DEVICE_MAX_NUM_SUB_GROUPS:
+        //"The minimum value is 1 if the device supports Subgroups, and must be 0 for devices that do not support
+        // Subgroups."
+        return returnValue<cl_uint>(0, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_SUB_GROUP_INDEPENDENT_FORWARD_PROGRESS:
+        //"This query must return CL_TRUE for devices that support the cl_khr_subgroups extension, and must return
+        // CL_FALSE for devices that do not support Subgroups."
+        return returnValue<cl_bool>(CL_FALSE, param_value_size, param_value, param_value_size_ret);
+#endif
+#ifdef CL_VERSION_3_0
+    case CL_DEVICE_ATOMIC_MEMORY_CAPABILITIES:
+        //" The mandated minimum capability is: CL_DEVICE_ATOMIC_ORDER_RELAXED |
+        // CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP"
+        return returnValue<cl_device_atomic_capabilities>(
+            CL_DEVICE_ATOMIC_ORDER_RELAXED | CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP | CL_DEVICE_ATOMIC_SCOPE_DEVICE,
+            param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_ATOMIC_FENCE_CAPABILITIES:
+        //" The mandated minimum capability is: CL_DEVICE_ATOMIC_ORDER_RELAXED |
+        // CL_DEVICE_ATOMIC_ORDER_ACQ_REL | CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP"
+        return returnValue<cl_device_atomic_capabilities>(CL_DEVICE_ATOMIC_ORDER_RELAXED |
+                CL_DEVICE_ATOMIC_ORDER_ACQ_REL | CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP | CL_DEVICE_ATOMIC_SCOPE_DEVICE,
+            param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_NON_UNIFORM_WORK_GROUP_SUPPORT:
+    case CL_DEVICE_WORK_GROUP_COLLECTIVE_FUNCTIONS_SUPPORT:
+    case CL_DEVICE_GENERIC_ADDRESS_SPACE_SUPPORT:
+        // TODO can't we actually support generic address spaces? Assuming we can configure clang to do so?!
+    case CL_DEVICE_DEVICE_ENQUEUE_SUPPORT:
+    case CL_DEVICE_PIPE_SUPPORT:
+        return returnValue<cl_bool>(CL_FALSE, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
+        //"Returns the preferred multiple of work-group size for the given device. This is a performance hint intended
+        // as a guide when specifying the local work size argument to clEnqueueNDRangeKernel."
+        return returnValue<size_t>(1, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_OPENCL_C_ALL_VERSIONS:
+        // "Returns an array of name, version descriptions listing all the versions of OpenCL C supported by the
+        // compiler for the device. In each returned description structure, the name field is required to be "OpenCL
+        // C"."
+        return returnExtensions(device_config::OPENCL_C_VERSIONS, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_OPENCL_C_FEATURES:
+        // "Returns an array of optional OpenCL C features supported by the compiler for the device alongside the OpenCL
+        // C version for which they are supported."
+        return returnExtensions(device_config::OPENCL_C_FEATURES, param_value_size, param_value, param_value_size_ret);
+#endif
     default:
         // invalid parameter-name
         return returnError(
