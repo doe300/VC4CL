@@ -74,8 +74,10 @@ else()
 	set_property(DIRECTORY ${VC4C_SOURCE_DIR} PROPERTY EP_UPDATE_DISCONNECTED 0)
 endif()
 
-# Check for OpenCL headers
-find_package(OpenCL REQUIRED)
+# Check for OpenCL headers (if not specified manually)
+if(NOT OpenCL_INCLUDE_DIRS)
+	find_package(OpenCL REQUIRED)
+endif()
 message(STATUS "Found headers for OpenCL up to version ${OpenCL_VERSION_STRING} located in ${OpenCL_INCLUDE_DIRS}")
 
 # Check for and include the compiler binaries and header

@@ -20,7 +20,10 @@ extern "C"
 #endif
 
 #if use_cl_khr_icd
-#if __has_include(<ocl_icd.h>)
+#if __has_include("CL/cl_icd.h")
+// when using custom OpenCL headers
+#include "CL/cl_icd.h"
+#elif __has_include(<ocl_icd.h>)
 #include <ocl_icd.h>
 #else
 #error "OpenCL ICD header not found, try installing 'ocl-icd-dev'"

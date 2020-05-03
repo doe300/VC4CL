@@ -1,6 +1,16 @@
 add_library( VC4CL SHARED "")
 target_compile_definitions(VC4CL PUBLIC -DVC4CL_LIBRARY_VERSION="${PROJECT_VERSION}")
-target_include_directories(VC4CL SYSTEM PUBLIC ${OpenCL_INCLUDE_DIRS})
+if(OpenCL_FOUND)
+	# OpenCL was included via the default find_package() and therefore is already installed
+	target_include_directories(VC4CL SYSTEM PUBLIC ${OpenCL_INCLUDE_DIRS})
+else()
+	# support for custom OpenCL headers for build and system headers after installation
+	get_filename_component(OPENCL_HEADERS ${OpenCL_INCLUDE_DIRS} ABSOLUTE ${CMAKE_BINARY_DIR})
+	target_include_directories(VC4CL PUBLIC
+	    $<BUILD_INTERFACE:${OPENCL_HEADERS}>
+	    $<INSTALL_INTERFACE:include>  # <prefix>/include/mylib
+	)
+endif()
 
 # append usage of C++ to compiler flags, also optimize for speed and enable all warnings
 target_compile_options(VC4CL PRIVATE ${VC4CL_ENABLED_WARNINGS})

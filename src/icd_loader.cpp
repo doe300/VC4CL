@@ -15,6 +15,8 @@
 #include "common.h"
 #include "extensions.h"
 
+#include <type_traits>
+
 /*
  * Specification for the ICD loader:
  * https://www.khronos.org/registry/OpenCL/extensions/khr/cl_khr_icd.txt
@@ -45,6 +47,61 @@ cl_int VC4CL_FUNC(clIcdGetPlatformIDsKHR)(cl_uint num_entries, cl_platform_id* p
 // Ignore the missing initializer error here, since depending on the system, there might be different amount of entries
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
+/*
+ * The move of the ICD dispatch table header from the Khronos ICD implementation repository to the OpenCL-Headers
+ * repository also changed the contents of the ICD dispatch type.
+ *
+ * In the old version (e.g. as installed on the Raspberry Pi), a function which was introduced in a later OpenCL version
+ * is defined as e.g.:
+ *
+ * #ifdef CL_VERSION_2_0
+ * CL_API_ENTRY cl_command_queue (CL_API_CALL*clCreateCommandQueueWithProperties)(
+ * cl_context context, cl_device_id device , const cl_queue_properties* properties, cl_int* errcode_ret)
+ * CL_API_SUFFIX__VERSION_2_0;
+ * #else
+ * CL_API_ENTRY cl_int (CL_API_CALL* clUnknown123)(void);
+ * #endif
+ *
+ * This defines (depending on the OpenCL version set) the members clCreateCommandQueueWithProperties or clUnknown123.
+ *
+ * In the new code (e.g. as used by the CI when compiling against the latest OpenCL-Headers the same function is defined
+ * as e.g.:
+ *
+ * // Somewhere up top
+ * #ifdef CL_VERSION_2_0
+ * typedef CL_API_ENTRY cl_command_queue(CL_API_CALL *cl_api_clCreateCommandQueueWithProperties)(cl_context context,
+ * cl_device_id device, const cl_queue_properties* properties, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_0;
+ * #else
+ * typedef void *cl_api_clCreateCommandQueueWithProperties;
+ * #endif
+ *
+ * // In the _cl_icd_dispatch structure:
+ * cl_api_clCreateCommandQueueWithProperties clCreateCommandQueueWithProperties;
+ *
+ * Thus, the member is always called clCreateCommandQueueWithProperties.
+ *
+ * Therefore, we need to determine which member is actually defined and cast our function to the proper member type.
+ */
+
+namespace detail
+{
+#define DEFINE_MEMBER_TYPE(Preferred, Fallback)                                                                        \
+    template <class T>                                                                                                 \
+    static auto type_##Preferred##Fallback(int)->decltype(std::declval<T>().Preferred);                                \
+    template <class T>                                                                                                 \
+    static auto type_##Preferred##Fallback(long)->decltype(std::declval<T>().Fallback);                                \
+    template <class T>                                                                                                 \
+    using member_type##Preferred##Fallback = decltype(detail::type_##Preferred##Fallback<T>(0));
+
+    DEFINE_MEMBER_TYPE(clCreateCommandQueueWithProperties, clUnknown123)
+    DEFINE_MEMBER_TYPE(clCreateSamplerWithProperties, clUnknown133)
+    DEFINE_MEMBER_TYPE(clCreateProgramWithIL, clUnknown138)
+
+} // namespace detail
+
+#define MEMBER_TYPE(Preferred, Fallback) detail::member_type##Preferred##Fallback<_cl_icd_dispatch>
+
 _cl_icd_dispatch vc4cl_dispatch = {
     // see https://github.com/KhronosGroup/OpenCL-ICD-Loader/blob/master/icd_dispatch.h
     // for implementation, see https://github.com/pocl/pocl/blob/master/lib/CL/clGetPlatformIDs.c
@@ -196,13 +253,10 @@ _cl_icd_dispatch vc4cl_dispatch = {
     /* cl_khr_egl_event */
     nullptr, /* clCreateEventFromEGLSyncKHR */
 
-/* OpenCL 2.0 */
-#ifdef CL_VERSION_2_0
-    &VC4CL_clCreateCommandQueueWithProperties, /* clCreateCommandQueueWithProperties */
-#else
-    reinterpret_cast<cl_int (*)()>(
-        &VC4CL_clCreateCommandQueueWithPropertiesKHR),               /* clCreateCommandQueueWithProperties */
-#endif
+    /* OpenCL 2.0 */
+    reinterpret_cast<MEMBER_TYPE(clCreateCommandQueueWithProperties, clUnknown123)>(
+        &VC4CL_clCreateCommandQueueWithPropertiesKHR), /* clCreateCommandQueueWithProperties */
+
     nullptr, /* clCreatePipe */
     nullptr, /* clGetPipeInfo */
     nullptr, /* clSVMAlloc */
@@ -215,7 +269,7 @@ _cl_icd_dispatch vc4cl_dispatch = {
 #ifdef CL_VERSION_2_0
     &VC4CL_clCreateSamplerWithProperties, /* clCreateSamplerWithProperties */
 #else
-    nullptr,                                                         /* clCreateSamplerWithProperties */
+    nullptr, /* clCreateSamplerWithProperties */
 #endif
     nullptr, /* clSetKernelArgSVMPointer */
     nullptr, /* clSetKernelExecInfo */
@@ -224,11 +278,9 @@ _cl_icd_dispatch vc4cl_dispatch = {
 
     /* OpenCL 2.1 */
     nullptr, /* clCloneKernel */
-#ifdef CL_VERSION_2_1
-    &VC4CL_clCreateProgramWithILKHR, /* clCreateProgramWithIL */
-#else
-    reinterpret_cast<cl_int (*)()>(&VC4CL_clCreateProgramWithILKHR), /* clCreateProgramWithIL */
-#endif
+    reinterpret_cast<MEMBER_TYPE(clCreateProgramWithIL, clUnknown138)>(
+        &VC4CL_clCreateProgramWithILKHR), /* clCreateProgramWithIL */
+
     nullptr, /* clEnqueueSVMMigrateMem */
     nullptr, /* clGetDeviceAndHostTimer */
     nullptr, /* clGetHostTimer */
