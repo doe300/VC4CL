@@ -101,16 +101,14 @@ static cl_int precompile_program(Program* program, const std::string& options,
     vc4c::Configuration config;
 
     program->buildInfo.options = options;
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Precompiling source with: " << program->buildInfo.options << std::endl)
-    {
+    DEBUG_LOG(DebugLevel::DUMP_CODE, {
+        std::cout << "Precompiling source with: " << program->buildInfo.options << std::endl;
         const std::string dumpFile("/tmp/vc4cl-source-" + std::to_string(rand()) + ".cl");
-        LOG(std::cout << "Dumping program sources to " << dumpFile << std::endl)
+        std::cout << "Dumping program sources to " << dumpFile << std::endl;
         std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc);
         f << sourceCode.str();
         f.close();
-    }
-#endif
+    })
 
     cl_int status = CL_SUCCESS;
     std::wstringstream logStream;
@@ -144,8 +142,7 @@ static cl_int precompile_program(Program* program, const std::string& options,
     }
     catch(vc4c::CompilationError& e)
     {
-        if(isDebugLogEnabled())
-            LOG(std::cout << "Precompilation error: " << e.what() << std::endl)
+        DEBUG_LOG(DebugLevel::DUMP_CODE, std::cout << "Precompilation error: " << e.what() << std::endl)
 
         program->buildInfo.log.append("Precompilation error:\n\t").append(e.what()).append("\n");
         status = CL_COMPILE_PROGRAM_FAILURE;
@@ -153,11 +150,11 @@ static cl_int precompile_program(Program* program, const std::string& options,
     // copy log whether build failed or not
     extractLog(program->buildInfo.log, logStream);
 
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Precompilation complete with status: " << status << std::endl)
-    if(!program->buildInfo.log.empty())
-        LOG(std::cout << "Compilation log: " << program->buildInfo.log << std::endl)
-#endif
+    DEBUG_LOG(DebugLevel::DUMP_CODE, {
+        std::cout << "Precompilation complete with status: " << status << std::endl;
+        if(!program->buildInfo.log.empty())
+            std::cout << "Compilation log: " << program->buildInfo.log << std::endl;
+    })
 
     return status;
 }
@@ -204,8 +201,7 @@ static cl_int link_programs(
     }
     catch(vc4c::CompilationError& e)
     {
-        if(isDebugLogEnabled())
-            LOG(std::cout << "Link error: " << e.what() << std::endl)
+        DEBUG_LOG(DebugLevel::DUMP_CODE, std::cout << "Link error: " << e.what() << std::endl)
 
         program->buildInfo.log.append("Link error:\n\t").append(e.what()).append("\n");
         status = CL_LINK_PROGRAM_FAILURE;
@@ -213,11 +209,11 @@ static cl_int link_programs(
     // copy log whether build failed or not
     extractLog(program->buildInfo.log, logStream);
 
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Linking complete with status: " << status << std::endl)
-    if(!program->buildInfo.log.empty())
-        LOG(std::cout << "Compilation log: " << program->buildInfo.log << std::endl)
-#endif
+    DEBUG_LOG(DebugLevel::DUMP_CODE, {
+        std::cout << "Linking complete with status: " << status << std::endl;
+        if(!program->buildInfo.log.empty())
+            std::cout << "Compilation log: " << program->buildInfo.log << std::endl;
+    })
 
     return status;
 }
@@ -243,9 +239,7 @@ static cl_int compile_program(Program* program, const std::string& options)
     config.availableVPMSize = V3D::instance().getSystemInfo(SystemInfo::VPM_MEMORY_SIZE);
 
     program->buildInfo.options = options;
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Compiling source with: " << program->buildInfo.options << std::endl)
-#endif
+    DEBUG_LOG(DebugLevel::DUMP_CODE, std::cout << "Compiling source with: " << program->buildInfo.options << std::endl)
 
     cl_int status = CL_SUCCESS;
     std::wstringstream logStream;
@@ -261,8 +255,7 @@ static cl_int compile_program(Program* program, const std::string& options)
     }
     catch(vc4c::CompilationError& e)
     {
-        if(isDebugLogEnabled())
-            LOG(std::cout << "Compilation error: " << e.what() << std::endl)
+        DEBUG_LOG(DebugLevel::DUMP_CODE, std::cout << "Compilation error: " << e.what() << std::endl)
 
         program->buildInfo.log.append("Compilation error:\n\t").append(e.what()).append("\n");
         status = CL_BUILD_PROGRAM_FAILURE;
@@ -270,20 +263,19 @@ static cl_int compile_program(Program* program, const std::string& options)
     // copy log whether build failed or not
     extractLog(program->buildInfo.log, logStream);
 
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Compilation complete with status: " << status << std::endl)
-    if(!program->buildInfo.log.empty())
-    {
-        LOG(std::cout << "Compilation log: " << program->buildInfo.log << std::endl)
-    }
-    {
+    DEBUG_LOG(DebugLevel::DUMP_CODE, {
+        std::cout << "Compilation complete with status: " << status << std::endl;
+        if(!program->buildInfo.log.empty())
+        {
+            std::cout << "Compilation log: " << program->buildInfo.log << std::endl;
+        }
         const std::string dumpFile("/tmp/vc4cl-binary-" + std::to_string(rand()) + ".bin");
-        LOG(std::cout << "Dumping program sources to " << dumpFile << std::endl)
+        std::cout << "Dumping program sources to " << dumpFile << std::endl;
         std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
-        f.write(reinterpret_cast<char*>(program->binaryCode.data()), program->binaryCode.size() * sizeof(uint64_t));
+        f.write(reinterpret_cast<char*>(program->binaryCode.data()),
+            static_cast<std::streamsize>(program->binaryCode.size() * sizeof(uint64_t)));
         f.close();
-    }
-#endif
+    })
 
     return status;
 }

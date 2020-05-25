@@ -20,9 +20,7 @@ void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platfo
 {
     VC4CL_PRINT_API_CALL(
         "void*", clGetExtensionFunctionAddressForPlatform, "cl_platform_id", platform, "const char*", funcname);
-#ifdef DEBUG_MODE
-    LOG(std::cout << "get extension function address: " << funcname << std::endl)
-#endif
+    DEBUG_LOG(DebugLevel::API_CALLS, std::cout << "get extension function address: " << funcname << std::endl)
     // the clIcdGetPlatformIDsKHR function is looked up via here
     if(strcmp("clIcdGetPlatformIDsKHR", funcname) == 0)
         return reinterpret_cast<void*>(&VC4CL_FUNC(clIcdGetPlatformIDsKHR));
@@ -55,8 +53,7 @@ void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platfo
     if(strcmp("clResetPerformanceCounterVC4CL", funcname) == 0)
         return reinterpret_cast<void*>(&VC4CL_FUNC(clResetPerformanceCounterValueVC4CL));
 
-    if(isDebugLogEnabled())
-        LOG(std::cout << "extension function address not found for: " << funcname << std::endl)
+    DEBUG_LOG(DebugLevel::API_CALLS, std::cout << "extension function address not found for: " << funcname << std::endl)
 
     return nullptr;
 }

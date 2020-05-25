@@ -29,20 +29,38 @@ namespace vc4cl
 {
     std::unique_lock<std::mutex> lockLog();
 
-#define LOG(param)                                                                                                     \
+    /**
+     * The different modes/levels of debug output.
+     *
+     * This is a bitset allowing the fields to be combined.
+     */
+    enum class DebugLevel : uint8_t
+    {
+        NONE = 0,
+        // OpenCL API calls, parameters and return values (on error) are logged to the standard output
+        API_CALLS = 1u << 0u,
+        // OpenCL C, IR sources and VC4C binary output are dumped to temporary files
+        DUMP_CODE = 1u << 1u,
+        // Detailed information before and after syscalls (e.g. mailbox) is logged to the standard output
+        SYSCALL = 1u << 2u,
+        // Kernel execution, parameter and work-group information is logged to the standard output
+        KERNEL_EXECUTION = 1u << 3u,
+        // Event information is logged to the standard output
+        EVENTS = 1u << 4u,
+        // Lifetime information of OpenCL objects is logged to the standard output
+        OBJECTS = 1 << 5u,
+        ALL = 0xFF
+
+    };
+
+#define DEBUG_LOG(debugLevel, param)                                                                                   \
+    if(isDebugModeEnabled(debugLevel))                                                                                 \
     {                                                                                                                  \
         auto lock = lockLog();                                                                                         \
         param;                                                                                                         \
     }
 
-    inline bool isDebugLogEnabled()
-    {
-#ifdef DEBUG_MODE
-        return true;
-#else
-        return std::getenv("VC4CL_DEBUG") != nullptr;
-#endif
-    }
+    bool isDebugModeEnabled(DebugLevel level);
 
     CHECK_RETURN std::string joinStrings(const std::vector<std::string>& strings, const std::string& delim = " ");
 
@@ -62,8 +80,8 @@ namespace vc4cl
         const std::string& string, size_t output_size, void* output, size_t* output_size_ret);
     CHECK_RETURN cl_int returnBuffers(const std::vector<void*>& buffers, const std::vector<size_t>& sizes,
         size_t type_size, size_t output_size, void* output, size_t* output_size_ret);
-    CHECK_RETURN cl_int returnExtensions(const std::vector<Extension>& extensions, size_t output_size,
-        void* output, size_t* output_size_ret);
+    CHECK_RETURN cl_int returnExtensions(
+        const std::vector<Extension>& extensions, size_t output_size, void* output, size_t* output_size_ret);
 
     template <typename T>
     CHECK_RETURN typename std::enable_if<std::is_arithmetic<T>::value | std::is_pointer<T>::value, cl_int>::type
@@ -77,9 +95,9 @@ namespace vc4cl
     CHECK_RETURN inline T returnError(
         cl_int error, cl_int* errcode_ret, const char* file, unsigned line, const std::string& reason)
     {
-        if(isDebugLogEnabled())
-            LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ": " << reason
-                          << std::endl)
+        DEBUG_LOG(DebugLevel::API_CALLS,
+            std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ": " << reason
+                      << std::endl)
         if(errcode_ret != nullptr)
             *errcode_ret = error;
         return nullptr;
@@ -87,9 +105,9 @@ namespace vc4cl
 
     CHECK_RETURN inline cl_int returnError(cl_int error, const char* file, unsigned line, const std::string& reason)
     {
-        if(isDebugLogEnabled())
-            LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ": " << reason
-                          << std::endl)
+        DEBUG_LOG(DebugLevel::API_CALLS,
+            std::cout << "Error in '" << file << ":" << line << "', returning status " << error << ": " << reason
+                      << std::endl)
         return error;
     }
 
@@ -97,8 +115,9 @@ namespace vc4cl
     {
         // used to hide warnings of unused return-values
         // the reason is for documentation only
-        if(isDebugLogEnabled() && state != CL_SUCCESS)
-            LOG(std::cout << "Error in '" << file << ":" << line << "', returning status " << state << std::endl);
+        if(state != CL_SUCCESS)
+            DEBUG_LOG(DebugLevel::API_CALLS,
+                std::cout << "Error in '" << file << ":" << line << "', returning status " << state << std::endl);
     }
 
     template <typename... T>
@@ -267,11 +286,8 @@ namespace vc4cl
     template <typename... T>
     inline void printAPICall(const char* const retType, const char* const funcName, T... args)
     {
-        if(isDebugLogEnabled())
-        {
-            LOG(std::cout << "API call: " << retType << " " << funcName << "(";
-                printAPICallInternal(std::cout, args...) << ")" << std::endl)
-        }
+        DEBUG_LOG(DebugLevel::API_CALLS, std::cout << "API call: " << retType << " " << funcName << "(";
+                  printAPICallInternal(std::cout, args...) << ")" << std::endl)
     }
 
 #define VC4CL_PRINT_API_CALL(retType, funcName, ...) vc4cl::printAPICall(retType, #funcName, __VA_ARGS__)

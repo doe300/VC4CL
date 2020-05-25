@@ -62,8 +62,8 @@ static unsigned* set_work_item_info(unsigned* ptr, cl_uint num_dimensions,
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_indices, unsigned global_data,
     unsigned uniformAddress, const KernelUniforms& uniformsUsed)
 {
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Setting work-item infos:" << std::endl;
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
+        std::cout << "Setting work-item infos:" << std::endl;
         std::cout << "\t" << num_dimensions << " dimensions with offsets: " << global_offsets[0] << ", "
                   << global_offsets[1] << ", " << global_offsets[2] << std::endl;
         std::cout << "\tGlobal IDs (sizes): " << group_indices[0] * local_sizes[0] + local_indices[0] << "("
@@ -74,8 +74,8 @@ static unsigned* set_work_item_info(unsigned* ptr, cl_uint num_dimensions,
                   << "(" << local_sizes[1] << "), " << local_indices[2] << "(" << local_sizes[2] << ")" << std::endl;
         std::cout << "\tGroup IDs (sizes): " << group_indices[0] << "(" << (global_sizes[0] / local_sizes[0]) << "), "
                   << group_indices[1] << "(" << (global_sizes[1] / local_sizes[1]) << "), " << group_indices[2] << "("
-                  << (global_sizes[2] / local_sizes[2]) << ")" << std::endl)
-#endif
+                  << (global_sizes[2] / local_sizes[2]) << ")" << std::endl;
+    })
     // composes UNIFORMS for the values
     if(uniformsUsed.getWorkDimensionsUsed())
         *ptr++ = num_dimensions; /* get_work_dim() */
@@ -241,15 +241,15 @@ cl_int executeKernel(KernelExecution& args)
     bool isWorkGroupLoopEnabled = kernel->info.uniformsUsed.getMaxGroupIDXUsed() ||
         kernel->info.uniformsUsed.getMaxGroupIDYUsed() || kernel->info.uniformsUsed.getMaxGroupIDZUsed();
 
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Running kernel '" << kernel->info.name << "' with " << kernel->info.getLength()
-                  << " instructions..." << std::endl)
-    LOG(std::cout << "Local sizes: " << args.localSizes[0] << " " << args.localSizes[1] << " " << args.localSizes[2]
-                  << " -> " << num_qpus << " QPUs" << std::endl)
-    LOG(std::cout << "Global sizes: " << args.globalSizes[0] << " " << args.globalSizes[1] << " " << args.globalSizes[2]
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
+        std::cout << "Running kernel '" << kernel->info.name << "' with " << kernel->info.getLength()
+                  << " instructions..." << std::endl;
+        std::cout << "Local sizes: " << args.localSizes[0] << " " << args.localSizes[1] << " " << args.localSizes[2]
+                  << " -> " << num_qpus << " QPUs" << std::endl;
+        std::cout << "Global sizes: " << args.globalSizes[0] << " " << args.globalSizes[1] << " " << args.globalSizes[2]
                   << " -> " << (args.globalSizes[0] * args.globalSizes[1] * args.globalSizes[2]) / num_qpus
-                  << " work-groups (" << (isWorkGroupLoopEnabled ? "all at once" : "separate") << ")" << std::endl)
-#endif
+                  << " work-groups (" << (isWorkGroupLoopEnabled ? "all at once" : "separate") << ")" << std::endl;
+    })
 
     //
     // ALLOCATE BUFFER
@@ -290,18 +290,16 @@ cl_int executeKernel(KernelExecution& args)
         const unsigned data_length = static_cast<unsigned>(kernel->program->globalData.size() * sizeof(uint64_t));
         memcpy(p, data_start, data_length);
         p += data_length / sizeof(unsigned);
-#ifdef DEBUG_MODE
-        LOG(std::cout << "Copied " << data_length << " bytes of global data to device buffer" << std::endl)
-#endif
+        DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+            std::cout << "Copied " << data_length << " bytes of global data to device buffer" << std::endl)
     }
 
     // Reserve space for stack-frames and fill it with zeros (e.g. for cl_khr_initialize_memory extension)
     uint32_t maxQPUS = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
     uint32_t stackFrameSize = static_cast<uint32_t>(kernel->program->moduleInfo.getStackFrameSize() * sizeof(uint64_t));
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Reserving space for " << maxQPUS << " stack-frames of " << stackFrameSize << " bytes each"
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+        std::cout << "Reserving space for " << maxQPUS << " stack-frames of " << stackFrameSize << " bytes each"
                   << std::endl)
-#endif
     if(kernel->program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_PRIVATE_KHR))
         memset(p, '\0', maxQPUS * stackFrameSize);
     p += (maxQPUS * stackFrameSize) / sizeof(unsigned);
@@ -311,10 +309,9 @@ cl_int executeKernel(KernelExecution& args)
     void* code_start = &kernel->program->binaryCode[kernel->info.getOffset()];
     memcpy(p, code_start, kernel->info.getLength() * sizeof(uint64_t));
     p += kernel->info.getLength() * sizeof(uint64_t) / sizeof(unsigned);
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Copied " << kernel->info.getLength() * sizeof(uint64_t)
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+        std::cout << "Copied " << kernel->info.getLength() * sizeof(uint64_t)
                   << " bytes of kernel code to device buffer" << std::endl)
-#endif
 
     // 2 times (for each UNIFORM block) 16 times (for each possible QPU)
     std::array<std::array<unsigned*, 16>, 2> uniformPointers;
@@ -335,21 +332,19 @@ cl_int executeKernel(KernelExecution& args)
                 {
                     // the __local parameter is lowered into VPM, so there is no temporary buffer
                     *p++ = 0u;
-#ifdef DEBUG_MODE
-                    LOG(std::cout << "Setting lowered parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+                        std::cout << "Setting lowered parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
                                   << " to null-pointer" << std::endl)
-#endif
                 }
                 else
                 {
                     // there exists a temporary buffer for the __local/struct parameter, so set its address as
                     // kernel argument
                     *p++ = static_cast<unsigned>(tmpBufferIt->second->qpuPointer);
-#ifdef DEBUG_MODE
-                    LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+                        std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
                                   << " to temporary buffer 0x" << std::hex << tmpBufferIt->second->qpuPointer
                                   << std::dec << std::endl)
-#endif
                 }
             }
             else if(persistentBufferIt != args.persistentBuffers.end())
@@ -361,20 +356,18 @@ cl_int executeKernel(KernelExecution& args)
                     static_cast<unsigned>(persistentBufferIt->second.second) :
                     0u;
                 *p++ = devicePtr;
-#ifdef DEBUG_MODE
-                LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+                    std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
                               << " to buffer 0x" << std::hex << devicePtr << std::dec << std::endl)
-#endif
             }
             else if(auto scalarArg = dynamic_cast<const ScalarArgument*>(kernel->args.at(u).get()))
             {
                 // "default" scalar or vector of scalar kernel argument
                 for(cl_uchar i = 0; i < kernel->info.params[u].getVectorElements(); ++i)
                     *p++ = scalarArg->scalarValues.at(i).getUnsigned();
-#ifdef DEBUG_MODE
-                LOG(std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
+                DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+                    std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
                               << " to scalar " << scalarArg->to_string() << std::endl)
-#endif
             }
             else
             {
@@ -395,10 +388,9 @@ cl_int executeKernel(KernelExecution& args)
         increment_index(local_indices, args.localSizes, 1);
     }
 
-#ifdef DEBUG_MODE
-    LOG(std::cout << (kernel->info.uniformsUsed.countUniforms() + kernel->info.params.size()) << " parameters set."
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+        std::cout << (kernel->info.uniformsUsed.countUniforms() + kernel->info.params.size()) << " parameters set."
                   << std::endl)
-#endif
 
     // We duplicate the UNIFORM buffer, so we can have one being used by the background execution and the other is
     // prepared for the next execution
@@ -431,21 +423,19 @@ cl_int executeKernel(KernelExecution& args)
 
     const std::string dumpFile("/tmp/vc4cl-dump-" + kernel->info.name + "-" + std::to_string(rand()) + ".bin");
     std::ofstream f;
-    if(isDebugLogEnabled())
-    {
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
         // Dump all memory content accessed by this kernel execution
-        LOG(std::cout << "Dumping kernel buffer to " << dumpFile << std::endl)
+        std::cout << "Dumping kernel buffer to " << dumpFile << std::endl;
         f.open(dumpFile, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
         dumpMemoryState(f, kernel, args, *buffer, qpu_code, uniformPointers[0][0], true);
-    }
+    })
 
-        //
-        // EXECUTION
-        //
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", " << group_indices[2]
+    //
+    // EXECUTION
+    //
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+        std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", " << group_indices[2]
                   << std::endl)
-#endif
     // toggle between the first and second launch message block to toggle between the first and second UNIFORMs
     // block
     auto qpu_msg_current = qpu_msg_0;
@@ -457,10 +447,9 @@ cl_int executeKernel(KernelExecution& args)
     // on first execution, flush code cache
     auto result = executeQPU(static_cast<unsigned>(num_qpus),
         std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), true, timeout);
-#ifdef DEBUG_MODE
     // NOTE: This disables background-execution!
-    LOG(std::cout << "Execution: " << (result.waitFor() ? "successful" : "failed") << std::endl)
-#endif
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+        std::cout << "Execution: " << (result.waitFor() ? "successful" : "failed") << std::endl)
 
     while(!isWorkGroupLoopEnabled && increment_index(group_indices, group_limits, 1))
     {
@@ -480,24 +469,21 @@ cl_int executeKernel(KernelExecution& args)
         // wait for and check previous work-group (possible asynchronous) execution
         if(!result.waitFor())
             return CL_OUT_OF_RESOURCES;
-#ifdef DEBUG_MODE
-        LOG(std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", "
+        DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+            std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", "
                       << group_indices[2] << std::endl)
-#endif
         // all following executions, don't flush cache
         result = executeQPU(static_cast<unsigned>(num_qpus),
             std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), false, timeout);
-#ifdef DEBUG_MODE
         // NOTE: This disables background-execution!
-        LOG(std::cout << "Execution: " << (result.waitFor() ? "successful" : "failed") << std::endl)
-#endif
+        DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+            std::cout << "Execution: " << (result.waitFor() ? "successful" : "failed") << std::endl)
     }
 
-    if(isDebugLogEnabled())
-    {
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
         // Append the buffers after the kernel execution
         dumpMemoryState(f, kernel, args, *buffer, qpu_code, uniformPointers[0][0], false);
-    }
+    })
 
     //
     // CLEANUP

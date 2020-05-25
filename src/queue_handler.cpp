@@ -23,19 +23,14 @@ using namespace vc4cl;
 static const std::chrono::steady_clock::duration WAIT_DURATION =
     std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::milliseconds(10));
 
-EventQueue::EventQueue() :
-    continueRunning(true),
-    eventHandler(std::bind(&EventQueue::runEventQueue, this)){
-#ifdef DEBUG_MODE
-        LOG(std::cout << "Starting queue handler thread..." << std::endl)
-#endif
-    }
-
-    EventQueue::~EventQueue() noexcept
+EventQueue::EventQueue() : continueRunning(true), eventHandler(std::bind(&EventQueue::runEventQueue, this))
 {
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Stopping queue handler thread..." << std::endl)
-#endif
+    DEBUG_LOG(DebugLevel::EVENTS, std::cout << "Starting queue handler thread..." << std::endl);
+}
+
+EventQueue::~EventQueue() noexcept
+{
+    DEBUG_LOG(DebugLevel::EVENTS, std::cout << "Stopping queue handler thread..." << std::endl)
     continueRunning = false;
     // wake up event handler, so we can stop it
     eventAvailable.notify_all();
@@ -171,7 +166,5 @@ void EventQueue::runEventQueue()
             eventProcessed.notify_all();
         }
     }
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Queue handler thread stopped" << std::endl)
-#endif
+    DEBUG_LOG(DebugLevel::EVENTS, std::cout << "Queue handler thread stopped" << std::endl)
 }

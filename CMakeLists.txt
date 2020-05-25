@@ -12,8 +12,6 @@ option(BUILD_ICD "Build with support for ICD" ON)
 option(IMAGE_SUPPORT "Experimental image support" OFF)
 # Option whether to use register-poking (faster) or mailbox-calls (synchronized system-wide) to run kernels
 option(REGISTER_POKE_KERNELS "Use the faster way of register to run kernels" ON)
-# Option to enable/disable test-program
-option(BUILD_DEBUG "Build with debugging symbols. Otherwise build for performance" OFF)
 # Option to enable/disable cross compilation
 option(CROSS_COMPILE "Cross compile for Raspbian" OFF)
 # Option whether to emulate the hardware interface for testing purposes
@@ -46,10 +44,6 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 # Set default build type to Debug
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the type of build." FORCE)
-endif()
-
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-	set(BUILD_DEBUG OFF)
 endif()
 
 # Set optimization and warning flags for the build types

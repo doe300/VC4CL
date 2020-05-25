@@ -113,3 +113,34 @@ std::unique_lock<std::mutex> vc4cl::lockLog()
     std::cout << "[VC4CL](" << std::setfill(' ') << std::setw(15) << threadName << "): ";
     return lock;
 }
+
+static DebugLevel getDebugLevel()
+{
+    std::underlying_type<DebugLevel>::type level = 0;
+    if(auto env = std::getenv("VC4CL_DEBUG"))
+    {
+        std::string tmp(env);
+        if(tmp.find("api") != std::string::npos)
+            level |= static_cast<uint8_t>(DebugLevel::API_CALLS);
+        if(tmp.find("code") != std::string::npos)
+            level |= static_cast<uint8_t>(DebugLevel::DUMP_CODE);
+        if(tmp.find("syscall") != std::string::npos)
+            level |= static_cast<uint8_t>(DebugLevel::SYSCALL);
+        if(tmp.find("execution") != std::string::npos)
+            level |= static_cast<uint8_t>(DebugLevel::KERNEL_EXECUTION);
+        if(tmp.find("events") != std::string::npos)
+            level |= static_cast<uint8_t>(DebugLevel::EVENTS);
+        if(tmp.find("objects") != std::string::npos)
+            level |= static_cast<uint8_t>(DebugLevel::OBJECTS);
+        if(tmp.find("all") != std::string::npos)
+            level = static_cast<uint8_t>(DebugLevel::ALL);
+    }
+
+    return static_cast<DebugLevel>(level);
+}
+
+bool vc4cl::isDebugModeEnabled(DebugLevel level)
+{
+    static const auto debugLevel = getDebugLevel();
+    return (static_cast<uint8_t>(debugLevel) & static_cast<uint8_t>(level)) == static_cast<uint8_t>(level);
+}

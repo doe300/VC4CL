@@ -21,14 +21,16 @@ ObjectTracker::~ObjectTracker()
 {
     // since this is called at the end of the program,
     // all objects still alive here are leaked!
-    if(isDebugLogEnabled() && !liveObjects.empty())
+    if(!liveObjects.empty())
     {
-        for(const auto& obj : liveObjects)
-        {
-            LOG(std::cout << "[VC4CL] Leaked object with " << obj->referenceCount << " references: " << obj->typeName
-                          << "\n")
-        }
-        LOG(std::cout << std::endl);
+        DEBUG_LOG(DebugLevel::OBJECTS, {
+            for(const auto& obj : liveObjects)
+            {
+                std::cout << "[VC4CL] Leaked object with " << obj->referenceCount << " references: " << obj->typeName
+                          << "\n";
+            }
+            std::cout << std::endl;
+        })
     }
 
     // the remaining objects reference one another
@@ -46,23 +48,20 @@ void ObjectTracker::addObject(BaseObject* obj)
 {
     std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
     liveObjectsTracker.liveObjects.emplace(obj);
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Tracking live-time of object: " << obj->typeName << std::endl)
-#endif
+    DEBUG_LOG(DebugLevel::OBJECTS, std::cout << "Tracking live-time of object: " << obj->typeName << std::endl)
 }
 
 void ObjectTracker::removeObject(BaseObject* obj)
 {
     std::lock_guard<std::recursive_mutex> guard(liveObjectsTracker.trackerMutex);
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Releasing live-time of object: " << obj->typeName << std::endl)
-#endif
+    DEBUG_LOG(DebugLevel::OBJECTS, std::cout << "Releasing live-time of object: " << obj->typeName << std::endl)
     auto it = std::find_if(liveObjectsTracker.liveObjects.begin(), liveObjectsTracker.liveObjects.end(),
         [obj](const std::unique_ptr<BaseObject>& ptr) -> bool { return ptr.get() == obj; });
     if(it != liveObjectsTracker.liveObjects.end())
         liveObjectsTracker.liveObjects.erase(it);
-    else if(isDebugLogEnabled())
-        LOG(std::cout << "Removing object not previously tracked: " << obj->typeName << std::endl)
+    else
+        DEBUG_LOG(
+            DebugLevel::OBJECTS, std::cout << "Removing object not previously tracked: " << obj->typeName << std::endl)
 }
 
 void ObjectTracker::iterateObjects(ReportFunction func, void* userData)

@@ -94,41 +94,6 @@ jobs:
             - build/cpptest-lite/src/cpptest-lite-project-build/libcpptest-lite.so.0.9
             - build/vc4cl-0.4-Linux.deb
             - test/hello_world_vector.cl
-  build-debug:
-    docker:
-      - image: nomaddo/native
-    steps:
-      - checkout
-      - run:
-          name: get json
-          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
-      - run:
-          name: get vc4c url
-          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/$(.circleci/build_num.py /tmp/json build)/artifacts" --output /tmp/dump
-      - run:
-          name: get vc4cl-stdlib package
-          command: wget -O /tmp/vc4cl-stdlib.deb $(python .circleci/get_url.py "vc4cl-stdlib-" "/tmp/dump")
-      - run:
-          name: get vc4c package
-          command: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
-      - run:
-          name: unpack dependencies
-          command: dpkg-deb -x /tmp/vc4cl-stdlib.deb / && dpkg-deb -x /tmp/vc4c.deb /
-      - run:
-          name: configure
-          command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DBUILD_TESTING=OFF -DBUILD_DEBUG=ON -DINCLUDE_COMPILER=ON -DMOCK_HAL=ON
-      - run:
-          name: make
-          command: cd build && make -j`nproc`
-      - run:
-          name: deb-packing
-          command: cd build && cpack -G DEB
-      - store_artifacts:
-          path: build/src/libVC4CL.so.0.4
-          distination: libVC4CL.so.0.4
-      - store_artifacts:
-          path: build/vc4cl-0.4-Linux.deb
-          distination: vc4cl-0.4-Linux.deb
   cross-offline:
     docker:
       - image: nomaddo/cross-rpi:0.2
@@ -176,7 +141,6 @@ workflows:
       # TODO enable
       # - check-code-style
       - build
-      - build-debug
       - cross-offline
       - cross
       - test:

@@ -75,14 +75,14 @@ Kernel::~Kernel() noexcept = default;
 
 cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
 {
-#ifdef DEBUG_MODE
-    LOG(std::cout << "Set kernel arg " << arg_index << " for kernel '" << info.name << "' to " << arg_value << " ("
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
+        std::cout << "Set kernel arg " << arg_index << " for kernel '" << info.name << "' to " << arg_value << " ("
                   << (arg_value == nullptr ? 0x0 : *reinterpret_cast<const int*>(arg_value)) << ") with size "
-                  << arg_size << std::endl)
-    LOG(std::cout << "Kernel arg " << arg_index << " for kernel '" << info.name << "' is "
+                  << arg_size << std::endl;
+        std::cout << "Kernel arg " << arg_index << " for kernel '" << info.name << "' is "
                   << info.params[arg_index].type << " '" << info.params[arg_index].name << "' with size "
-                  << static_cast<size_t>(info.params[arg_index].getSize()) << std::endl)
-#endif
+                  << static_cast<size_t>(info.params[arg_index].getSize()) << std::endl;
+    })
 
     if(arg_index >= info.params.size())
     {
@@ -122,10 +122,9 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                     "Multiple vector elements for literal struct arguments are not supported");
             }
             args[arg_index].reset(new TemporaryBufferArgument(static_cast<unsigned>(arg_size), arg_value));
-#ifdef DEBUG_MODE
-            LOG(std::cout << "Setting kernel-argument " << arg_index << " to temporary buffer "
+            DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+                std::cout << "Setting kernel-argument " << arg_index << " to temporary buffer "
                           << args[arg_index]->to_string() << std::endl)
-#endif
         }
         else
         {
@@ -174,10 +173,9 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                     scalarArg->addScalar(static_cast<const cl_uint*>(arg_value)[i]);
                 }
             }
-#ifdef DEBUG_MODE
-            LOG(std::cout << "Setting kernel-argument " << arg_index << " to scalar " << args[arg_index]->to_string()
+            DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+                std::cout << "Setting kernel-argument " << arg_index << " to scalar " << args[arg_index]->to_string()
                           << std::endl)
-#endif
         }
     }
     else
@@ -243,9 +241,8 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
         }
         else
             args[arg_index].reset(new BufferArgument(bufferArg));
-#ifdef DEBUG_MODE
-        LOG(std::cout << "Setting kernel-argument " << arg_index << " to pointer 0x" << bufferArg << std::endl)
-#endif
+        DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+            std::cout << "Setting kernel-argument " << arg_index << " to pointer 0x" << bufferArg << std::endl)
     }
 
     argsSetMask.set(arg_index, true);
@@ -441,12 +438,11 @@ static cl_int split_global_work_size(const std::array<std::size_t, kernel_config
             if(local_sizes[0] * local_sizes[1] * local_sizes[2] <= max_group_size)
             {
                 // we found an acceptable distribution
-#ifdef DEBUG_MODE
-                LOG(std::cout << "Splitting " << global_sizes[0] << " * " << global_sizes[1] << " * " << global_sizes[2]
+                DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+                    std::cout << "Splitting " << global_sizes[0] << " * " << global_sizes[1] << " * " << global_sizes[2]
                               << " work-items into " << local_sizes[0] << " * " << local_sizes[1] << " * "
                               << local_sizes[2] << ", using " << work_group_size << " of " << max_group_size << " QPUs"
                               << std::endl)
-#endif
                 return CL_SUCCESS;
             }
         }
@@ -616,11 +612,10 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
                 // don't need to reserve temporary buffer, it will be unused anyway
                 // TODO the zeroing below is not applied for these parameters!
                 tmpBuffers.emplace(i, nullptr);
-#ifdef DEBUG_MODE
-                LOG(std::cout << "Skipping reserving of " << localArg->sizeToAllocate
+                DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+                    std::cout << "Skipping reserving of " << localArg->sizeToAllocate
                               << " bytes of buffer for lowered local parameter: " << info.params.at(i).type << " "
                               << info.params.at(i).name << std::endl)
-#endif
             }
             else
             {
@@ -639,11 +634,10 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
                     // we need to initialize the local memory to zero
                     memset(bufIt->second->hostPointer, '\0', localArg->sizeToAllocate);
                 }
-#ifdef DEBUG_MODE
-                LOG(std::cout << "Reserved " << localArg->sizeToAllocate
+                DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+                    std::cout << "Reserved " << localArg->sizeToAllocate
                               << " bytes of buffer for local/struct parameter: " << info.params.at(i).type << " "
                               << info.params.at(i).name << std::endl)
-#endif
             }
         }
     }

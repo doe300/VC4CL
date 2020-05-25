@@ -44,7 +44,6 @@ The following configuration options are available in CMake:
 
 - `BUILD_TESTING` toggles building of test program (when configured, can be built with `make TestVC4CL`)
 - `CMAKE_BUILD_TYPE` set to *Debug*, *Release*, *asan*, *tsan* or *usbsan* to build for the given debug/release mode or with sanitizers enabled
-- `BUILD_DEBUG` toggles building debug or release program
 - `CROSS_COMPILE` toggles whether to cross-compile for the Raspberry Pi. NOTE: The [Raspberry Pi cross-compiler](https://github.com/raspberrypi/tools) is no longer supported!
 - `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler (.g. `arm-linux-gnueabihf-g++-6`)
 - `INCLUDE_COMPILER` whether to include the [VC4C](https://github.com/doe300/VC4C) compiler. For the compiler to be actually included, the VC4C header and library needs to be found too
@@ -65,3 +64,17 @@ Because of the DMA-interface which has no MMU between the GPU and the RAM, code 
 This means, an OpenCL kernel could be used to read sensitive data or write into kernel memory!
 
 **Therefore, any program using the VC4CL implementation must be run as root!**
+
+## Debug
+Since this software is still in development, some functionality might not work.
+For curious users or to be able to provide more information for bugs, additional debug information can be generated if desired.
+
+To generate debug information, set the `VC4CL_DEBUG` environment variable to one (or multiple, separated by commas) of the following strings:
+
+- `api` enables logging OpenCL API calls, parameters and non-success errors to the standard output
+- `code` enables dumping OpenCL C (or IR) source code as well as generated VC4C binary code into temporary files for the compilation functions
+- `syscall` enables logging detailed information for syscalls (e.g. mailbox) to the standard output
+- `execution` enables logging of detailed kernel execution information (parameters, execution cycle, return codes) to the standard output
+- `events` enables logging of asynchronous event processing information to the standard output
+- `objects` enables logging of lifetime begin/end and leaks of OpenCL API objects to the standard output
+- `all` enables all above logging modes

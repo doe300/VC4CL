@@ -7,6 +7,7 @@
 #include "hal.h"
 
 #include "Mailbox.h"
+#include "common.h"
 #ifdef COMPILER_HEADER
 #define CPPLOG_NAMESPACE logging
 #include COMPILER_HEADER
@@ -118,9 +119,9 @@ static bool emulateQPU(unsigned numQPUs, uint32_t bufferIndex, uint32_t controlO
         // With 250MHz, the hardware would execute 250k instructions per ms
         auto numCycles = timeoutInMs * 250000;
         vc4c::tools::LowLevelEmulationData data(buffers, kernelPtr, numInstructions, uniformAddresses, numCycles);
-#ifdef DEBUG_MODE
-        data.instrumentationDump = "/tmp/vc4cl-instrumentation-" + std::to_string(rand()) + ".log";
-#endif
+        using namespace vc4cl;
+        DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+            data.instrumentationDump = "/tmp/vc4cl-instrumentation-" + std::to_string(rand()) + ".log")
         auto res = vc4c::tools::emulate(data);
         // XXX mod 256
         completedPrograms.word += (1 << 16);

@@ -274,12 +274,12 @@ void TestKernel::testKernelResult()
 	TEST_ASSERT_EQUALS(strlen(input), strlen(reinterpret_cast<const char*>(toType<Buffer>(out_buffer)->deviceBuffer->hostPointer)));
 	TEST_ASSERT_EQUALS(std::string(input), std::string(reinterpret_cast<const char*>(toType<Buffer>(in_buffer)->deviceBuffer->hostPointer), strlen(input)));
 	TEST_ASSERT_EQUALS(std::string(input), std::string(reinterpret_cast<const char*>(toType<Buffer>(out_buffer)->deviceBuffer->hostPointer), strlen(input)));
-#ifdef DEBUG_MODE
-    char* buffer = reinterpret_cast<char*>(toType<Buffer>(in_buffer)->deviceBuffer->hostPointer);
-    printf("[%s:%d] Input buffer: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c (%zu)\n", __FILE__, __LINE__, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15], strlen(buffer));
-    buffer = reinterpret_cast<char*>(toType<Buffer>(out_buffer)->deviceBuffer->hostPointer);
-    printf("[%s:%d] Output buffer: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c (%zu)\n", __FILE__, __LINE__, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15], strlen(buffer));
-#endif
+	DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
+		char* buffer = reinterpret_cast<char*>(toType<Buffer>(in_buffer)->deviceBuffer->hostPointer);
+		printf("[%s:%d] Input buffer: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c (%zu)\n", __FILE__, __LINE__, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15], strlen(buffer));
+		buffer = reinterpret_cast<char*>(toType<Buffer>(out_buffer)->deviceBuffer->hostPointer);
+		printf("[%s:%d] Output buffer: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c (%zu)\n", __FILE__, __LINE__, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15], strlen(buffer));
+	})
 }
 
 void TestKernel::testEnqueueTask()

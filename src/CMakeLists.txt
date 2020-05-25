@@ -15,10 +15,6 @@ endif()
 # append usage of C++ to compiler flags, also optimize for speed and enable all warnings
 target_compile_options(VC4CL PRIVATE ${VC4CL_ENABLED_WARNINGS})
 
-if(BUILD_DEBUG)
-	target_compile_definitions(VC4CL PRIVATE DEBUG_MODE=1)
-endif(BUILD_DEBUG)
-
 # Add all sources
 include(sources.list)
 
