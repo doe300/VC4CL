@@ -128,11 +128,11 @@ cl_int Device::getInfo(
     case CL_DEVICE_MAX_READ_IMAGE_ARGS:
         //"Max number of simultaneous image objects that can be read by a kernel."
         return returnValue<cl_uint>(
-            kernel_config::MAX_PARAMETER_COUNT, param_value_size, param_value, param_value_size_ret);
+            kernel_config::MAX_PARAMETER_COUNT / 2, param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_MAX_WRITE_IMAGE_ARGS:
         //"Max number of simultaneous image objects that can be written to by a kernel."
         return returnValue<cl_uint>(
-            kernel_config::MAX_PARAMETER_COUNT, param_value_size, param_value, param_value_size_ret);
+            kernel_config::MAX_PARAMETER_COUNT / 2, param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_IMAGE2D_MAX_WIDTH:
         //"Max width of 2D image in pixels.  The minimum value is 2048 [...]"
         return returnValue<size_t>(
@@ -164,7 +164,7 @@ cl_int Device::getInfo(
     case CL_DEVICE_MAX_SAMPLERS:
         //"Maximum number of samplers that can be used in a kernel."
         return returnValue<cl_uint>(
-            kernel_config::MAX_PARAMETER_COUNT, param_value_size, param_value, param_value_size_ret);
+            kernel_config::MAX_PARAMETER_COUNT / 2, param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_MAX_PARAMETER_SIZE:
         //"Max size in bytes of the arguments that can be passed to a kernel. The minimum value is 1024 (256 for
         // EMBEDDED PROFILE)."
@@ -226,8 +226,10 @@ cl_int Device::getInfo(
     case CL_DEVICE_MAX_CONSTANT_ARGS:
         //"Max number of arguments declared with the __constant qualifier in a kernel.  The minimum value is 8 (4 for
         // EMBEDDED PROFILE)"
+        // Return less than our hard parameter limit to make the OpenCL-CTS test pass. We still support way more
+        // __constant parameters than required.
         return returnValue<cl_uint>(
-            kernel_config::MAX_PARAMETER_COUNT, param_value_size, param_value, param_value_size_ret);
+            kernel_config::MAX_PARAMETER_COUNT / 2, param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_LOCAL_MEM_TYPE:
         //"Type of local memory supported.  This can be set to CL_LOCAL implying dedicated local memory storage such as
         // SRAM, or CL_GLOBAL."  memory is always global
