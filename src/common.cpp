@@ -6,6 +6,7 @@
 
 #include "common.h"
 #include "extensions.h"
+#include "git_commit.h"
 
 #include <CL/opencl.h>
 
@@ -17,6 +18,11 @@
 #include <sys/prctl.h>
 
 using namespace vc4cl;
+
+// This is defined here to not need to include the git_commit.h header into the vc4cl_config.h header, since otherwise
+// we would always do an almost complete fully rebuild (since the git_commit.h header is always updated)
+const std::string platform_config::VERSION = std::string("OpenCL ") + platform_config::OPENCL_VERSION +
+    std::string(" VC4CL ") + platform_config::VC4CL_VERSION + (" (" GIT_COMMIT ")");
 
 std::string vc4cl::joinStrings(const std::vector<std::string>& strings, const std::string& delim)
 {

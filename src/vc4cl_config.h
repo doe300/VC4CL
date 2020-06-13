@@ -42,8 +42,7 @@ namespace vc4cl
         static const std::string VENDOR = "doe300";
         // we can't have FULL_PROFILE, since e.g. long is not supported
         static const std::string PROFILE = "EMBEDDED_PROFILE";
-        static const std::string VERSION =
-            std::string("OpenCL ") + OPENCL_VERSION + std::string(" VC4CL ") + VC4CL_VERSION;
+        extern const std::string VERSION;
 
         static const std::string ICD_SUFFIX = "VC4CL";
         static const Extension VC4CL_PERFORMANCE_EXTENSION{"cl_vc4cl_performance_counters", 0, 0};
