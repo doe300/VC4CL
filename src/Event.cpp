@@ -117,6 +117,11 @@ cl_int Event::getProfilingInfo(
         return returnValue<cl_ulong>(profile.submit_time, param_value_size, param_value, param_value_size_ret);
     case CL_PROFILING_COMMAND_START:
         return returnValue<cl_ulong>(profile.start_time, param_value_size, param_value, param_value_size_ret);
+#ifdef CL_VERSION_2_0
+    case CL_PROFILING_COMMAND_COMPLETE:
+        // "Returns a value equivalent to passing CL_​PROFILING_​COMMAND_​END if the device associated with event
+        // does not support On-Device Enqueue."
+#endif
     case CL_PROFILING_COMMAND_END:
         return returnValue<cl_ulong>(profile.end_time, param_value_size, param_value, param_value_size_ret);
     default:

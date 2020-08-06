@@ -231,6 +231,10 @@ cl_int executeKernel(KernelExecution& args)
     if(num_qpus > args.v3d->getSystemInfo(SystemInfo::QPU_COUNT))
         return CL_INVALID_GLOBAL_WORK_SIZE;
 
+    if(num_qpus == 0)
+        // OpenCL 3.0 requires that we allow to enqueue a kernel without any executions for some reason
+        return CL_COMPLETE;
+
     // first work-group has group_ids 0,0,0
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS> group_limits = {
         args.globalSizes[0] / args.localSizes[0],

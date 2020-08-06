@@ -9,48 +9,28 @@
 
 using namespace vc4cl;
 
-Context::Context(const Device* device, const bool userSync, cl_context_properties memoryToZeroOut,
-    const Platform* platform, const ContextProperty explicitProperties, const ContextCallback callback,
-    void* userData) :
+Context::Context(const Device* device, const Platform* platform,
+    const std::vector<cl_context_properties>& explicitProperties, const ContextErrorCallback callback, void* userData) :
     device(device),
-    userSync(userSync), platform(platform), explicitProperties(explicitProperties), memoryToInitialize(memoryToZeroOut),
-    callback(callback), userData(userData)
+    platform(platform), explicitProperties(explicitProperties), callback(callback), userData(userData)
 {
 }
 
-Context::~Context() noexcept = default;
+Context::~Context() noexcept
+{
+    // fire callbacks
+    // "The registered user callback functions are called in the reverse order in which they were registered. The user
+    // callback functions are called after destructors (if any) for program scope global variables (if any) are called
+    // and before the program is released."
+    for(auto it = callbacks.rbegin(); it != callbacks.rend(); ++it)
+    {
+        it->first(this->toBase(), it->second);
+    }
+}
 
 cl_int Context::getInfo(
     cl_context_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
-    size_t propertiesSize = 0;
-    std::array<cl_context_properties, 7> props{};
-    // this makes sure, only the explicit set properties are returned
-    if(explicitProperties & ContextProperty::PLATFORM)
-    {
-        props.at(propertiesSize) = CL_CONTEXT_PLATFORM;
-        props.at(propertiesSize + 1) = reinterpret_cast<cl_context_properties>(platform->toBase());
-        propertiesSize += 2;
-    }
-    if(explicitProperties & ContextProperty::USER_SYNCHRONISATION)
-    {
-        props.at(propertiesSize) = CL_CONTEXT_INTEROP_USER_SYNC;
-        props.at(propertiesSize + 1) = userSync ? CL_TRUE : CL_FALSE;
-        propertiesSize += 2;
-    }
-    if(explicitProperties & ContextProperty::INITIALIZE_MEMORY)
-    {
-        props.at(propertiesSize) = CL_CONTEXT_MEMORY_INITIALIZE_KHR;
-        props.at(propertiesSize + 1) = memoryToInitialize;
-        propertiesSize += 2;
-    }
-    if(explicitProperties != ContextProperty::NONE)
-    {
-        // list needs to be terminated with 0
-        props.at(propertiesSize) = static_cast<cl_context_properties>(0);
-        propertiesSize += 1;
-    }
-
     switch(param_name)
     {
     case CL_CONTEXT_REFERENCE_COUNT:
@@ -65,8 +45,8 @@ cl_int Context::getInfo(
             const_cast<cl_device_id>(device->toBase()), param_value_size, param_value, param_value_size_ret);
     case CL_CONTEXT_PROPERTIES:
         //"Return the properties argument specified in clCreateContext or clCreateContextFromType."
-        return returnValue(props.data(), sizeof(cl_context_properties), propertiesSize, param_value_size, param_value,
-            param_value_size_ret);
+        return returnValue(explicitProperties.data(), sizeof(cl_context_properties), explicitProperties.size(),
+            param_value_size, param_value, param_value_size_ret);
     default:
         return returnError(
             CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_context_info value %u", param_name));
@@ -83,7 +63,37 @@ void Context::fireCallback(const std::string& errorInfo, const void* privateInfo
 
 bool Context::initializeMemoryToZero(cl_context_properties memoryType) const
 {
-    return (explicitProperties & ContextProperty::INITIALIZE_MEMORY) && (memoryToInitialize & memoryType) != 0;
+    auto property = explicitProperties.begin();
+    while(property != explicitProperties.end())
+    {
+        if(*property == CL_CONTEXT_PLATFORM)
+        {
+            ++property;
+            ++property;
+        }
+        else if(*property == CL_CONTEXT_INTEROP_USER_SYNC)
+        {
+            ++property;
+            ++property;
+        }
+        else if(*property == CL_CONTEXT_MEMORY_INITIALIZE_KHR)
+        {
+            ++property;
+            return (*property & memoryType) != 0;
+        }
+        else
+            return false;
+    }
+    return false;
+}
+
+cl_int Context::setReleaseCallback(ContextReleaseCallback callback, void* userData)
+{
+    if(callback == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot set a NULL callback!");
+
+    callbacks.emplace_back(callback, userData);
+    return CL_SUCCESS;
 }
 
 const Context* HasContext::context() const
@@ -150,10 +160,8 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
         num_devices, "const cl_device_id*", devices,
         "void(CL_CALLBACK*)(const char* errinfo, const void* private_info, size_t cb, void* user_data)", &pfn_notify,
         "void*", user_data, "cl_int*", errcode_ret);
-    ContextProperty explicitProperties = ContextProperty::NONE;
+    std::vector<cl_context_properties> explicitProperties;
     cl_platform_id platform = Platform::getVC4CLPlatform().toBase();
-    bool user_sync = false;
-    cl_context_properties memoryToInitialize = 0;
 
     if(properties != nullptr)
     {
@@ -162,29 +170,27 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
         {
             if(*ptr == CL_CONTEXT_PLATFORM)
             {
-                explicitProperties = explicitProperties | ContextProperty::PLATFORM;
                 ++ptr;
                 platform = reinterpret_cast<cl_platform_id>(*ptr);
                 ++ptr;
             }
             else if(*ptr == CL_CONTEXT_INTEROP_USER_SYNC)
             {
-                explicitProperties = explicitProperties | ContextProperty::USER_SYNCHRONISATION;
                 ++ptr;
-                user_sync = *ptr == CL_TRUE;
                 ++ptr;
             }
             else if(*ptr == CL_CONTEXT_MEMORY_INITIALIZE_KHR)
             {
-                explicitProperties = explicitProperties | ContextProperty::INITIALIZE_MEMORY;
                 ++ptr;
-                memoryToInitialize = *ptr;
                 ++ptr;
             }
             else
                 return returnError<cl_context>(CL_INVALID_PROPERTY, errcode_ret, __FILE__, __LINE__,
                     buildString("Invalid cl_context_properties value %d!", *ptr));
         }
+        // include the trailing NULL pointer for easier handling
+        ++ptr;
+        explicitProperties.insert(explicitProperties.end(), properties, ptr);
     }
 
     if(platform != nullptr && platform != Platform::getVC4CLPlatform().toBase())
@@ -208,8 +214,8 @@ cl_context VC4CL_FUNC(clCreateContext)(const cl_context_properties* properties, 
         return returnError<cl_context>(
             CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "User data given, but no callback set!");
 
-    Context* context = newOpenCLObject<Context>(toType<Device>(device), user_sync, memoryToInitialize,
-        &Platform::getVC4CLPlatform(), explicitProperties, pfn_notify, user_data);
+    Context* context = newOpenCLObject<Context>(
+        toType<Device>(device), &Platform::getVC4CLPlatform(), explicitProperties, pfn_notify, user_data);
     CHECK_ALLOCATION_ERROR_CODE(context, errcode_ret, cl_context)
     RETURN_OBJECT(context->toBase(), errcode_ret)
 }
@@ -347,3 +353,42 @@ cl_int VC4CL_FUNC(clGetContextInfo)(cl_context context, cl_context_info param_na
     CHECK_CONTEXT(toType<Context>(context))
     return toType<Context>(context)->getInfo(param_name, param_value_size, param_value, param_value_size_ret);
 }
+
+/*!
+ *
+ * \param context specifies the OpenCL context to register the callback to.
+ * \param pfn_notify is the callback function to register. This callback function may be called asynchronously by the
+ * OpenCL implementation. It is the application's responsibility to ensure that the callback function is thread-safe.
+ * The parameters to this callback function are:
+ *  context is the OpenCL context being deleted. When the callback function is called by the implementation, this
+ * context is no longer valid. context is only provided for reference purposes.
+ *  user_data is a pointer to user-supplied data.
+ * \param user_data will be passed as the user_data argument when pfn_notify is called. user_data can be `NULL`.
+ *
+ * Each call to {clSetContextDestructorCallback} registers the specified callback function on a destructor callback
+ * stack associated with context. The registered callback functions are called in the reverse order in which they were
+ * registered. If a context callback function was specified when _context_ was created, it will not be called after any
+ * context destructor callback is called. Therefore, the context destructor callback provides a mechanism for an
+ * application to safely re-use or free any _user_data_ specified for the context callback function when _context_ was
+ * created.
+ *
+ * \return clSetContextDestructorCallback returns CL_SUCCESS if the function is executed successfully. Otherwise, it
+ * returns one of the following errors:
+ * - CL_INVALID_CONTEXT if context is not a valid context.
+ * - CL_INVALID_VALUE if pfn_notify is `NULL`.
+ * - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the
+ * device.
+ * - CL_OUT_OF_HOST_MEMORY if there is a failure to allocate resources required by the OpenCL implementation on the
+ * host.
+ */
+#ifdef CL_VERSION_3_0
+cl_int VC4CL_FUNC(clSetContextDestructorCallback)(
+    cl_context context, void(CL_CALLBACK* pfn_notify)(cl_context context, void* user_data), void* user_data)
+{
+    VC4CL_PRINT_API_CALL("cl_int", clSetContextDestructorCallback, "cl_context", context,
+        "void(CL_CALLBACK*)(cl_context context, void* user_data)", &pfn_notify, "void*", user_data);
+    CHECK_CONTEXT(toType<Context>(context))
+    auto con = toType<Context>(context);
+    return con->setReleaseCallback(pfn_notify, user_data);
+}
+#endif

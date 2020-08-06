@@ -697,10 +697,18 @@ cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* pa
         if(parent)
             return returnValue<size_t>(subBufferOffset, param_value_size, param_value, param_value_size_ret);
         return returnValue<size_t>(0, param_value_size, param_value, param_value_size_ret);
+#ifdef CL_VERSION_2_0 /* these are not really supported, but required to be present for OpenCL 3.0 support */
+    case CL_MEM_USES_SVM_POINTER:
+        return returnValue<cl_bool>(CL_FALSE, param_value_size, param_value, param_value_size_ret);
+#endif
 #ifdef CL_VERSION_3_0
     case CL_MEM_PROPERTIES:
         // "OpenCL 3.0 does not define any optional properties for buffers."
-        return returnValue<cl_mem_properties>(0, param_value_size, param_value, param_value_size_ret);
+        // "If memobj was created using clCreateBuffer, [...] or if the properties argument specified in
+        // clCreateBufferWithProperties [...] was NULL, the implementation must return param_value_size_ret equal to 0,
+        // indicating that there are no properties to be returned."
+        // TODO in cases see above, return value-size of 0. If the properties are { 0 }, need to return { 0 }!!
+        return returnValue(nullptr, 0, 0, param_value_size, param_value, param_value_size_ret);
 #endif
     }
 

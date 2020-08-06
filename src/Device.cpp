@@ -396,7 +396,7 @@ cl_int Device::getInfo(
         // "Returns detailed (major, minor, patch) numeric version information. The major and minor version numbers
         // returned must match those returned via `CL_DEVICE_VERSION`."
         return returnValue<cl_version_khr>(
-            CL_MAKE_VERSION_KHR(1, 2, 0), param_value_size, param_value, param_value_size_ret);
+            CL_MAKE_VERSION_KHR(3, 0, 6), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_OPENCL_C_NUMERIC_VERSION_KHR:
         // cl_khr_extended_versioning
         // "Returns detailed (major, minor, patch) numeric version information. The major and minor version numbers
@@ -445,6 +445,31 @@ cl_int Device::getInfo(
         //"This query can return 0 which indicates that the preferred alignment is aligned to the natural size of the
         // type."
         return returnValue<cl_uint>(0, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_QUEUE_ON_DEVICE_PROPERTIES:
+        // "Must be 0 for devices that do not support on-device queues."
+        return returnValue<cl_command_queue_properties>(0, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE:
+    case CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE:
+    case CL_DEVICE_MAX_ON_DEVICE_QUEUES:
+    case CL_DEVICE_MAX_ON_DEVICE_EVENTS:
+        // "[...] and must be 0 for devices that do not support on-device queues."
+        return returnValue<cl_uint>(0, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_MAX_PIPE_ARGS:
+    case CL_DEVICE_PIPE_MAX_ACTIVE_RESERVATIONS:
+    case CL_DEVICE_PIPE_MAX_PACKET_SIZE:
+        // "[...] and must be 0 for devices that do not support pipes."
+        return returnValue<cl_uint>(0, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_MAX_GLOBAL_VARIABLE_SIZE:
+    case CL_DEVICE_GLOBAL_VARIABLE_PREFERRED_TOTAL_SIZE:
+        // "[...] and must be 0 for devices that do not support program scope global variables."
+        return returnValue<size_t>(0, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_MAX_READ_WRITE_IMAGE_ARGS:
+        // "[...] and must be 0 for devices that do not support read-write images."
+        return returnValue<cl_uint>(0, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_IMAGE_PITCH_ALIGNMENT:
+    case CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT:
+        // "This value must be 0 for devices that do not support 2D images created from a buffer."
+        return returnValue<cl_uint>(0, param_value_size, param_value, param_value_size_ret);
 #endif
 #ifdef CL_VERSION_2_1 /* these are not really supported, but required to be present for OpenCL 3.0 support */
     case CL_DEVICE_MAX_NUM_SUB_GROUPS:
@@ -473,9 +498,11 @@ cl_int Device::getInfo(
     case CL_DEVICE_WORK_GROUP_COLLECTIVE_FUNCTIONS_SUPPORT:
     case CL_DEVICE_GENERIC_ADDRESS_SPACE_SUPPORT:
         // TODO can't we actually support generic address spaces? Assuming we can configure clang to do so?!
-    case CL_DEVICE_DEVICE_ENQUEUE_SUPPORT:
     case CL_DEVICE_PIPE_SUPPORT:
         return returnValue<cl_bool>(CL_FALSE, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_DEVICE_ENQUEUE_CAPABILITIES:
+        // "May return `0`, indicating that device does not support Device-Side Enqueue and On-Device Queues."
+        return returnValue<cl_bitfield>(0, param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
         //"Returns the preferred multiple of work-group size for the given device. This is a performance hint intended
         // as a guide when specifying the local work size argument to clEnqueueNDRangeKernel."
@@ -489,6 +516,10 @@ cl_int Device::getInfo(
         // "Returns an array of optional OpenCL C features supported by the compiler for the device alongside the OpenCL
         // C version for which they are supported."
         return returnExtensions(device_config::OPENCL_C_FEATURES, param_value_size, param_value, param_value_size_ret);
+    case CL_DEVICE_LATEST_CONFORMANCE_VERSION_PASSED:
+        // "Returns the latest version of the conformance test suite that this device has fully passed in accordance
+        // with the official conformance process."
+        return returnString("", param_value_size, param_value, param_value_size_ret);
 #endif
     default:
         // invalid parameter-name

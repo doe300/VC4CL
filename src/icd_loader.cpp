@@ -321,11 +321,13 @@ _cl_icd_dispatch vc4cl_dispatch = {
 
 /* OpenCL 3.0 */
 #ifdef CL_VERSION_3_0
-    &VC4CL_clCreateBufferWithProperties, /* clCreateBufferWithProperties */
-    &VC4CL_clCreateImageWithProperties   /* clCreateImageWithProperties */
+    &VC4CL_clCreateBufferWithProperties,  /* clCreateBufferWithProperties */
+    &VC4CL_clCreateImageWithProperties,   /* clCreateImageWithProperties */
+    &VC4CL_clSetContextDestructorCallback /* clSetContextDestructorCallback */
 #else
     nullptr, /* clCreateBufferWithProperties */
-    nullptr  /* clCreateImageWithProperties */
+    nullptr, /* clCreateImageWithProperties */
+    nullptr  /* clSetContextDestructorCallback */
 #endif
 };
 #pragma GCC diagnostic pop

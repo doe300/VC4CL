@@ -44,6 +44,11 @@ cl_int CommandQueue::getInfo(
         // properties argument in clCreateCommandQueue."
         return returnValue<cl_command_queue_properties>(
             properties, param_value_size, param_value, param_value_size_ret);
+#ifdef CL_VERSION_2_0
+    case CL_QUEUE_SIZE:
+        // "Returns CL_INVALID_COMMAND_QUEUE since _command_queue_ cannot be a valid device command-queue."
+        return CL_INVALID_COMMAND_QUEUE;
+#endif
 #ifdef CL_VERSION_2_1
     case CL_QUEUE_DEVICE_DEFAULT:
         // "Returns 0 or NULL if the device associated with command_queue does not support On-Device Queues."
@@ -53,11 +58,10 @@ cl_int CommandQueue::getInfo(
     case CL_QUEUE_PROPERTIES_ARRAY:
         // "Return the properties argument specified in clCreateCommandQueueWithProperties."
         // "If command_queue was created using clCreateCommandQueue, or if the properties argument specified in
-        // clCreateCommandQueueWithProperties was NULL, the implementation may return either a param_value_size_ret of
-        // 0 (i.e. there is are no properties to be returned), or the implementation may return a property value of 0
-        // (where 0 is used to terminate the properties list)."
-        // TODO to be precise, must return NULL or 0 property if not created with clCreateCommandQueueWithProperties()
-        return returnValue<cl_command_queue_properties>(0, param_value_size, param_value, param_value_size_ret);
+        // clCreateCommandQueueWithProperties was NULL, the implementation must return param_value_size_ret equal to 0,
+        // indicating that there are no properties to be returned."
+        // TODO in cases see above, return value-size of 0. If the properties are { 0 }, need to return { 0 }!!
+        return returnValue(nullptr, 0, 0, param_value_size, param_value, param_value_size_ret);
 #endif
     }
 

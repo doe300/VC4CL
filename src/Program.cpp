@@ -488,6 +488,11 @@ cl_int Program::getBuildInfo(
         }
         return returnValue<cl_program_binary_type>(
             CL_PROGRAM_BINARY_TYPE_EXECUTABLE, param_value_size, param_value, param_value_size_ret);
+#ifdef CL_VERSION_2_0 /* these are not really supported, but required to be present for OpenCL 3.0 support */
+    case CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE:
+        // "The total amount of storage, in bytes, used by program variables in the global address space."
+        return returnValue<size_t>(0, param_value_size, param_value, param_value_size_ret);
+#endif
     }
 
     return returnError(
@@ -743,7 +748,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(
  *
  *  \param errcode_ret will return an appropriate error code. If errcode_ret is NULL, no error code is returned.
  *
- *  \return clCreateProgramWithILKHR returns a valid non-zero program object and errcode_ret is set to CL_SUCCESS if the
+ *  \return clCreateProgramWithIL returns a valid non-zero program object and errcode_ret is set to CL_SUCCESS if the
  * program object is created successfully. Otherwise, it returns a NULL value with one of the following error values
  * returned in errcode_ret:
  *  - CL_INVALID_CONTEXT if context is not a valid context
@@ -755,6 +760,12 @@ cl_program VC4CL_FUNC(clCreateProgramWithSource)(
  *  - CL_OUT_OF_HOST_MEMORY if there is a failure to allocate resources required by the OpenCL implementation on the
  * host
  */
+#ifdef CL_VERSION_2_1
+cl_program VC4CL_FUNC(clCreateProgramWithIL)(cl_context context, const void* il, size_t length, cl_int* errcode_ret)
+{
+    return VC4CL_FUNC(clCreateProgramWithILKHR)(context, il, length, errcode_ret);
+}
+#endif
 cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* il, size_t length, cl_int* errcode_ret)
 {
     VC4CL_PRINT_API_CALL("cl_program", clCreateProgramWithILKHR, "cl_context", context, "const void*", il, "size_t",
@@ -1493,6 +1504,11 @@ cl_int VC4CL_FUNC(clSetProgramReleaseCallback)(
 {
     VC4CL_PRINT_API_CALL("cl_int", clSetProgramReleaseCallback, "cl_program", program,
         "void(CL_CALLBACK*)(cl_program program, void* user_data)", &pfn_notify, "void*", user_data);
+
+    // "[Returns] CL_INVALID_OPERATION if no devices in the context associated with program support destructors for
+    // program scope global variables."
+    return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "Program scope global variable are not supported!");
+
     CHECK_PROGRAM(toType<Program>(program))
     auto prog = toType<Program>(program);
     if(prog->creationType != CreationType::INTERMEDIATE_LANGUAGE)

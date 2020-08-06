@@ -61,7 +61,7 @@ cl_int Platform::getInfo(
         // "Returns detailed (major, minor, patch) numeric version information. The major and minor version numbers
         // returned must match those returned via `CL_PLATFORM_VERSION`."
         return returnValue<cl_version_khr>(
-            CL_MAKE_VERSION_KHR(1, 2, 0), param_value_size, param_value, param_value_size_ret);
+            CL_MAKE_VERSION_KHR(3, 0, 6), param_value_size, param_value, param_value_size_ret);
     case CL_PLATFORM_EXTENSIONS_WITH_VERSION_KHR:
         // enabled by the cl_khr_extended_versioning extension
         // "Returns an array of description (name and version) structures. The same extension name must not be reported

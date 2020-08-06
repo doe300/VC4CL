@@ -103,7 +103,7 @@ Kernel::Kernel(const Kernel& other) : program(other.program), info(other.info), 
 {
     args.reserve(other.args.size());
     for(const auto& arg : other.args)
-        args.emplace_back(arg->clone());
+        args.emplace_back(arg ? arg->clone() : nullptr);
 }
 
 Kernel::~Kernel() noexcept = default;
@@ -575,18 +575,18 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
                 info.compileGroupSizes[1], work_dim < 3 ? 1 : local_work_size[2], info.compileGroupSizes[2]));
     else
         memcpy(local_sizes.data(), local_work_size, work_dim * sizeof(size_t));
-    if(exceedsLimits<size_t>(work_sizes[0], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[0]) ||
-        exceedsLimits<size_t>(work_sizes[1], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[1]) ||
-        exceedsLimits<size_t>(work_sizes[2], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]))
+    if(exceedsLimits<size_t>(work_sizes[0], 0, kernel_config::MAX_WORK_ITEM_DIMENSIONS[0]) ||
+        exceedsLimits<size_t>(work_sizes[1], 0, kernel_config::MAX_WORK_ITEM_DIMENSIONS[1]) ||
+        exceedsLimits<size_t>(work_sizes[2], 0, kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]))
     {
         return returnError(CL_INVALID_GLOBAL_WORK_SIZE, __FILE__, __LINE__,
             buildString("Global-work-size exceeds maxima: %u (%u), %u (%u), %u (%u)", work_sizes[0],
                 kernel_config::MAX_WORK_ITEM_DIMENSIONS[0], work_sizes[1], kernel_config::MAX_WORK_ITEM_DIMENSIONS[1],
                 work_sizes[2], kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]));
     }
-    if(exceedsLimits<size_t>(work_sizes[0] + work_offsets[0], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[0]) ||
-        exceedsLimits<size_t>(work_sizes[1] + work_offsets[1], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[1]) ||
-        exceedsLimits<size_t>(work_sizes[2] + work_offsets[2], 1, kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]))
+    if(exceedsLimits<size_t>(work_sizes[0] + work_offsets[0], 0, kernel_config::MAX_WORK_ITEM_DIMENSIONS[0]) ||
+        exceedsLimits<size_t>(work_sizes[1] + work_offsets[1], 0, kernel_config::MAX_WORK_ITEM_DIMENSIONS[1]) ||
+        exceedsLimits<size_t>(work_sizes[2] + work_offsets[2], 0, kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]))
     {
         return returnError(CL_INVALID_GLOBAL_OFFSET, __FILE__, __LINE__,
             buildString("Global-work-size and offset exceeds maxima: %u (%u), %u (%u), %u (%u)",
@@ -595,7 +595,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
                 work_sizes[2] + work_offsets[2], kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]));
     }
     if(exceedsLimits<size_t>(
-           local_sizes[0] * local_sizes[1] * local_sizes[2], 1, V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT)))
+           local_sizes[0] * local_sizes[1] * local_sizes[2], 0, V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT)))
         return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__,
             buildString("Local work-sizes exceed maximum: %u * %u * %u > %u", local_sizes[0], local_sizes[1],
                 local_sizes[2], V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT)));
@@ -603,7 +603,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
     // check divisibility of local_sizes[i] by work_sizes[i]
     for(cl_uint i = 0; i < kernel_config::NUM_DIMENSIONS; ++i)
     {
-        if(work_sizes.at(i) % local_sizes.at(i) != 0)
+        if(local_sizes.at(i) != 0 && work_sizes.at(i) % local_sizes.at(i) != 0)
         {
             return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__,
                 buildString("Global-work-size is not divisible by local-work-size: %u and %u", work_sizes.at(i),
