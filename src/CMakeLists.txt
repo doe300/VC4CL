@@ -65,7 +65,7 @@ set_target_properties(
 
 find_program(
 	CLANG_FORMAT_PATH
-	NAMES clang-format clang-format-3.8 clang-format-3.9 clang-format-4.0
+	NAMES clang-format clang-format-3.8 clang-format-3.9 clang-format-4.0 clang-format-5.0 clang-format-6.0 clang-format-7 clang-format-8 clang-format-9
 	HINTS "/usr/bin" "/usr/local/bin"
 )
 
