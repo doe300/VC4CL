@@ -192,9 +192,9 @@ static void dumpMemoryState(std::ostream& os, const Kernel* kernel, const Kernel
     unsigned tmp = printHead ? 0 : 0xFFFFFFFFu;
     os.write(reinterpret_cast<char*>(&tmp), sizeof(unsigned));
     // parameter have this format: pointer-bit| # words | <data (direct or buffer contents)>
-    for(unsigned i = 0; i < kernel->args.size(); ++i)
+    for(unsigned i = 0; i < args.executionArguments.size(); ++i)
     {
-        const auto& arg = kernel->args[i];
+        const auto& arg = args.executionArguments[i];
         auto bufferIt = args.persistentBuffers.find(i);
         auto tmpIt = args.tmpBuffers.find(i);
         if(bufferIt != args.persistentBuffers.end())
@@ -360,7 +360,7 @@ cl_int executeKernel(KernelExecution& args)
                     std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
                               << " to buffer 0x" << std::hex << devicePtr << std::dec << std::endl)
             }
-            else if(auto scalarArg = dynamic_cast<const ScalarArgument*>(kernel->args.at(u).get()))
+            else if(auto scalarArg = dynamic_cast<const ScalarArgument*>(args.executionArguments.at(u).get()))
             {
                 // "default" scalar or vector of scalar kernel argument
                 for(cl_uchar i = 0; i < kernel->info.params[u].getVectorElements(); ++i)
@@ -480,6 +480,9 @@ cl_int executeKernel(KernelExecution& args)
             std::cout << "Execution: " << (result.waitFor() ? "successful" : "failed") << std::endl)
     }
 
+    // wait for (possible asynchronous) execution before freeing the buffers
+    auto status = result.waitFor();
+
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
         // Append the buffers after the kernel execution
         dumpMemoryState(f, kernel, args, *buffer, qpu_code, uniformPointers[0][0], false);
@@ -493,8 +496,7 @@ cl_int executeKernel(KernelExecution& args)
     // since we do not need the buffers anymore
     args.tmpBuffers.clear();
     args.persistentBuffers.clear();
+    args.executionArguments.clear();
 
-    if(result.waitFor())
-        return CL_COMPLETE;
-    return CL_OUT_OF_RESOURCES;
+    return status ? CL_COMPLETE : CL_OUT_OF_RESOURCES;
 }

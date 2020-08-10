@@ -11,6 +11,8 @@
 #include "V3D.h"
 #include "extensions.h"
 
+#include <algorithm>
+
 using namespace vc4cl;
 
 extern cl_int executeKernel(KernelExecution&);
@@ -52,6 +54,11 @@ std::string ScalarArgument::to_string() const
     return res.substr(0, res.length() - 2);
 }
 
+std::unique_ptr<KernelArgument> ScalarArgument::clone() const
+{
+    return std::make_unique<ScalarArgument>(*this);
+}
+
 TemporaryBufferArgument::~TemporaryBufferArgument() noexcept = default;
 
 std::string TemporaryBufferArgument::to_string() const
@@ -59,11 +66,21 @@ std::string TemporaryBufferArgument::to_string() const
     return "temporary buffer" + (data.empty() ? "" : (" (with " + std::to_string(data.size()) + " bytes of data)"));
 }
 
+std::unique_ptr<KernelArgument> TemporaryBufferArgument::clone() const
+{
+    return std::make_unique<TemporaryBufferArgument>(*this);
+}
+
 BufferArgument::~BufferArgument() noexcept = default;
 
 std::string BufferArgument::to_string() const
 {
     return std::to_string(buffer ? static_cast<unsigned>(buffer->deviceBuffer->qpuPointer) : 0);
+}
+
+std::unique_ptr<KernelArgument> BufferArgument::clone() const
+{
+    return std::make_unique<BufferArgument>(*this);
 }
 
 Kernel::Kernel(Program* program, const KernelInfo& info) : program(program), info(info), argsSetMask(0)
@@ -581,6 +598,10 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
     source->globalOffsets = work_offsets;
     source->globalSizes = work_sizes;
     source->localSizes = local_sizes;
+    // need to clone the arguments to avoid race conditions
+    source->executionArguments.reserve(args.size());
+    std::transform(args.begin(), args.end(), std::back_inserter(source->executionArguments),
+        [](const auto& arg) { return arg->clone(); });
     source->tmpBuffers = std::move(tmpBuffers);
     source->persistentBuffers = std::move(persistentBuffers);
 

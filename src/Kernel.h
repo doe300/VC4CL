@@ -13,6 +13,7 @@
 
 #include <bitset>
 #include <map>
+#include <memory>
 #include <vector>
 
 namespace vc4cl
@@ -56,6 +57,7 @@ namespace vc4cl
         virtual ~KernelArgument() noexcept;
 
         virtual std::string to_string() const = 0;
+        virtual std::unique_ptr<KernelArgument> clone() const = 0;
     };
 
     /**
@@ -83,6 +85,7 @@ namespace vc4cl
         void addScalar(int32_t s);
 
         std::string to_string() const override;
+        std::unique_ptr<KernelArgument> clone() const override;
     };
 
     /**
@@ -120,6 +123,7 @@ namespace vc4cl
         std::vector<uint8_t> data;
 
         std::string to_string() const override;
+        std::unique_ptr<KernelArgument> clone() const override;
     };
 
     /**
@@ -141,6 +145,7 @@ namespace vc4cl
         Buffer* buffer;
 
         std::string to_string() const override;
+        std::unique_ptr<KernelArgument> clone() const override;
     };
 
     struct KernelExecution final : public EventAction
@@ -150,6 +155,16 @@ namespace vc4cl
         std::array<std::size_t, kernel_config::NUM_DIMENSIONS> globalOffsets;
         std::array<std::size_t, kernel_config::NUM_DIMENSIONS> globalSizes;
         std::array<std::size_t, kernel_config::NUM_DIMENSIONS> localSizes;
+
+        /**
+         * Tracks the state of the kernel arguments at the point this kernel execution event was created
+         * (clEnqueueNDRangeKernel was called).
+         *
+         * We need to take a snapshot of the arguments and their values at the point of queuing the kernel execution,
+         * since the arguments of the kernel object might be modified afterwards in preparation of executing the same
+         * kernel object again.
+         */
+        std::vector<std::unique_ptr<KernelArgument>> executionArguments;
 
         /**
          * Tracks temporary and preexisting device buffers to guarantee they exist until the kernel finishes
