@@ -33,10 +33,10 @@ cl_int Event::setUserEventStatus(cl_int execution_status)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
             buildString("Event has already finished with status %d", execution_status));
 
+    std::lock_guard<std::mutex> guard(statusLock);
     if(userStatusSet)
         return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "User status has already been set!");
 
-    std::lock_guard<std::mutex> guard(statusLock);
     status = execution_status;
     userStatusSet = true;
 

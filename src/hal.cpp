@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <fstream>
 #include <numeric>
 
 #if defined(MOCK_HAL) && MOCK_HAL
@@ -29,6 +30,7 @@ static bool isQPUEnabled = false;
 static constexpr uint32_t INDEX_OFFSET = 23;
 static constexpr uint32_t ADDRESS_MASK = (1 << INDEX_OFFSET) - 1;
 static std::array<std::vector<uint8_t>, 1 << (30 - INDEX_OFFSET)> allocatedMemory;
+static std::mutex memoryLock;
 static vc4cl::WordWrapper completedPrograms{0, [](uint32_t val) -> uint32_t {
                                                 // XXX actually only some values clear the counter(s!), but we always
                                                 // write these values anyway
@@ -38,6 +40,7 @@ struct LeakCheck
 {
     ~LeakCheck()
     {
+        std::lock_guard<std::mutex> guard(memoryLock);
         for(unsigned i = 0; i < allocatedMemory.size(); ++i)
         {
             if(!allocatedMemory[i].empty())
@@ -77,6 +80,19 @@ int vc4cl::close_mailbox(int fd)
 {
     // no-op
     return 0;
+}
+
+static void dumpEmulationLog(std::string&& fileName, std::wistream& logStream)
+{
+    using namespace vc4cl;
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
+        const std::string dumpFile("/tmp/vc4cl-emulation-" + fileName + "-" + std::to_string(rand()) + ".log");
+        std::wofstream f;
+        // Dump the emulation log
+        std::cout << "Dumping emulation log to " << dumpFile << std::endl;
+        f.open(dumpFile, std::ios_base::out | std::ios_base::trunc);
+        f << logStream.rdbuf();
+    })
 }
 
 static bool emulateQPU(unsigned numQPUs, uint32_t bufferIndex, uint32_t controlOffset, uint32_t timeoutInMs)
@@ -125,6 +141,8 @@ static bool emulateQPU(unsigned numQPUs, uint32_t bufferIndex, uint32_t controlO
         auto res = vc4c::tools::emulate(data);
         // XXX mod 256
         completedPrograms.word += (1 << 16);
+
+        dumpEmulationLog(std::to_string(bufferIndex), logStream);
         return res.executionSuccessful;
     }
     catch(const vc4c::CompilationError& err)
@@ -132,6 +150,7 @@ static bool emulateQPU(unsigned numQPUs, uint32_t bufferIndex, uint32_t controlO
         std::cerr << "Error in emulating kernel execution: " << std::endl;
         std::wcerr << logStream.rdbuf();
         std::cerr << err.what() << std::endl;
+        dumpEmulationLog(std::to_string(bufferIndex), logStream);
         return false;
     }
 }
@@ -158,6 +177,7 @@ int vc4cl::ioctl_mailbox(int fd, unsigned long request, void* data)
             buffer[5] = 0;
         else
         {
+            std::lock_guard<std::mutex> guard(memoryLock);
             // look for the first empty buffer and re-use
             auto it = std::find(allocatedMemory.begin(), allocatedMemory.end(), std::vector<uint8_t>{});
             if(it != allocatedMemory.end())
@@ -220,10 +240,13 @@ int vc4cl::ioctl_mailbox(int fd, unsigned long request, void* data)
         buffer[6] = 0xCAFFEE11;
         break;
     case MailboxTag::RELEASE_MEMORY:
+    {
+        std::lock_guard<std::mutex> guard(memoryLock);
         // uses index + 1, see ALLOCATE_MEMORY
         allocatedMemory[buffer[5] - 1].clear();
         buffer[5] = 0;
         break;
+    }
     case MailboxTag::UNLOCK_MEMORY:
         buffer[5] = 0;
         break;

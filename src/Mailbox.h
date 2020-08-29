@@ -41,6 +41,7 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -96,7 +97,10 @@ namespace vc4cl
         void dumpContent() const;
 
     private:
-        DeviceBuffer(uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size);
+        DeviceBuffer(
+            const std::shared_ptr<Mailbox>& mb, uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size);
+
+        std::shared_ptr<Mailbox> mailbox;
 
         friend class Mailbox;
     };
@@ -288,7 +292,7 @@ namespace vc4cl
     template <MailboxTag Tag>
     using QueryMessage = MailboxMessage<Tag, 1 /* single request value */, 2 /* one or two response values */>;
 
-    class Mailbox
+    class Mailbox : public std::enable_shared_from_this<Mailbox>
     {
     public:
         Mailbox();
@@ -302,7 +306,7 @@ namespace vc4cl
         Mailbox& operator=(Mailbox&&) = delete;
 
         DeviceBuffer* allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes = PAGE_ALIGNMENT,
-            MemoryFlag flags = MemoryFlag::L1_NONALLOCATING) const;
+            MemoryFlag flags = MemoryFlag::L1_NONALLOCATING);
         bool deallocateBuffer(const DeviceBuffer* buffer) const;
 
         CHECK_RETURN ExecutionHandle executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1,
@@ -337,7 +341,7 @@ namespace vc4cl
         CHECK_RETURN bool checkReturnValue(unsigned value) const __attribute__((const));
     };
 
-    Mailbox& mailbox();
+    std::shared_ptr<Mailbox>& mailbox();
 
     enum class VC4Clock
     {

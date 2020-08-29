@@ -103,7 +103,7 @@ cl_int Device::getInfo(
     {
         //"Maximum configured clock frequency of the device in MHz."
         QueryMessage<MailboxTag::GET_MAX_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::V3D)});
-        if(!mailbox().readMailboxMessage(msg))
+        if(!mailbox()->readMailboxMessage(msg))
             return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Error reading mailbox-info V3D max clock rate!");
         return returnValue<cl_uint>(msg.getContent(1) / 1000000 /* clock rate is in Hz -> MHz */, param_value_size,
             param_value, param_value_size_ret);
@@ -117,7 +117,7 @@ cl_int Device::getInfo(
         //"Max size of memory object allocation in bytes.  The minimum value is max (1/4th of CL_DEVICE_GLOBAL_MEM_SIZE,
         // 1 MB)"
         return returnValue<cl_ulong>(
-            mailbox().getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
+            mailbox()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_IMAGE_SUPPORT:
         //"Is CL_TRUE if images are supported by the OpenCL device and CL_FALSE otherwise."
 #ifdef IMAGE_SUPPORT
@@ -218,11 +218,11 @@ cl_int Device::getInfo(
     case CL_DEVICE_GLOBAL_MEM_SIZE:
         //"Size of global device memory in bytes."
         return returnValue<cl_ulong>(
-            mailbox().getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
+            mailbox()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
         //"Max size in bytes of a constant buffer allocation.  The minimum value is 64 KB (1KB for EMBEDDED PROFILE)"
         return returnValue<cl_ulong>(
-            mailbox().getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
+            mailbox()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_MAX_CONSTANT_ARGS:
         //"Max number of arguments declared with the __constant qualifier in a kernel.  The minimum value is 8 (4 for
         // EMBEDDED PROFILE)"
@@ -237,7 +237,7 @@ cl_int Device::getInfo(
     case CL_DEVICE_LOCAL_MEM_SIZE:
         //"Size of local memory arena in bytes.  The minimum value is 32 KB (1KB for EMBEDDED PROFILE)"
         return returnValue<cl_ulong>(
-            mailbox().getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
+            mailbox()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
         // Is CL_TRUE if the device implements error correction for all accesses to compute device memory (global and
         // constant)"
@@ -383,7 +383,7 @@ cl_int Device::getInfo(
         // default to 0."
         QueryMessage<MailboxTag::GET_TEMPERATURE> msg({0});
         //"Return the temperature of the SoC in thousandths of a degree C. id should be zero."
-        if(!mailbox().readMailboxMessage(msg))
+        if(!mailbox()->readMailboxMessage(msg))
             return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Error reading mailbox-info device temperature!");
         return returnValue<cl_int>(msg.getContent(1) / 1000, param_value_size, param_value, param_value_size_ret);
     }

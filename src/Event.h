@@ -165,7 +165,8 @@ namespace vc4cl
 
         std::vector<std::tuple<cl_int, EventCallback, void*>> callbacks;
         // This keeps all wait-list events alive until this event is released, but guarantees they are alive as long
-        // as we need them.
+        // as we need them. There is no need to synchronize the wait list, since it is filled once before the event is
+        // enqueued and after that only accessed from the event handler thread.
         std::vector<object_wrapper<Event>> waitList;
 
         friend class CommandQueue;

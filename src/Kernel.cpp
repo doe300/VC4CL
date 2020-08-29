@@ -251,7 +251,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
             if(arg_size == 0)
                 return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
                     "The argument size for __local pointers must not be zero!");
-            if(arg_size > std::numeric_limits<unsigned>::max() || arg_size > mailbox().getTotalGPUMemory())
+            if(arg_size > std::numeric_limits<unsigned>::max() || arg_size > mailbox()->getTotalGPUMemory())
                 return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
                     "The argument size for __local pointers exceeds the supported maximum!");
             args[arg_index].reset(new TemporaryBufferArgument(static_cast<unsigned>(arg_size)));
@@ -640,7 +640,7 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
             }
             else
             {
-                auto bufIt = tmpBuffers.emplace(i, mailbox().allocateBuffer(localArg->sizeToAllocate)).first;
+                auto bufIt = tmpBuffers.emplace(i, mailbox()->allocateBuffer(localArg->sizeToAllocate)).first;
                 if(!bufIt->second)
                     // failed to allocate the temporary buffer
                     return CL_OUT_OF_RESOURCES;
@@ -689,7 +689,7 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
     return CL_SUCCESS;
 }
 
-KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), numDimensions(0) {}
+KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), mailbox(vc4cl::mailbox()), numDimensions(0) {}
 KernelExecution::~KernelExecution() = default;
 
 cl_int KernelExecution::operator()()

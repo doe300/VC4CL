@@ -22,6 +22,7 @@ namespace vc4cl
     struct DevicePointer;
     struct KernelArgument;
     class Buffer;
+    class Mailbox;
 
     class Kernel final : public Object<_cl_kernel, CL_INVALID_KERNEL>
     {
@@ -41,7 +42,7 @@ namespace vc4cl
             cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event);
 
         object_wrapper<Program> program;
-        KernelInfo info;
+        const KernelInfo info;
 
         std::vector<std::unique_ptr<KernelArgument>> args;
         std::bitset<kernel_config::MAX_PARAMETER_COUNT> argsSetMask;
@@ -151,6 +152,10 @@ namespace vc4cl
     struct KernelExecution final : public EventAction
     {
         object_wrapper<Kernel> kernel;
+        // Keep a reference to the mailbox to guarantee it still exists when we actually do the execution. This is
+        // mostly to gracefully handle application errors, e.g. when a kernel is executed and not waited for finished
+        // and then the application shuts down.
+        std::shared_ptr<Mailbox> mailbox;
         cl_uchar numDimensions;
         std::array<std::size_t, kernel_config::NUM_DIMENSIONS> globalOffsets;
         std::array<std::size_t, kernel_config::NUM_DIMENSIONS> globalSizes;

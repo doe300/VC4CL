@@ -127,8 +127,8 @@ static bool increment_index(std::array<std::size_t, kernel_config::NUM_DIMENSION
     return indices[2] < limits[2];
 }
 
-static ExecutionHandle executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> controlAddress, bool flushBuffer,
-    std::chrono::milliseconds timeout)
+static ExecutionHandle executeQPU(const std::shared_ptr<Mailbox>& mailbox, unsigned numQPUs,
+    std::pair<uint32_t*, unsigned> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout)
 {
 #ifdef REGISTER_POKE_KERNELS
     return V3D::instance().executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
@@ -143,7 +143,7 @@ static ExecutionHandle executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigne
          */
         // TODO test with less delay? hangs? works? better performance?
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    return mailbox().executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
+    return mailbox->executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
 #endif
 }
 
@@ -220,7 +220,7 @@ static void dumpMemoryState(std::ostream& os, const Kernel* kernel, const Kernel
 
 cl_int executeKernel(KernelExecution& args)
 {
-    Kernel* kernel = args.kernel.get();
+    const Kernel* kernel = args.kernel.get();
     CHECK_KERNEL(kernel)
 
     // the number of QPUs is the product of all local sizes
@@ -258,7 +258,7 @@ cl_int executeKernel(KernelExecution& args)
         num_qpus * (MAX_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()),
         kernel->program->globalData.size() * sizeof(uint64_t), kernel->program->moduleInfo.getStackFrameSize());
 
-    std::unique_ptr<DeviceBuffer> buffer(mailbox().allocateBuffer(static_cast<unsigned>(buffer_size)));
+    std::unique_ptr<DeviceBuffer> buffer(args.mailbox->allocateBuffer(static_cast<unsigned>(buffer_size)));
     if(!buffer)
         return CL_OUT_OF_RESOURCES;
 
@@ -286,7 +286,7 @@ cl_int executeKernel(KernelExecution& args)
     const unsigned global_data = AS_GPU_ADDRESS(p, buffer.get());
     if(!kernel->program->globalData.empty())
     {
-        void* data_start = kernel->program->globalData.data();
+        const void* data_start = kernel->program->globalData.data();
         const unsigned data_length = static_cast<unsigned>(kernel->program->globalData.size() * sizeof(uint64_t));
         memcpy(p, data_start, data_length);
         p += data_length / sizeof(unsigned);
@@ -306,7 +306,7 @@ cl_int executeKernel(KernelExecution& args)
 
     // Copy QPU program into GPU memory
     const unsigned* qpu_code = p;
-    void* code_start = &kernel->program->binaryCode[kernel->info.getOffset()];
+    const void* code_start = &kernel->program->binaryCode[kernel->info.getOffset()];
     memcpy(p, code_start, kernel->info.getLength() * sizeof(uint64_t));
     p += kernel->info.getLength() * sizeof(uint64_t) / sizeof(unsigned);
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
@@ -445,7 +445,7 @@ cl_int executeKernel(KernelExecution& args)
     // calculate execution timeout depending on the number of work-groups to be executed at once
     auto timeout = KERNEL_TIMEOUT * std::max(std::size_t{30}, group_limits[0] * group_limits[1] * group_limits[2]);
     // on first execution, flush code cache
-    auto result = executeQPU(static_cast<unsigned>(num_qpus),
+    auto result = executeQPU(args.mailbox, static_cast<unsigned>(num_qpus),
         std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), true, timeout);
     // NOTE: This disables background-execution!
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
@@ -473,7 +473,7 @@ cl_int executeKernel(KernelExecution& args)
             std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", "
                       << group_indices[2] << std::endl)
         // all following executions, don't flush cache
-        result = executeQPU(static_cast<unsigned>(num_qpus),
+        result = executeQPU(args.mailbox, static_cast<unsigned>(num_qpus),
             std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), false, timeout);
         // NOTE: This disables background-execution!
         DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,

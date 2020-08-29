@@ -157,7 +157,7 @@ int main(int argc, char** argv)
         mailbox();
         // if we initialize the mailbox, we can also query the clock rate
         QueryMessage<MailboxTag::GET_MAX_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::V3D)});
-        if(mailbox().readMailboxMessage(msg))
+        if(mailbox()->readMailboxMessage(msg))
         {
             clockRate = msg.getContent(1);
         }

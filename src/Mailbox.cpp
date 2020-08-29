@@ -48,15 +48,17 @@ using namespace vc4cl;
 #define IOCTL_MBOX_PROPERTY _IOWR(MAJOR_NUM, 0, char*)
 #define DEVICE_FILE_NAME "/dev/vcio"
 
-DeviceBuffer::DeviceBuffer(uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size) :
-    memHandle(handle), qpuPointer(devPtr), hostPointer(hostPtr), size(size)
+DeviceBuffer::DeviceBuffer(
+    const std::shared_ptr<Mailbox>& mb, uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size) :
+    memHandle(handle),
+    qpuPointer(devPtr), hostPointer(hostPtr), size(size), mailbox(mb)
 {
 }
 
 DeviceBuffer::~DeviceBuffer()
 {
     if(memHandle != 0)
-        mailbox().deallocateBuffer(this);
+        mailbox->deallocateBuffer(this);
 }
 
 void DeviceBuffer::dumpContent() const
@@ -101,7 +103,7 @@ Mailbox::~Mailbox()
     DEBUG_LOG(DebugLevel::SYSCALL, std::cout << "[VC4CL] Mailbox file descriptor closed: " << fd << std::endl)
 }
 
-DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags) const
+DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags)
 {
     // munmap requires an alignment of the system page size (4096), so we need to enforce it here
     unsigned handle = memAlloc(sizeInBytes, std::max(static_cast<unsigned>(PAGE_ALIGNMENT), alignmentInBytes), flags);
@@ -112,7 +114,7 @@ DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentIn
         DEBUG_LOG(DebugLevel::SYSCALL,
             std::cout << "Allocated " << sizeInBytes << " bytes of buffer: handle " << handle << ", device address "
                       << std::hex << "0x" << qpuPointer << ", host address " << hostPointer << std::dec << std::endl)
-        return new DeviceBuffer(handle, qpuPointer, hostPointer, sizeInBytes);
+        return new DeviceBuffer(shared_from_this(), handle, qpuPointer, hostPointer, sizeInBytes);
     }
     return nullptr;
 }
@@ -268,12 +270,8 @@ CHECK_RETURN bool Mailbox::checkReturnValue(unsigned value) const
     }
 }
 
-// to prevent race-conditions on initialization
-static std::once_flag mailboxInitialized;
-static std::unique_ptr<Mailbox> mb;
-
-Mailbox& vc4cl::mailbox()
+std::shared_ptr<Mailbox>& vc4cl::mailbox()
 {
-    std::call_once(mailboxInitialized, []() -> void { mb = std::make_unique<Mailbox>(); });
-    return *mb;
+    static std::shared_ptr<Mailbox> mb(new Mailbox());
+    return mb;
 }

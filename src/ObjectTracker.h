@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <set>
+#include <list>
 
 namespace vc4cl
 {
@@ -38,7 +39,7 @@ namespace vc4cl
         static const BaseObject* findTrackedObject(const std::function<bool(const BaseObject&)>& predicate);
 
     private:
-        std::set<std::unique_ptr<BaseObject>> liveObjects;
+        std::list<std::unique_ptr<BaseObject>> liveObjects;
         // recursive-mutex required, since a #removeObject() can cause #removeObject() to be called multiple times (e.g.
         // for last CommandQueue also releasing the Context)
         std::recursive_mutex trackerMutex;
