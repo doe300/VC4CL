@@ -314,12 +314,6 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
         if(dst_offset <= subBufferOffset && subBufferOffset <= dst_offset + size)
             return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its parent!");
     }
-    // TODO this check is not specified as such in the OpenCL 1.2 specification and causes some mem_host CTS tests to
-    // fail
-    // if(!hostReadable || !destination->hostWriteable)
-    //     return returnError(
-    //         CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannot copy from a non-readable or to a non-writeable
-    //         buffer");
 
     cl_int errcode = CL_SUCCESS;
     Event* e = createBufferActionEvent(
@@ -364,11 +358,6 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
         if(dst_offset <= subBufferOffset && subBufferOffset <= dst_offset + size)
             return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its parent!");
     }
-    // TODO this check is not specified as such in the OpenCL 1.2 specification and causes some mem_host CTS tests to
-    // fail
-    // if(!hostReadable || !destination->hostWriteable)
-    //     return returnError(
-    //         CL_INVALID_OPERATION, __FILE__, __LINE__, "Cannto copy from non-readable or to non-writeable buffer!");
 
     cl_int errcode = CL_SUCCESS;
     Event* e = createBufferActionEvent(
@@ -495,21 +484,26 @@ cl_int Buffer::setDestructorCallback(BufferDestructionCallback callback, void* u
 cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list, cl_event* event)
 {
-    if(mapped_ptr == nullptr || mappings.empty())
-        return returnError(
-            CL_INVALID_VALUE, __FILE__, __LINE__, buildString("No such memory area to unmap %p!", mapped_ptr));
-    bool mappingFound = false;
-    for(const void* mapped : mappings)
     {
-        if(mapped == mapped_ptr)
+        std::lock_guard<std::mutex> mapGuard(mappingsLock);
+        if(mapped_ptr == nullptr || mappings.empty())
+            return returnError(
+                CL_INVALID_VALUE, __FILE__, __LINE__, buildString("No such memory area to unmap %p!", mapped_ptr));
+
+        bool mappingFound = false;
+        for(const void* mapped : mappings)
         {
-            mappingFound = true;
-            break;
+            if(mapped == mapped_ptr)
+            {
+                mappingFound = true;
+                break;
+            }
         }
+        if(!mappingFound)
+            return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
+                buildString("Memory area %p was not mapped to this buffer!", mapped_ptr));
     }
-    if(!mappingFound)
-        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
-            buildString("Memory area %p was not mapped to this buffer!", mapped_ptr));
+
     cl_int errcode = CL_SUCCESS;
     Event* e = createBufferActionEvent(
         commandQueue, CommandType::BUFFER_UNMAP, num_events_in_wait_list, event_wait_list, &errcode);
@@ -544,8 +538,11 @@ cl_int Buffer::getInfo(cl_mem_info param_name, size_t param_value_size, void* pa
             return returnValue<void*>(hostPtr, param_value_size, param_value, param_value_size_ret);
         return returnValue<void*>(nullptr, param_value_size, param_value, param_value_size_ret);
     case CL_MEM_MAP_COUNT:
+    {
+        std::lock_guard<std::mutex> mapGuard(mappingsLock);
         return returnValue<cl_uint>(
             static_cast<cl_uint>(mappings.size()), param_value_size, param_value, param_value_size_ret);
+    }
     case CL_MEM_REFERENCE_COUNT:
         return returnValue<cl_uint>(referenceCount, param_value_size, param_value, param_value_size_ret);
     case CL_MEM_CONTEXT:
@@ -696,6 +693,7 @@ cl_int BufferMapping::operator()()
         // considered to be complete."
         //-> when un-mapping, we need to write possible changes back to the device buffer
         status = buffer->copyFromHostBuffer(0, buffer->hostSize);
+        std::lock_guard<std::mutex> mapGuard(buffer->mappingsLock);
         buffer->mappings.remove(hostPtr);
     }
     else
@@ -703,6 +701,7 @@ cl_int BufferMapping::operator()()
         //"If the buffer object is created with CL_MEM_USE_HOST_PTR [...]"
         //"The host_ptr specified in clCreateBuffer is guaranteed to contain the latest bits [...]"
         status = buffer->copyIntoHostBuffer(0, buffer->hostSize);
+        std::lock_guard<std::mutex> mapGuard(buffer->mappingsLock);
         buffer->mappings.push_back(hostPtr);
     }
     return status;
@@ -891,9 +890,9 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
         return returnError<cl_mem>(
             CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "More than one host-access flag set!");
 
-    if(exceedsLimits<size_t>(size, 1, mailbox().getTotalGPUMemory()))
+    if(exceedsLimits<size_t>(size, 1, mailbox()->getTotalGPUMemory()))
         return returnError<cl_mem>(CL_INVALID_BUFFER_SIZE, errcode_ret, __FILE__, __LINE__,
-            buildString("Buffer size (%u) exceeds system maximum (%u)!", size, mailbox().getTotalGPUMemory()));
+            buildString("Buffer size (%u) exceeds system maximum (%u)!", size, mailbox()->getTotalGPUMemory()));
 
     if(host_ptr == nullptr &&
         (hasFlag<cl_mem_flags>(flags, CL_MEM_USE_HOST_PTR) || hasFlag<cl_mem_flags>(flags, CL_MEM_COPY_HOST_PTR)))
@@ -908,7 +907,7 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
     Buffer* buffer = newOpenCLObject<Buffer>(toType<Context>(context), flags);
     CHECK_ALLOCATION_ERROR_CODE(buffer, errcode_ret, cl_mem)
 
-    buffer->deviceBuffer.reset(mailbox().allocateBuffer(static_cast<unsigned>(size)));
+    buffer->deviceBuffer.reset(mailbox()->allocateBuffer(static_cast<unsigned>(size)));
     if(!buffer->deviceBuffer)
     {
         ignoreReturnValue(buffer->release(), __FILE__, __LINE__, "Already errored");

@@ -13,6 +13,7 @@
 
 #include <list>
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -72,8 +73,6 @@ namespace vc4cl
         CHECK_RETURN cl_int copyIntoHostBuffer(size_t offset, size_t size);
         CHECK_RETURN cl_int copyFromHostBuffer(size_t offset, size_t size);
 
-        std::list<void*> mappings;
-
         bool readable;
         bool writeable;
         bool hostReadable;
@@ -96,6 +95,9 @@ namespace vc4cl
         void* hostPtr = nullptr;
         // the actual size of the buffer, can be less than the device-buffer size (e.g. for sub-buffers)
         size_t hostSize = 0;
+
+        mutable std::mutex mappingsLock;
+        std::list<void*> mappings;
 
         std::vector<std::pair<BufferDestructionCallback, void*>> callbacks;
 
