@@ -169,33 +169,33 @@ int main(int argc, char** argv)
     nodelay(window, true);   // Set getting key input non-blocking
 
     // initialize and reset the counters
-    checkResult(V3D::instance().setCounter(COUNTER_IDLE, CounterType::IDLE_CYCLES));
-    checkResult(V3D::instance().setCounter(COUNTER_EXECUTIONS, CounterType::EXECUTION_CYCLES));
-    checkResult(V3D::instance().setCounter(COUNTER_TMU_STALLS, CounterType::TMU_STALL_CYCLES));
-    checkResult(V3D::instance().setCounter(COUNTER_INSTRUCTION_CACHE_HITS, CounterType::INSTRUCTION_CACHE_HITS));
-    checkResult(V3D::instance().setCounter(COUNTER_INSTRUCTION_CACHE_MISSES, CounterType::INSTRUCTION_CACHE_MISSES));
-    checkResult(V3D::instance().setCounter(COUNTER_UNIFORM_CACHE_HITS, CounterType::UNIFORM_CACHE_HITS));
-    checkResult(V3D::instance().setCounter(COUNTER_UNIFORM_CACHE_MISSES, CounterType::UNIFORM_CACHE_MISSES));
-    checkResult(V3D::instance().setCounter(COUNTER_VPW_STALLS, CounterType::VPW_STALL_CYCES));
-    checkResult(V3D::instance().setCounter(COUNTER_VPR_STALLS, CounterType::VCD_STALL_CYCLES));
-    checkResult(V3D::instance().setCounter(COUNTER_L2_HITS, CounterType::L2_CACHE_HITS));
-    checkResult(V3D::instance().setCounter(COUNTER_L2_MISSES, CounterType::L2_CACHE_MISSES));
-    checkResult(V3D::instance().setCounter(COUNTER_TMU_TOTAL_LOADS, CounterType::TMU_TOTAL_QUADS));
-    checkResult(V3D::instance().setCounter(COUNTER_TMU_CACHE_MISSES, CounterType::TMU_CACHE_MISSES));
+    checkResult(V3D::instance()->setCounter(COUNTER_IDLE, CounterType::IDLE_CYCLES));
+    checkResult(V3D::instance()->setCounter(COUNTER_EXECUTIONS, CounterType::EXECUTION_CYCLES));
+    checkResult(V3D::instance()->setCounter(COUNTER_TMU_STALLS, CounterType::TMU_STALL_CYCLES));
+    checkResult(V3D::instance()->setCounter(COUNTER_INSTRUCTION_CACHE_HITS, CounterType::INSTRUCTION_CACHE_HITS));
+    checkResult(V3D::instance()->setCounter(COUNTER_INSTRUCTION_CACHE_MISSES, CounterType::INSTRUCTION_CACHE_MISSES));
+    checkResult(V3D::instance()->setCounter(COUNTER_UNIFORM_CACHE_HITS, CounterType::UNIFORM_CACHE_HITS));
+    checkResult(V3D::instance()->setCounter(COUNTER_UNIFORM_CACHE_MISSES, CounterType::UNIFORM_CACHE_MISSES));
+    checkResult(V3D::instance()->setCounter(COUNTER_VPW_STALLS, CounterType::VDW_STALL_CYCES));
+    checkResult(V3D::instance()->setCounter(COUNTER_VPR_STALLS, CounterType::VCD_STALL_CYCLES));
+    checkResult(V3D::instance()->setCounter(COUNTER_L2_HITS, CounterType::L2_CACHE_HITS));
+    checkResult(V3D::instance()->setCounter(COUNTER_L2_MISSES, CounterType::L2_CACHE_MISSES));
+    checkResult(V3D::instance()->setCounter(COUNTER_TMU_TOTAL_LOADS, CounterType::TMU_TOTAL_WORDS));
+    checkResult(V3D::instance()->setCounter(COUNTER_TMU_CACHE_MISSES, CounterType::TMU_CACHE_MISSES));
 
-    V3D::instance().resetCounterValue(COUNTER_IDLE);
-    V3D::instance().resetCounterValue(COUNTER_EXECUTIONS);
-    V3D::instance().resetCounterValue(COUNTER_TMU_STALLS);
-    V3D::instance().resetCounterValue(COUNTER_INSTRUCTION_CACHE_HITS);
-    V3D::instance().resetCounterValue(COUNTER_INSTRUCTION_CACHE_MISSES);
-    V3D::instance().resetCounterValue(COUNTER_UNIFORM_CACHE_HITS);
-    V3D::instance().resetCounterValue(COUNTER_UNIFORM_CACHE_MISSES);
-    V3D::instance().resetCounterValue(COUNTER_VPW_STALLS);
-    V3D::instance().resetCounterValue(COUNTER_VPR_STALLS);
-    V3D::instance().resetCounterValue(COUNTER_L2_HITS);
-    V3D::instance().resetCounterValue(COUNTER_L2_MISSES);
-    V3D::instance().resetCounterValue(COUNTER_TMU_TOTAL_LOADS);
-    V3D::instance().resetCounterValue(COUNTER_TMU_CACHE_MISSES);
+    V3D::instance()->resetCounterValue(COUNTER_IDLE);
+    V3D::instance()->resetCounterValue(COUNTER_EXECUTIONS);
+    V3D::instance()->resetCounterValue(COUNTER_TMU_STALLS);
+    V3D::instance()->resetCounterValue(COUNTER_INSTRUCTION_CACHE_HITS);
+    V3D::instance()->resetCounterValue(COUNTER_INSTRUCTION_CACHE_MISSES);
+    V3D::instance()->resetCounterValue(COUNTER_UNIFORM_CACHE_HITS);
+    V3D::instance()->resetCounterValue(COUNTER_UNIFORM_CACHE_MISSES);
+    V3D::instance()->resetCounterValue(COUNTER_VPW_STALLS);
+    V3D::instance()->resetCounterValue(COUNTER_VPR_STALLS);
+    V3D::instance()->resetCounterValue(COUNTER_L2_HITS);
+    V3D::instance()->resetCounterValue(COUNTER_L2_MISSES);
+    V3D::instance()->resetCounterValue(COUNTER_TMU_TOTAL_LOADS);
+    V3D::instance()->resetCounterValue(COUNTER_TMU_CACHE_MISSES);
 
     std::array<int64_t, 13> counters{};
     counters.fill(0);
@@ -234,7 +234,7 @@ int main(int argc, char** argv)
         std::array<int64_t, counters.size()> newCounters{};
         newCounters.fill(0);
         for(unsigned i = 0; i < counters.size(); ++i)
-            newCounters[i] = V3D::instance().getCounter(i);
+            newCounters[i] = V3D::instance()->getCounter(i);
 
         if(std::any_of(newCounters.begin(), newCounters.end(), [](int64_t i) -> bool { return i < 0; }))
         {

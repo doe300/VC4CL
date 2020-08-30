@@ -21,7 +21,7 @@ static std::bitset<16> usedCounters{0};
 PerformanceCounter::PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index) : type(type), index(index)
 {
     // no need to lock, lock is already held by clCreatePerformanceCounterVC4CL
-    if(!V3D::instance().setCounter(index, static_cast<vc4cl::CounterType>(type)))
+    if(!V3D::instance()->setCounter(index, static_cast<vc4cl::CounterType>(type)))
     {
         // all error-cases care checked before
         throw std::invalid_argument("Failed to set counter configuration!");
@@ -31,7 +31,7 @@ PerformanceCounter::PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar inde
 PerformanceCounter::~PerformanceCounter()
 {
     std::lock_guard<std::mutex> lock(counterAccessMutex);
-    V3D::instance().disableCounter(index);
+    V3D::instance()->disableCounter(index);
     usedCounters.reset(index);
 }
 
@@ -40,14 +40,14 @@ cl_int PerformanceCounter::getValue(cl_uint* value) const
     if(value == nullptr)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Output parameter is NULL!");
     std::lock_guard<std::mutex> lock(counterAccessMutex);
-    *value = static_cast<cl_uint>(V3D::instance().getCounter(index));
+    *value = static_cast<cl_uint>(V3D::instance()->getCounter(index));
     return CL_SUCCESS;
 }
 
 cl_int PerformanceCounter::reset()
 {
     std::lock_guard<std::mutex> lock(counterAccessMutex);
-    V3D::instance().resetCounterValue(index);
+    V3D::instance()->resetCounterValue(index);
     return CL_SUCCESS;
 }
 

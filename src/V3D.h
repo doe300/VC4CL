@@ -12,6 +12,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <memory>
 #include <utility>
 
 namespace vc4cl
@@ -42,26 +43,112 @@ namespace vc4cl
         EXECUTION_CYCLES = 16,
         //"QPU Total clock cycles for all QPUs stalled waiting for TMUs"
         TMU_STALL_CYCLES = 17,
-        //"QPU Total instruction cache hits for all slices"
+        /**
+         * "QPU Total instruction cache hits for all slices"
+         *
+         * NOTE: According to http://imrc.noip.me/blog/vc4/QI3/ this is also incremented for instruction cache misses.
+         * This means, that, at least when executing only on a single core, the counter value is equal to the number of
+         * instructions executed.
+         *
+         * Experiments have shown, this calculates as: InstructionCount = #QPUs * #InstructionsPerQPU (for purely linear
+         * code where all cores execute the same amount of instructions).
+         */
         INSTRUCTION_CACHE_HITS = 20,
-        //"QPU Total instruction cache misses for all slices"
+        /**
+         * "QPU Total instruction cache misses for all slices"
+         *
+         * According to http://imrc.noip.me/blog/vc4/QI3/ this is ceil(InstructionCount)/8 (on a single QPU, when no
+         * branches are executed) which matches the instruction cache size of 64B (8 instructions) and a cache refresh
+         * policy always updating whole cache at once.
+         *
+         * Experiments have shown, this calculates as (ceil(#QPUs / 4) * #InstructionsPerQPU) / 8 (when all QPUs execute
+         * the same amount of instructions and there are no branches in the code). The constant 4 seems to be the 4 QPUs
+         * per slice in use, since the instruction cache is per slice.
+         */
         INSTRUCTION_CACHE_MISSES = 21,
-        //"QPU Total uniforms cache hits for all slices"
+        /**
+         * "QPU Total uniforms cache hits for all slices"
+         *
+         * According to http://imrc.noip.me/blog/vc4/QI3/ the UNIFORM FIFO is always filled when starting executing,
+         * even if no UNIFORMs are read. This counter is also counted up on UNIFORM cache misses.
+         *
+         * The UNIFORMs FIFO seems to hold 8 Bytes (2 UNIFORMs) and values are updated separately, so reading one
+         * UNIFORM value from the UNIFORM FIFO into the QPU would cause a single value to be read from the UNIFORM cache
+         * into the UNIFORM FIFO.
+         *
+         * According to http://imrc.noip.me/blog/vc4/QU16/, the UNIFORM cache holds 16 values (64 Byte).
+         *
+         * Experiments have confirmed, this is #QPUs * (#UNIFORMSPerQPU + 2) assuming all QPUs load the same amount of
+         * UNIFORMs.
+         *
+         * Layout:
+         * L2 -> UNIFORM cache (per slice) -> UNIFORM FIFO (per QPU)
+         */
         UNIFORM_CACHE_HITS = 22,
-        //"QPU Total uniforms cache misses for all slices"
+        /**
+         * "QPU Total uniforms cache misses for all slices"
+         *
+         * According to http://imrc.noip.me/blog/vc4/QI3/ this is not the number of UNIFORM cache misses, but rather the
+         * number of times values are fetched from the L2 cache into the UNIFORM cache. Since the UNIFORM cache always
+         * catches 2 values (8B) at once, this value is only incremented for every 2 UNIFORMs read (into FIFO, not
+         * necessarily into QPU!).
+         *
+         * According to http://imrc.noip.me/blog/vc4/QU16/, this results in UNIFORM misses = ceil(UNIFORM hits/16).
+         *
+         * Experiments have shown, this calculates as (ceil(#QPUs / 4) * (#UNIFORMSPerQPU + 2)) / 16 assuming all QPUs
+         * load the exact same UNIFORMs. The constant 4 seems to be the 4 QPUs per slice in use, since the instruction
+         * cache is per slice.
+         */
         UNIFORM_CACHE_MISSES = 23,
-        //"TMU Total texture quads processed"
-        // This is the number of words loaded via the TMU
-        TMU_TOTAL_QUADS = 24,
-        //"TMU Total texture cache misses (number of fetches from memory/L2cache)"
+        /**
+         * "TMU Total texture quads processed"
+         *
+         * This is the number of words loaded via the TMU
+         *
+         * According to http://imrc.noip.me/blog/vc4/QT12 this is incremented by for each SIMD element loaded, so a full
+         * 16-element vector load increments this counter by 16.
+         *
+         * NOTE: Tests have shown that the counter is always incremented by the full 16 elements, even if only some
+         * elements are actually loaded.
+         *
+         * According to http://imrc.noip.me/blog/vc4/QT31/, the TMU cache is direct associative (see
+         * https://en.wikipedia.org/wiki/CPU_cache#Associativity).
+         *
+         * Experiments have confirmed, this value is the total number (all QPUs, both TMUs, all SIMD vector elements) of
+         * words (vector elements) loaded: #QPUs * #TMULoadsPerQPU * 16.
+         */
+        TMU_TOTAL_WORDS = 24,
+        /**
+         * "TMU Total texture cache misses (number of fetches from memory/L2cache)"
+         *
+         * According to http://imrc.noip.me/blog/vc4/QT12, fetches from L2 into TMU cache is done in blocks of 64B (16
+         * words).
+         *
+         * Experiments have shown that loading the exact same address across all QPUs (at the same time) only increments
+         * the counter once. Also when the same address is loaded with both TMU (at the same time), the counter is
+         * incremented twice.
+         */
         TMU_CACHE_MISSES = 25,
         //"VPM Total clock cycles VDW is stalled waiting for VPM access"
-        VPW_STALL_CYCES = 26,
+        VDW_STALL_CYCES = 26,
         //"VPM Total clock cycles VCD is stalled waiting for VPM access"
         VCD_STALL_CYCLES = 27,
-        //"L2C Total Level 2 cache hits"
+        /**
+         * "L2C Total Level 2 cache hits"
+         *
+         * According to http://imrc.noip.me/blog/vc4/QI3/, in contrast to the other caches (e.g. UNIFORM and
+         * instruction), this counter is not incremented on L2 cache misses.
+         *
+         * According to http://imrc.noip.me/blog/vc4/QT31/, the TMU cache is 4-way associative (see
+         * https://en.wikipedia.org/wiki/CPU_cache#Associativity).
+         */
         L2_CACHE_HITS = 28,
-        //"L2C Total Level 2 cache misses"
+        /**
+         * "L2C Total Level 2 cache misses"
+         *
+         * According to the observations in http://imrc.noip.me/blog/vc4/QI3/, the counter is always incremented when
+         * the L2 cache is filled with data from RAM. Also, the L2 cache fetches from RAM in 64Byte lines.
+         */
         L2_CACHE_MISSES = 29
     };
 
@@ -111,7 +198,7 @@ namespace vc4cl
     class V3D
     {
     public:
-        static V3D& instance();
+        static std::shared_ptr<V3D>& instance();
 
         ~V3D();
 

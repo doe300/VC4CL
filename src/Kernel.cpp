@@ -315,7 +315,7 @@ cl_int Kernel::getWorkGroupInfo(
     case CL_KERNEL_WORK_GROUP_SIZE:
         //"[...] query the maximum work-group size that can be used to execute a kernel on a specific device [...]"
         return returnValue<size_t>(
-            V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT), param_value_size, param_value, param_value_size_ret);
+            V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT), param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
         return returnValue(
             info.compileGroupSizes.data(), sizeof(size_t), 3, param_value_size, param_value, param_value_size_ret);
@@ -388,7 +388,7 @@ static bool split_compile_work_size(const std::array<std::size_t, kernel_config:
     if(compile_group_sizes[0] == 0 && compile_group_sizes[1] == 0 && compile_group_sizes[2] == 0)
         // no compile-time sizes set
         return false;
-    const cl_uint max_group_size = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
+    const cl_uint max_group_size = V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT);
 
     if((global_sizes[0] % compile_group_sizes[0]) != 0 || (global_sizes[1] % compile_group_sizes[1]) != 0 ||
         (global_sizes[2] % compile_group_sizes[2]) != 0)
@@ -415,7 +415,7 @@ static cl_int split_global_work_size(const std::array<std::size_t, kernel_config
     std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_sizes, cl_uint num_dimensions)
 {
     const size_t total_sizes = global_sizes[0] * global_sizes[1] * global_sizes[2];
-    const cl_uint max_group_size = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
+    const cl_uint max_group_size = V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT);
     if(total_sizes <= max_group_size)
     {
         // can be executed in a single work-group
@@ -567,10 +567,10 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
                 work_sizes[2] + work_offsets[2], kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]));
     }
     if(exceedsLimits<size_t>(
-           local_sizes[0] * local_sizes[1] * local_sizes[2], 1, V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT)))
+           local_sizes[0] * local_sizes[1] * local_sizes[2], 1, V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT)))
         return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__,
             buildString("Local work-sizes exceed maximum: %u * %u * %u > %u", local_sizes[0], local_sizes[1],
-                local_sizes[2], V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT)));
+                local_sizes[2], V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT)));
 
     // check divisibility of local_sizes[i] by work_sizes[i]
     for(cl_uint i = 0; i < kernel_config::NUM_DIMENSIONS; ++i)
@@ -689,7 +689,10 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
     return CL_SUCCESS;
 }
 
-KernelExecution::KernelExecution(Kernel* kernel) : kernel(kernel), mailbox(vc4cl::mailbox()), numDimensions(0) {}
+KernelExecution::KernelExecution(Kernel* kernel) :
+    kernel(kernel), mailbox(vc4cl::mailbox()), v3d(V3D::instance()), numDimensions(0)
+{
+}
 KernelExecution::~KernelExecution() = default;
 
 cl_int KernelExecution::operator()()

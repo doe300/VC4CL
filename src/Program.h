@@ -223,7 +223,7 @@ namespace vc4cl
          * the program's intermediate code (e.g. SPIR or SPIR-V)
          * This code is pre-compiled, but not yet linked or compiled to QPU code
          *
-         * We choose single bytes, since we do not know the unit size of LLVM IR (SPIR-V hsa words of 32 bit)
+         * We choose single bytes, since we do not know the unit size of LLVM IR (SPIR-V has words of 32 bit)
          */
         std::vector<uint8_t> intermediateCode;
         // the machine-code, VC4C binary

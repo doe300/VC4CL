@@ -236,7 +236,7 @@ static cl_int compile_program(Program* program, const std::string& options)
      * NOTE: VC4 OpenGL driver disables the VPM user-memory completely
      * (see https://github.com/raspberrypi/linux/blob/rpi-4.9.y/drivers/gpu/drm/vc4/vc4_v3d.c #vc4_v3d_init_hw)
      */
-    config.availableVPMSize = V3D::instance().getSystemInfo(SystemInfo::VPM_MEMORY_SIZE);
+    config.availableVPMSize = V3D::instance()->getSystemInfo(SystemInfo::VPM_MEMORY_SIZE);
 
     program->buildInfo.options = options;
     DEBUG_LOG(DebugLevel::DUMP_CODE, std::cout << "Compiling source with: " << program->buildInfo.options << std::endl)
@@ -270,7 +270,7 @@ static cl_int compile_program(Program* program, const std::string& options)
             std::cout << "Compilation log: " << program->buildInfo.log << std::endl;
         }
         const std::string dumpFile("/tmp/vc4cl-binary-" + std::to_string(rand()) + ".bin");
-        std::cout << "Dumping program sources to " << dumpFile << std::endl;
+        std::cout << "Dumping program binaries to " << dumpFile << std::endl;
         std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
         f.write(reinterpret_cast<char*>(program->binaryCode.data()),
             static_cast<std::streamsize>(program->binaryCode.size() * sizeof(uint64_t)));

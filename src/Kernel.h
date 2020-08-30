@@ -23,6 +23,7 @@ namespace vc4cl
     struct KernelArgument;
     class Buffer;
     class Mailbox;
+    class V3D;
 
     class Kernel final : public Object<_cl_kernel, CL_INVALID_KERNEL>
     {
@@ -156,6 +157,8 @@ namespace vc4cl
         // mostly to gracefully handle application errors, e.g. when a kernel is executed and not waited for finished
         // and then the application shuts down.
         std::shared_ptr<Mailbox> mailbox;
+        // Keep a reference to the V3D instance for the same reason as for the Mailbox above.
+        std::shared_ptr<V3D> v3d;
         cl_uchar numDimensions;
         std::array<std::size_t, kernel_config::NUM_DIMENSIONS> globalOffsets;
         std::array<std::size_t, kernel_config::NUM_DIMENSIONS> globalSizes;

@@ -39,9 +39,10 @@ static unsigned AS_GPU_ADDRESS(const unsigned* ptr, DeviceBuffer* buffer)
         static_cast<uint32_t>(buffer->qpuPointer) + ((tmp) - reinterpret_cast<char*>(buffer->hostPointer)));
 }
 
-static size_t get_size(size_t code_size, size_t num_uniforms, size_t global_data_size, size_t stackFrameSizeInWords)
+static size_t get_size(const std::shared_ptr<V3D>& v3d, size_t code_size, size_t num_uniforms, size_t global_data_size,
+    size_t stackFrameSizeInWords)
 {
-    auto numQPUS = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
+    auto numQPUS = v3d->getSystemInfo(SystemInfo::QPU_COUNT);
 
     // we duplicate the UNIFORMs to be able to update one block while the second one is used for execution
     size_t uniformSize = 2 * sizeof(unsigned) * num_uniforms;
@@ -127,11 +128,12 @@ static bool increment_index(std::array<std::size_t, kernel_config::NUM_DIMENSION
     return indices[2] < limits[2];
 }
 
-static ExecutionHandle executeQPU(const std::shared_ptr<Mailbox>& mailbox, unsigned numQPUs,
-    std::pair<uint32_t*, unsigned> controlAddress, bool flushBuffer, std::chrono::milliseconds timeout)
+static ExecutionHandle executeQPU(const std::shared_ptr<Mailbox>& mailbox, const std::shared_ptr<V3D>& v3d,
+    unsigned numQPUs, std::pair<uint32_t*, unsigned> controlAddress, bool flushBuffer,
+    std::chrono::milliseconds timeout)
 {
 #ifdef REGISTER_POKE_KERNELS
-    return V3D::instance().executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
+    return v3d->executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
 #else
     if(!flushBuffer)
         /*
@@ -225,7 +227,7 @@ cl_int executeKernel(KernelExecution& args)
 
     // the number of QPUs is the product of all local sizes
     const size_t num_qpus = args.localSizes[0] * args.localSizes[1] * args.localSizes[2];
-    if(num_qpus > V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT))
+    if(num_qpus > args.v3d->getSystemInfo(SystemInfo::QPU_COUNT))
         return CL_INVALID_GLOBAL_WORK_SIZE;
 
     // first work-group has group_ids 0,0,0
@@ -254,7 +256,7 @@ cl_int executeKernel(KernelExecution& args)
     //
     // ALLOCATE BUFFER
     //
-    size_t buffer_size = get_size(kernel->info.getLength() * sizeof(uint64_t),
+    size_t buffer_size = get_size(args.v3d, kernel->info.getLength() * sizeof(uint64_t),
         num_qpus * (MAX_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()),
         kernel->program->globalData.size() * sizeof(uint64_t), kernel->program->moduleInfo.getStackFrameSize());
 
@@ -295,7 +297,7 @@ cl_int executeKernel(KernelExecution& args)
     }
 
     // Reserve space for stack-frames and fill it with zeros (e.g. for cl_khr_initialize_memory extension)
-    uint32_t maxQPUS = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
+    uint32_t maxQPUS = args.v3d->getSystemInfo(SystemInfo::QPU_COUNT);
     uint32_t stackFrameSize = static_cast<uint32_t>(kernel->program->moduleInfo.getStackFrameSize() * sizeof(uint64_t));
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
         std::cout << "Reserving space for " << maxQPUS << " stack-frames of " << stackFrameSize << " bytes each"
@@ -445,7 +447,7 @@ cl_int executeKernel(KernelExecution& args)
     // calculate execution timeout depending on the number of work-groups to be executed at once
     auto timeout = KERNEL_TIMEOUT * std::max(std::size_t{30}, group_limits[0] * group_limits[1] * group_limits[2]);
     // on first execution, flush code cache
-    auto result = executeQPU(args.mailbox, static_cast<unsigned>(num_qpus),
+    auto result = executeQPU(args.mailbox, args.v3d, static_cast<unsigned>(num_qpus),
         std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), true, timeout);
     // NOTE: This disables background-execution!
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
@@ -473,7 +475,7 @@ cl_int executeKernel(KernelExecution& args)
             std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", "
                       << group_indices[2] << std::endl)
         // all following executions, don't flush cache
-        result = executeQPU(args.mailbox, static_cast<unsigned>(num_qpus),
+        result = executeQPU(args.mailbox, args.v3d, static_cast<unsigned>(num_qpus),
             std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), false, timeout);
         // NOTE: This disables background-execution!
         DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,

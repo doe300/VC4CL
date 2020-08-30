@@ -54,7 +54,7 @@ cl_int Device::getInfo(
         //"Maximum number of work-items that can be specified in each dimension of the work-group.
         // Returns n size_t entries, where n is the value returned by the query for CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS.
         // The minimum value is (1, 1, 1)."
-        size_t numQPUs = V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT);
+        size_t numQPUs = V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT);
         std::array<size_t, kernel_config::NUM_DIMENSIONS> tmp{numQPUs, numQPUs, numQPUs};
         return returnValue(tmp.data(), sizeof(size_t), tmp.size(), param_value_size, param_value, param_value_size_ret);
     }
@@ -62,7 +62,7 @@ cl_int Device::getInfo(
         //"Maximum number of work-items in a work-group executing a kernel on a single compute unit, using the data
         // parallel execution model."
         return returnValue<size_t>(
-            V3D::instance().getSystemInfo(SystemInfo::QPU_COUNT), param_value_size, param_value, param_value_size_ret);
+            V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:
         //"Preferred native vector width size for built-in scalar types that can be put into vectors.
         // The vector width is defined as the number of scalar elements that can be stored in the vector. "

@@ -13,7 +13,8 @@ jobs:
       - checkout
       - run:
           name: get json
-          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
+          # Get the information on more builds, otherwise we fail if there were a lot non-master builds recently. For the same reason, filter already
+          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C?limit=100&filter=successful" --output /tmp/json
       - run:
           name: get vc4c url
           command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/$(.circleci/build_num.py /tmp/json)/artifacts" --output /tmp/dump
@@ -54,7 +55,8 @@ jobs:
       - checkout
       - run:
           name: get json
-          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
+          # Get the information on more builds, otherwise we fail if there were a lot non-master builds recently. For the same reason, filter already
+          command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C?limit=100&filter=successful" --output /tmp/json
       - run:
           name: get vc4c url
           command: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/$(.circleci/build_num.py /tmp/json build)/artifacts" --output /tmp/dump
@@ -123,7 +125,7 @@ jobs:
     steps:
       - attach_workspace:
           at: /root/project
-      - run: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C" --output /tmp/json
+      - run: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C?limit=100&filter=successful" --output /tmp/json
       - run: curl "https://circleci.com/api/v1.1/project/github/doe300/VC4C/$(.circleci/build_num.py /tmp/json build)/artifacts" --output /tmp/dump
       - run: wget -O /tmp/vc4cl-stdlib.deb $(python .circleci/get_url.py "vc4cl-stdlib-" "/tmp/dump")
       - run: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")

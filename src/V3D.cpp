@@ -18,8 +18,6 @@ using namespace vc4cl;
 
 static const uint32_t V3D_BASE_OFFSET = 0x00c00000;
 
-static std::unique_ptr<V3D> singleton;
-
 V3D::V3D()
 {
     bcm_host_init();
@@ -34,13 +32,10 @@ V3D::~V3D()
     bcm_host_deinit();
 }
 
-V3D& V3D::instance()
+std::shared_ptr<V3D>& V3D::instance()
 {
-    if(singleton == nullptr)
-    {
-        singleton.reset(new V3D());
-    }
-    return *singleton;
+    static std::shared_ptr<V3D> singleton(new V3D());
+    return singleton;
 }
 
 uint32_t V3D::getSystemInfo(const SystemInfo key) const
