@@ -230,8 +230,8 @@ namespace vc4cl
         std::array<size_t, 3> origin;
         std::array<size_t, 3> region;
 
-        ImageMapping(
-            Image* image, void* hostPointer, bool isUnmap, const std::size_t origin[3], const std::size_t region[3]);
+        ImageMapping(Image* image, std::list<MappingInfo>::const_iterator mappingInfo, bool isUnmap,
+            const std::size_t origin[3], const std::size_t region[3]);
         ~ImageMapping() override;
     };
 

@@ -302,17 +302,23 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
 {
     if(size == 0 || src_offset + size > hostSize || dst_offset + size > destination->hostSize)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid copy size (%u)!", size));
-    if(this == destination)
-        return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to itself!");
-    else if(destination->parent.get() == this)
+
+    if(this == destination || (parent && destination->parent && parent.get() == destination->parent.get()))
     {
-        if(src_offset <= destination->subBufferOffset && destination->subBufferOffset <= src_offset + size)
-            return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its child!");
-    }
-    else if(parent.get() == destination)
-    {
-        if(dst_offset <= subBufferOffset && subBufferOffset <= dst_offset + size)
-            return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its parent!");
+        /*
+         * The buffers refer to the same (parent) buffer object, check for actual overlap:
+         *
+         * "[Returns] CL_MEM_COPY_OVERLAP if src_buffer and dst_buffer are the same buffer or sub-buffer object and the
+         * source and destination regions overlap or if src_buffer and dst_buffer are different sub-buffers of the same
+         * associated buffer object and they overlap. The regions overlap if src_offset <= dst_offset <= src_offset +
+         * size – 1 or if dst_offset <= src_offset <= dst_offset + size – 1."
+         */
+        auto srcBase = reinterpret_cast<uintptr_t>(getDeviceHostPointerWithOffset()) + src_offset;
+        auto destBase = reinterpret_cast<uintptr_t>(destination->getDeviceHostPointerWithOffset()) + dst_offset;
+        if(srcBase <= destBase && destBase <= (srcBase + size - 1))
+            return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Source and destination buffers overlap!");
+        if(destBase <= srcBase && srcBase <= (destBase + size - 1))
+            return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Source and destination buffers overlap!");
     }
 
     cl_int errcode = CL_SUCCESS;
@@ -335,6 +341,67 @@ cl_int Buffer::enqueueCopyInto(CommandQueue* commandQueue, Buffer* destination, 
     return e->setAsResultOrRelease(errcode, event);
 }
 
+/**
+ * The following check function is adapted from the OpenCL 1.2 specification, Appendix E and is provided under the
+ * following license:
+ *
+ * Copyright (c) 2011 The Khronos Group Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and /or associated
+ * documentation files (the "Materials "), to deal in the Materials without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Materials, and to
+ * permit persons to whom the Materials are furnished to do so, subject to the following conditions: The above copyright
+ * notice and this permission notice shall be included in all copies or substantial portions of the Materials.
+ *
+ * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE MATERIALS OR THE USE OR OTHER DEALINGS IN THE
+ * MATERIALS.
+ */
+static bool check_copy_overlap(const size_t src_offset[3], const size_t dst_offset[3], const size_t region[3],
+    size_t row_pitch, size_t slice_pitch)
+{
+    const size_t src_min[] = {src_offset[0], src_offset[1], src_offset[2]};
+    const size_t src_max[] = {src_offset[0] + region[0], src_offset[1] + region[1], src_offset[2] + region[2]};
+    const size_t dst_min[] = {dst_offset[0], dst_offset[1], dst_offset[2]};
+    const size_t dst_max[] = {dst_offset[0] + region[0], dst_offset[1] + region[1], dst_offset[2] + region[2]};
+    // Check for overlap
+    bool overlap = true;
+    unsigned i;
+    for(i = 0; i != 3; ++i)
+    {
+        overlap = overlap && (src_min[i] < dst_max[i]) && (src_max[i] > dst_min[i]);
+    }
+    size_t dst_start = dst_offset[2] * slice_pitch + dst_offset[1] * row_pitch + dst_offset[0];
+    size_t dst_end = dst_start + (region[2] * slice_pitch + region[1] * row_pitch + region[0]);
+    size_t src_start = src_offset[2] * slice_pitch + src_offset[1] * row_pitch + src_offset[0];
+    size_t src_end = src_start + (region[2] * slice_pitch + region[1] * row_pitch + region[0]);
+    if(!overlap)
+    {
+        size_t delta_src_x = (src_offset[0] + region[0] > row_pitch) ? src_offset[0] + region[0] - row_pitch : 0;
+        size_t delta_dst_x = (dst_offset[0] + region[0] > row_pitch) ? dst_offset[0] + region[0] - row_pitch : 0;
+        if((delta_src_x > 0 && delta_src_x > dst_offset[0]) || (delta_dst_x > 0 && delta_dst_x > src_offset[0]))
+        {
+            if((src_start <= dst_start && dst_start < src_end) || (dst_start <= src_start && src_start < dst_end))
+                overlap = true;
+        }
+        if(region[2] > 1)
+        {
+            size_t src_height = slice_pitch / row_pitch;
+            size_t dst_height = slice_pitch / row_pitch;
+            size_t delta_src_y = (src_offset[1] + region[1] > src_height) ? src_offset[1] + region[1] - src_height : 0;
+            size_t delta_dst_y = (dst_offset[1] + region[1] > dst_height) ? dst_offset[1] + region[1] - dst_height : 0;
+            if((delta_src_y > 0 && delta_src_y > dst_offset[1]) || (delta_dst_y > 0 && delta_dst_y > src_offset[1]))
+            {
+                if((src_start <= dst_start && dst_start < src_end) || (dst_start <= src_start && src_start < dst_end))
+                    overlap = true;
+            }
+        }
+    }
+    return overlap;
+}
+
 cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destination, const size_t* src_origin,
     const size_t* dst_origin, const size_t* region, size_t src_row_pitch, size_t src_slice_pitch, size_t dst_row_pitch,
     size_t dst_slice_pitch, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
@@ -346,17 +413,57 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
 
     if(size == 0 || src_offset + size > hostSize || dst_offset + size > destination->hostSize)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid copy size (%u)!", size));
-    if(destination == this)
-        return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to itself!");
-    else if(destination->parent.get() == this)
+    if(src_row_pitch == 0)
+        // "If src_row_pitch is 0, src_row_pitch is computed as region[0]."
+        src_row_pitch = region[0];
+    if(src_slice_pitch == 0)
+        // "If src_slice_pitch is 0, src_slice_pitch is computed as region[1] * src_row_pitch.""
+        src_slice_pitch = region[1] * src_row_pitch;
+    if(dst_row_pitch == 0)
+        // "If dst_row_pitch is 0, dst_row_pitch is computed as region[0]."
+        dst_row_pitch = region[0];
+    if(dst_slice_pitch == 0)
+        // "If dst_slice_pitch is 0, dst_slice_pitch is computed as region[1] * dst_row_pitch."
+        dst_slice_pitch = region[1] * dst_row_pitch;
+    if(src_row_pitch < region[0] || (src_slice_pitch < region[1] * src_row_pitch) ||
+        (src_slice_pitch % src_row_pitch != 0))
+        // "CL_INVALID_VALUE if src_row_pitch is not 0 and is less than region[0]. [...] if src_slice_pitch is not 0 and
+        // is less than region[1] * src_row_pitch or if src_slice_pitch is not 0 and is not a multiple of
+        // src_row_pitch."
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
+            buildString("Invalid source pitches (%u and %u)!", src_row_pitch, src_slice_pitch));
+    if(dst_row_pitch < region[0] || (dst_slice_pitch < region[1] * dst_row_pitch) ||
+        (dst_slice_pitch % dst_row_pitch != 0))
+        // "CL_INVALID_VALUE if dst_row_pitch is not 0 and is less than region[0]. [...] if dst_slice_pitch is not 0 and
+        // is less than region[1] * dst_row_pitch or if dst_slice_pitch is not 0 and is not a multiple of dst_row_pitch.
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
+            buildString("Invalid destination pitches (%u and %u)!", dst_row_pitch, dst_slice_pitch));
+    if(this == destination && src_slice_pitch != dst_slice_pitch)
+        // "If src_buffer and dst_buffer are the same buffer object, src_row_pitch must equal dst_row_pitch and
+        // src_slice_pitch must equal dst_slice_pitch."
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
+            buildString("Slice pitches must match for copying from/to the same buffer (%u and %u)!", src_slice_pitch,
+                dst_slice_pitch));
+    if(this == destination && src_row_pitch != dst_row_pitch)
+        // "If src_buffer and dst_buffer are the same buffer object, src_row_pitch must equal dst_row_pitch and
+        // src_slice_pitch must equal dst_slice_pitch."
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
+            buildString("Row pitches must match for copying from/to the same buffer (%u and %u)!", src_row_pitch,
+                dst_row_pitch));
+    if(this == destination)
     {
-        if(src_offset <= destination->subBufferOffset && destination->subBufferOffset <= src_offset + size)
-            return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its child!");
-    }
-    else if(parent.get() == destination)
-    {
-        if(dst_offset <= subBufferOffset && subBufferOffset <= dst_offset + size)
-            return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Cannot copy a buffer to its parent!");
+        /*
+         * The buffers refer to the same (parent) buffer object, check for actual overlap:
+         *
+         * "[Returns] CL_MEM_COPY_OVERLAP if src_buffer and dst_buffer are the same buffer or sub-buffer object and the
+         * source and destination regions overlap or if src_buffer and dst_buffer are different sub-buffers of the same
+         * associated buffer object and they overlap. Refer to Appendix E for details on how to determine if source and
+         * destination regions overlap."
+         */
+        // TODO does not handle subbuffers of same parent. Also specification does not say anything about subbuffer +
+        // parent buffer!
+        if(check_copy_overlap(src_origin, dst_origin, region, src_row_pitch, src_slice_pitch))
+            return returnError(CL_MEM_COPY_OVERLAP, __FILE__, __LINE__, "Source and destination regions overlap!");
     }
 
     cl_int errcode = CL_SUCCESS;
@@ -453,10 +560,22 @@ void* Buffer::enqueueMap(CommandQueue* commandQueue, bool blocking_map, cl_map_f
     }
     else
     {
-        out_ptr = reinterpret_cast<uintptr_t>(deviceBuffer->hostPointer) + offset;
+        out_ptr = reinterpret_cast<uintptr_t>(getDeviceHostPointerWithOffset()) + offset;
     }
 
-    EventAction* action = newObject<BufferMapping>(this, reinterpret_cast<void*>(out_ptr), false);
+    std::list<MappingInfo>::const_iterator info = mappings.end();
+    {
+        // we need to already add the mapping here, otherwise queuing the clEnqueueUnmapMemObject might fail for the
+        // memory are not being mapped yet, if the event handler did not process this event yet.
+        std::lock_guard<std::mutex> mapGuard(mappingsLock);
+        mappings.emplace_back(MappingInfo{reinterpret_cast<void*>(out_ptr), false,
+            hasFlag<cl_map_flags>(map_flags, CL_MAP_WRITE_INVALIDATE_REGION),
+            /* only on direct match, i.e. if not combined with CL_MAP_WRITE(...) */
+            map_flags == CL_MAP_READ});
+        info = --mappings.end();
+    }
+
+    EventAction* action = newObject<BufferMapping>(this, info, false);
     CHECK_ALLOCATION_ERROR_CODE(action, errcode_ret, void*)
     e->action.reset(action);
 
@@ -484,24 +603,27 @@ cl_int Buffer::setDestructorCallback(BufferDestructionCallback callback, void* u
 cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list, cl_event* event)
 {
+    std::list<MappingInfo>::iterator mapping = mappings.end();
     {
         std::lock_guard<std::mutex> mapGuard(mappingsLock);
-        if(mapped_ptr == nullptr || mappings.empty())
+        if(mapped_ptr == nullptr)
             return returnError(
                 CL_INVALID_VALUE, __FILE__, __LINE__, buildString("No such memory area to unmap %p!", mapped_ptr));
 
-        bool mappingFound = false;
-        for(const void* mapped : mappings)
+        for(auto it = mappings.begin(); it != mappings.end(); ++it)
         {
-            if(mapped == mapped_ptr)
+            if(it->hostPointer == mapped_ptr && !it->unmapScheduled)
             {
-                mappingFound = true;
+                mapping = it;
                 break;
             }
         }
-        if(!mappingFound)
+        if(mapping == mappings.end())
             return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
                 buildString("Memory area %p was not mapped to this buffer!", mapped_ptr));
+        else
+            // mark this particular entry as being unmapped to make sure we do not unmap an entry twice
+            mapping->unmapScheduled = true;
     }
 
     cl_int errcode = CL_SUCCESS;
@@ -512,7 +634,7 @@ cl_int Buffer::enqueueUnmap(CommandQueue* commandQueue, void* mapped_ptr, cl_uin
         return errcode;
     }
 
-    EventAction* action = newObject<BufferMapping>(this, mapped_ptr, true);
+    EventAction* action = newObject<BufferMapping>(this, mapping, true);
     CHECK_ALLOCATION(action)
     e->action.reset(action);
 
@@ -674,7 +796,8 @@ void* Buffer::getDeviceHostPointerWithOffset()
     return reinterpret_cast<void*>(tmp);
 }
 
-BufferMapping::BufferMapping(Buffer* buffer, void* hostPtr, bool unmap) : buffer(buffer), hostPtr(hostPtr), unmap(unmap)
+BufferMapping::BufferMapping(Buffer* buffer, std::list<MappingInfo>::const_iterator mappingInfo, bool unmap) :
+    buffer(buffer), mappingInfo(mappingInfo), unmap(unmap)
 {
 }
 
@@ -691,18 +814,22 @@ cl_int BufferMapping::operator()()
     {
         //"Reads or writes from the host using the pointer returned by clEnqueueMapBuffer or clEnqueueMapImage are
         // considered to be complete."
-        //-> when un-mapping, we need to write possible changes back to the device buffer
-        status = buffer->copyFromHostBuffer(0, buffer->hostSize);
+        //-> when un-mapping, we need to write possible changes back to the device buffer, unless the mapping was
+        // read-only in which case writing to it would have been undefined behavior
+        if(!mappingInfo->skipWritingBack)
+            status = buffer->copyFromHostBuffer(0, buffer->hostSize);
         std::lock_guard<std::mutex> mapGuard(buffer->mappingsLock);
-        buffer->mappings.remove(hostPtr);
+        buffer->mappings.erase(mappingInfo);
     }
     else
     {
         //"If the buffer object is created with CL_MEM_USE_HOST_PTR [...]"
         //"The host_ptr specified in clCreateBuffer is guaranteed to contain the latest bits [...]"
-        status = buffer->copyIntoHostBuffer(0, buffer->hostSize);
-        std::lock_guard<std::mutex> mapGuard(buffer->mappingsLock);
-        buffer->mappings.push_back(hostPtr);
+        // -> when mapping, we need to write the current device buffer contents to the host buffer, unless the
+        // client notified us that it does not care about the previous contents, e.g. if the whole buffer will be
+        // overwritten anyway
+        if(!mappingInfo->skipPopulatingBuffer)
+            status = buffer->copyIntoHostBuffer(0, buffer->hostSize);
     }
     return status;
 }
@@ -751,16 +878,13 @@ cl_int BufferRectAccess::operator()()
     {
         for(std::size_t y = 0; y < region[1]; ++y)
         {
+            auto bufferOffsetPointer =
+                reinterpret_cast<void*>(devicePointer + bufferRowPitch * y + bufferSlicePitch * z);
+            auto hostOffsetPointer = reinterpret_cast<void*>(hostPointer + hostRowPitch * y + hostSlicePitch * z);
             if(writeToBuffer)
-            {
-                memmove(reinterpret_cast<void*>(devicePointer + bufferRowPitch * y + bufferSlicePitch * z),
-                    reinterpret_cast<void*>(hostPointer + hostRowPitch * y + hostSlicePitch * z), region[0]);
-            }
+                memmove(bufferOffsetPointer, hostOffsetPointer, region[0]);
             else
-            {
-                memmove(reinterpret_cast<void*>(hostPointer + hostRowPitch * y + hostSlicePitch * z),
-                    reinterpret_cast<void*>(devicePointer + bufferRowPitch * y + bufferSlicePitch * z), region[0]);
-            }
+                memmove(hostOffsetPointer, bufferOffsetPointer, region[0]);
         }
     }
     return CL_SUCCESS;

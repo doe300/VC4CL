@@ -367,7 +367,19 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
         out_ptr = getDeviceHostPointerWithOffset();
     }
 
-    ImageMapping* action = newObject<ImageMapping>(this, out_ptr, false, origin, region);
+    std::list<MappingInfo>::const_iterator info = mappings.end();
+    {
+        // we need to already add the mapping here, otherwise queuing the clEnqueueUnmapMemObject might fail for the
+        // memory are not being mapped yet, if the event handler did not process this event yet.
+        std::lock_guard<std::mutex> mapGuard(mappingsLock);
+        mappings.emplace_back(MappingInfo{reinterpret_cast<void*>(out_ptr), false,
+            hasFlag<cl_map_flags>(mapFlags, CL_MAP_WRITE_INVALIDATE_REGION),
+            /* only on direct match, i.e. if not combined with CL_MAP_WRITE(...) */
+            mapFlags == CL_MAP_READ});
+        info = --mappings.end();
+    }
+
+    ImageMapping* action = newObject<ImageMapping>(this, info, false, origin, region);
     CHECK_ALLOCATION_ERROR_CODE(action, errcode_ret, void*)
     e->action.reset(action);
 
@@ -644,9 +656,9 @@ cl_int ImageCopyBuffer::operator()()
     return CL_SUCCESS;
 }
 
-ImageMapping::ImageMapping(
-    Image* image, void* hostPointer, bool isUnmap, const std::size_t origin[3], const std::size_t region[3]) :
-    BufferMapping(image, hostPointer, isUnmap)
+ImageMapping::ImageMapping(Image* image, std::list<MappingInfo>::const_iterator mappingInfo, bool isUnmap,
+    const std::size_t origin[3], const std::size_t region[3]) :
+    BufferMapping(image, mappingInfo, isUnmap)
 {
     memcpy(this->origin.data(), origin, 3 * sizeof(size_t));
     memcpy(this->region.data(), region, 3 * sizeof(size_t));

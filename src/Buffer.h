@@ -24,6 +24,31 @@ namespace vc4cl
     class Image;
     struct BufferMapping;
 
+    /**
+     * We need to keep track of some more information for our mapped pointers for several reasons:
+     *
+     * - need to handle multiple calls to clEnqueueMapBuffer() mapped to the same host pointer, i.e. as guaranteed
+     * by CL_MEM_USE_HOST_PTR, moreover need to make sure we only unmap a single one of those mappings and also just
+     * once!
+     * - if the user does not care about the previous contents of the buffer, we can skip copying the data from the
+     * device to the host buffer.
+     * - if the mapping was read-only, we can skip copying the contents back from the host to the device buffer on
+     * unmapping.
+     */
+    struct MappingInfo
+    {
+        // The pointer to which this mapping is mapped to
+        void* hostPointer;
+        // Whether this mapping has already been requested to be unmapped
+        bool unmapScheduled;
+        // Whether the contents of the mapped host buffer do not need to be copied from the device buffer at mapping
+        // time
+        bool skipPopulatingBuffer;
+        // Whether there is no need to write any data back to the device buffer on unmapping, e.g. the mapping is
+        // read-only
+        bool skipWritingBack;
+    };
+
     class Buffer : public Object<_cl_mem, CL_INVALID_MEM_OBJECT>, public HasContext
     {
     public:
@@ -97,7 +122,7 @@ namespace vc4cl
         size_t hostSize = 0;
 
         mutable std::mutex mappingsLock;
-        std::list<void*> mappings;
+        std::list<MappingInfo> mappings;
 
         std::vector<std::pair<BufferDestructionCallback, void*>> callbacks;
 
@@ -114,10 +139,10 @@ namespace vc4cl
     struct BufferMapping : public EventAction
     {
         object_wrapper<Buffer> buffer;
-        void* hostPtr;
+        std::list<MappingInfo>::const_iterator mappingInfo;
         bool unmap;
 
-        BufferMapping(Buffer* buffer, void* hostPtr, bool unmap);
+        BufferMapping(Buffer* buffer, std::list<MappingInfo>::const_iterator mappingInfo, bool unmap);
         ~BufferMapping() override;
 
         cl_int operator()() override final;
