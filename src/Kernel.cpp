@@ -44,6 +44,16 @@ void ScalarArgument::addScalar(const int32_t s)
     scalarValues.push_back(v);
 }
 
+void ScalarArgument::addScalar(uint64_t l)
+{
+    ScalarValue lower;
+    lower.setUnsigned(static_cast<uint32_t>(l & 0xFFFFFFFF));
+    ScalarValue upper;
+    upper.setUnsigned(static_cast<uint32_t>(l >> 32));
+    scalarValues.push_back(lower);
+    scalarValues.push_back(upper);
+}
+
 std::string ScalarArgument::to_string() const
 {
     std::string res;
@@ -92,14 +102,14 @@ Kernel::~Kernel() noexcept = default;
 
 cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
 {
-    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
         std::cout << "Set kernel arg " << arg_index << " for kernel '" << info.name << "' to " << arg_value << " ("
                   << (arg_value == nullptr ? 0x0 : *reinterpret_cast<const int*>(arg_value)) << ") with size "
-                  << arg_size << std::endl;
+                  << arg_size << std::endl);
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
         std::cout << "Kernel arg " << arg_index << " for kernel '" << info.name << "' is "
                   << info.params[arg_index].type << " '" << info.params[arg_index].name << "' with size "
-                  << static_cast<size_t>(info.params[arg_index].getSize()) << std::endl;
-    })
+                  << static_cast<size_t>(info.params[arg_index].getSize()) << std::endl);
 
     if(arg_index >= info.params.size())
     {
@@ -145,7 +155,13 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
         }
         else
         {
-            const size_t elementSize = arg_size / paramInfo.getVectorElements();
+            size_t elementSize = arg_size / paramInfo.getVectorElements();
+            if(paramInfo.getVectorElements() == 3 && (arg_size % 3 != 0))
+            {
+                // Fix-up for literal 3-element vectors when a 4-element vector (or at least a buffer holding up to 4
+                // elements) is passed in
+                elementSize = arg_size / 4;
+            }
             ScalarArgument* scalarArg = new ScalarArgument(paramInfo.getVectorElements());
             args[arg_index].reset(scalarArg);
             for(cl_uchar i = 0; i < paramInfo.getVectorElements(); ++i)
@@ -178,6 +194,10 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                         cl_uint tmp = 0xFFFF & static_cast<const cl_ushort*>(arg_value)[i];
                         scalarArg->addScalar(tmp);
                     }
+                }
+                else if(elementSize == 8 /* [u]long */)
+                {
+                    scalarArg->addScalar(static_cast<const cl_ulong*>(arg_value)[i]);
                 }
                 else if(elementSize > 4)
                 {

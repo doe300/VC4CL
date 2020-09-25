@@ -85,6 +85,7 @@ namespace vc4cl
         void addScalar(float f);
         void addScalar(uint32_t u);
         void addScalar(int32_t s);
+        void addScalar(uint64_t l);
 
         std::string to_string() const override;
         std::unique_ptr<KernelArgument> clone() const override;

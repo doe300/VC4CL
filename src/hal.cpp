@@ -86,6 +86,7 @@ static void dumpEmulationLog(std::string&& fileName, std::wistream& logStream)
 {
     using namespace vc4cl;
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
+        logStream.seekg(0);
         const std::string dumpFile("/tmp/vc4cl-emulation-" + fileName + "-" + std::to_string(rand()) + ".log");
         std::wofstream f;
         // Dump the emulation log

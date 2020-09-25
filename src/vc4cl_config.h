@@ -66,6 +66,8 @@ namespace vc4cl
 #endif
             // extended version queries
             {"cl_khr_extended_versioning", 1, 0},
+            // specifies the SPIR-V extension SPV_KHR_no_integer_wrap_decoration to be available
+            {"cl_khr_spirv_no_integer_wrap_decoration", 0, 0},
             // custom performance counter support
             VC4CL_PERFORMANCE_EXTENSION};
     } // namespace platform_config
