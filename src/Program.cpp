@@ -139,6 +139,20 @@ static cl_int precompile_program(Program* program, const std::string& options,
         uint8_t tmp;
         while(out->read(reinterpret_cast<char*>(&tmp), sizeof(uint8_t)))
             program->intermediateCode.push_back(tmp);
+
+        DEBUG_LOG(DebugLevel::DUMP_CODE, {
+            // reset the tmp buffer, so we can actually read from it again
+            out->clear();
+            out->seekg(0);
+            auto irType = vc4c::Precompiler::getSourceType(*out);
+            bool isSPIRVType = irType == vc4c::SourceType::SPIRV_BIN || irType == vc4c::SourceType::SPIRV_TEXT;
+            const std::string dumpFile("/tmp/vc4cl-ir-" + std::to_string(rand()) + (isSPIRVType ? ".spt" : ".ll"));
+            std::cout << "Dumping program IR to " << dumpFile << std::endl;
+            vc4c::Precompiler precomp(config, *out, irType);
+            std::unique_ptr<std::istream> irOut;
+            precomp.run(
+                irOut, isSPIRVType ? vc4c::SourceType::SPIRV_TEXT : vc4c::SourceType::LLVM_IR_TEXT, "", dumpFile);
+        })
     }
     catch(vc4c::CompilationError& e)
     {
@@ -198,6 +212,21 @@ static cl_int link_programs(
         uint8_t tmp;
         while(linkedCode.read(reinterpret_cast<char*>(&tmp), sizeof(uint8_t)))
             program->intermediateCode.push_back(tmp);
+
+        DEBUG_LOG(DebugLevel::DUMP_CODE, {
+            // reset the tmp buffer, so we can actually read from it again
+            linkedCode.clear();
+            linkedCode.seekg(0);
+            auto irType = vc4c::Precompiler::getSourceType(linkedCode);
+            bool isSPIRVType = irType == vc4c::SourceType::SPIRV_BIN || irType == vc4c::SourceType::SPIRV_TEXT;
+            const std::string dumpFile("/tmp/vc4cl-ir-" + std::to_string(rand()) + (isSPIRVType ? ".spt" : ".ll"));
+            std::cout << "Dumping program IR to " << dumpFile << std::endl;
+            vc4c::Configuration dummyConfig{};
+            vc4c::Precompiler precomp(dummyConfig, linkedCode, irType);
+            std::unique_ptr<std::istream> irOut;
+            precomp.run(
+                irOut, isSPIRVType ? vc4c::SourceType::SPIRV_TEXT : vc4c::SourceType::LLVM_IR_TEXT, "", dumpFile);
+        })
     }
     catch(vc4c::CompilationError& e)
     {

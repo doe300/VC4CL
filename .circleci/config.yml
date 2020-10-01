@@ -50,7 +50,7 @@ jobs:
           distination: vc4cl-0.4-Linux.deb
   build:
     docker:
-      - image: nomaddo/native
+      - image: doe300/native
     steps:
       - checkout
       - run:
@@ -121,7 +121,7 @@ jobs:
           distination: vc4cl-0.4-Linux.deb
   test:
     docker:
-      - image: nomaddo/native
+      - image: doe300/native
     steps:
       - attach_workspace:
           at: /root/project
