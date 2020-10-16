@@ -425,7 +425,6 @@ void TestExecutions::testBarrier()
 	TEST_ASSERT_EQUALS(9u, result.at(9));
 	TEST_ASSERT_EQUALS(10u, result.at(10));
 
-	//FIXME results as of second work-item are wrong!
 	TEST_ASSERT_EQUALS(0u, result.at(12));
 	TEST_ASSERT_EQUALS(1u, result.at(13));
 	TEST_ASSERT_EQUALS(2u, result.at(14));

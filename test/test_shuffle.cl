@@ -22,7 +22,7 @@ __kernel void test_shuffle(const __global char16* in, __global char16* out)
 	//(11, 1, 2, 10, 11, 1, 2, 10, 11, 1, 2, 10, 11, 1, 2, 10)
 	out[3] = (char16)(tmp3, tmp3, tmp3, tmp3);
 
-	char16 tmp4;
+	char16 tmp4 = 0;
 	//(0, 0, 0, 1, 11, 0, 0, 10, 0, 11, 1, 2, 2, 10, 0, 0)
 	tmp4.s43b79acd = (char8)(tmp3, tmp3);
 	out[4] = tmp4;

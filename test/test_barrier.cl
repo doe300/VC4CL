@@ -2,7 +2,7 @@
 
 __kernel void test_barrier(__global int* status)
 {
-	__global int* base = status + get_global_id(0) * (TPB + 4);
+	__global int* base = status + (get_global_id(0) + get_global_id(1) * get_global_size(0)) * (TPB + 4);
 	base[0] = 0;
 	barrier(CLK_LOCAL_MEM_FENCE);
 	base[1] = 1;

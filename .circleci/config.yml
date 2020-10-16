@@ -134,7 +134,7 @@ jobs:
       - run: ldconfig
       - run: vc4c --version
       - run: v3d_info
-      - run: build/test/TestVC4CL --output=plain --mode=verbose --buffer --context --device --events --platform --programs --queue --system --kernels
+      - run: build/test/TestVC4CL --output=plain --mode=verbose --buffer --context --device --events --executions --kernels --platform --programs --queue --system
       - run: dpkg -r vc4cl vc4c vc4cl-stdlib
 workflows:
   version: 2
