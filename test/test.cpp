@@ -15,7 +15,6 @@
 #include "TestDevice.h"
 #include "TestEvent.h"
 #include "TestExecutions.h"
-#include "TestExtension.h"
 #include "TestImage.h"
 #include "TestKernel.h"
 #include "TestPlatform.h"
@@ -62,8 +61,6 @@ int main(int argc, char** argv)
     Test::registerSuite(Test::newInstance<TestEvent>, "events", "Test creating, querying and scheduling events");
 
 #if HAS_COMPILER
-    Test::registerSuite([&output]() -> Test::Suite* { return new TestExtension(&output); }, "extensions",
-        "Tests supported OpenCL extensions");
     Test::registerSuite(
         Test::newInstance<TestExecutions>, "executions", "Tests the executions and results of a few selected kernels");
 #endif

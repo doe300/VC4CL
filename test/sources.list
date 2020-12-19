@@ -8,7 +8,6 @@ target_sources(TestVC4CL
     TestDevice.cpp
     TestEvent.cpp
     TestExecutions.cpp
-    TestExtension.cpp
     TestImage.cpp
     TestKernel.cpp
     TestPlatform.cpp
