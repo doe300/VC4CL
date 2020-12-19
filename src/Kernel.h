@@ -195,6 +195,9 @@ namespace vc4cl
         ~KernelExecution() override;
 
         cl_int operator()() override final;
+
+        cl_int getPerformanceCounter(cl_profiling_info param_name, size_t param_value_size, void* param_value,
+            size_t* param_value_size_ret) const;
     };
 
 } /* namespace vc4cl */

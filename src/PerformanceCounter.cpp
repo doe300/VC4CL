@@ -53,6 +53,51 @@ void PerformanceCounters::dumpCounters() const
     }
 }
 
+cl_int PerformanceCounters::getCounterValue(
+    cl_profiling_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const
+{
+    switch(param_name)
+    {
+    case CL_PROFILING_PERFORMANCE_COUNTER_EXECUTION_CYCLES_VC4CL:
+    {
+        auto counterIt = counterValues.find(CounterType::EXECUTION_CYCLES);
+        if(counterIt == counterValues.end() || counterIt->second < 0)
+            break;
+        return returnValue(
+            static_cast<cl_ulong>(counterIt->second), param_value_size, param_value, param_value_size_ret);
+    }
+    case CL_PROFILING_PERFORMANCE_COUNTER_IDLE_CYCLES_VC4CL:
+    {
+        auto counterIt = counterValues.find(CounterType::IDLE_CYCLES);
+        if(counterIt == counterValues.end() || counterIt->second < 0)
+            break;
+        return returnValue(
+            static_cast<cl_ulong>(counterIt->second), param_value_size, param_value, param_value_size_ret);
+    }
+    case CL_PROFILING_PERFORMANCE_COUNTER_INSTRUCTION_CACHE_MISSES_VC4CL:
+    {
+        auto counterIt = counterValues.find(CounterType::INSTRUCTION_CACHE_MISSES);
+        if(counterIt == counterValues.end() || counterIt->second < 0)
+            break;
+        return returnValue(
+            static_cast<cl_ulong>(counterIt->second), param_value_size, param_value, param_value_size_ret);
+    }
+    case CL_PROFILING_PERFORMANCE_COUNTER_L2_CACHE_MISSES_VC4CL:
+    {
+        auto counterIt = counterValues.find(CounterType::L2_CACHE_MISSES);
+        if(counterIt == counterValues.end() || counterIt->second < 0)
+            break;
+        return returnValue(
+            static_cast<cl_ulong>(counterIt->second), param_value_size, param_value, param_value_size_ret);
+    }
+    case CL_PROFILING_PERFORMANCE_COUNTER_INSTRUCTION_COUNT_VC4CL:
+        return returnValue(static_cast<cl_ulong>(numInstructions), param_value_size, param_value, param_value_size_ret);
+    }
+
+    return returnError(
+        CL_INVALID_VALUE, __FILE__, __LINE__, buildString("Invalid cl_performance_counter_vc4cl value %d", param_name));
+}
+
 PerformanceCollector::PerformanceCollector(
     PerformanceCounters& counters, const KernelInfo& kernelInfo, size_t localWorkSize, size_t numGroups) :
     counters(counters)

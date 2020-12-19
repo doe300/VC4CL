@@ -5,6 +5,7 @@
  */
 
 #include "Event.h"
+#include "Kernel.h"
 #include "queue_handler.h"
 
 #include <chrono>
@@ -118,6 +119,10 @@ cl_int Event::getProfilingInfo(
         return returnValue<cl_ulong>(profile.start_time, param_value_size, param_value, param_value_size_ret);
     case CL_PROFILING_COMMAND_END:
         return returnValue<cl_ulong>(profile.end_time, param_value_size, param_value, param_value_size_ret);
+    default:
+        if(auto kernelExecution = dynamic_cast<const KernelExecution*>(action.get()))
+            return kernelExecution->getPerformanceCounter(
+                param_name, param_value_size, param_value, param_value_size_ret);
     }
 
     return returnError(

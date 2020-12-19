@@ -737,6 +737,16 @@ cl_int KernelExecution::operator()()
     return executeKernel(*this);
 }
 
+cl_int KernelExecution::getPerformanceCounter(
+    cl_profiling_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret) const
+{
+    if(!performanceCounters)
+        return returnError(
+            CL_INVALID_VALUE, __FILE__, __LINE__, "Performance counters are not enabled for this kernel execution!");
+
+    return performanceCounters->getCounterValue(param_name, param_value_size, param_value, param_value_size_ret);
+}
+
 /*!
  * OpenCL 1.2 specification, pages 158+:
  *

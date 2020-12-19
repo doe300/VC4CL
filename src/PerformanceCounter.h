@@ -34,6 +34,9 @@ namespace vc4cl
         size_t workGroupSize;
 
         void dumpCounters() const;
+
+        cl_int getCounterValue(cl_profiling_info param_name, size_t param_value_size, void* param_value,
+            size_t* param_value_size_ret) const;
     };
 
     /**
