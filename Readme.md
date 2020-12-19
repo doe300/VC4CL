@@ -77,4 +77,5 @@ To generate debug information, set the `VC4CL_DEBUG` environment variable to one
 - `execution` enables logging of detailed kernel execution information (parameters, execution cycle, return codes) to the standard output
 - `events` enables logging of asynchronous event processing information to the standard output
 - `objects` enables logging of lifetime begin/end and leaks of OpenCL API objects to the standard output
+- `perf` enables collection and logging of V3D hardware performance counters to the standard output
 - `all` enables all above logging modes

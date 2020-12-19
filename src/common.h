@@ -49,6 +49,8 @@ namespace vc4cl
         EVENTS = 1u << 4u,
         // Lifetime information of OpenCL objects is logged to the standard output
         OBJECTS = 1 << 5u,
+        // V3D hardware performance counters are collected and their values logged to the standard output
+        PERFORMANCE_COUNTERS = 1 << 6u,
         ALL = 0xFF
 
     };

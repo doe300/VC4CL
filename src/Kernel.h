@@ -24,6 +24,7 @@ namespace vc4cl
     class Buffer;
     class Mailbox;
     class V3D;
+    struct PerformanceCounters;
 
     class Kernel final : public Object<_cl_kernel, CL_INVALID_KERNEL>
     {
@@ -186,6 +187,9 @@ namespace vc4cl
         std::map<unsigned, std::unique_ptr<DeviceBuffer>> tmpBuffers;
         // The value is the buffer + the actual address (buffer + offset, for sub-buffers)
         std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>> persistentBuffers;
+
+        // The optional performance counters to be filled upon this kernel execution
+        std::unique_ptr<PerformanceCounters> performanceCounters;
 
         explicit KernelExecution(Kernel* kernel);
         ~KernelExecution() override;

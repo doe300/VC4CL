@@ -41,18 +41,6 @@ void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platfo
     if(strcmp("clReportLiveObjectsAltera", funcname) == 0)
         return reinterpret_cast<void*>(&(VC4CL_FUNC(clReportLiveObjectsAltera)));
 
-    // cl_vc4cl_performance_counters
-    if(strcmp("clCreatePerformanceCounterVC4CL", funcname) == 0)
-        return reinterpret_cast<void*>(&VC4CL_FUNC(clCreatePerformanceCounterVC4CL));
-    if(strcmp("clGetPerformanceCounterValueVC4CL", funcname) == 0)
-        return reinterpret_cast<void*>(&VC4CL_FUNC(clGetPerformanceCounterValueVC4CL));
-    if(strcmp("clReleasePerformanceCounterVC4CL", funcname) == 0)
-        return reinterpret_cast<void*>(&VC4CL_FUNC(clReleasePerformanceCounterVC4CL));
-    if(strcmp("clRetainPerformanceCounterVC4CL", funcname) == 0)
-        return reinterpret_cast<void*>(&VC4CL_FUNC(clRetainPerformanceCounterVC4CL));
-    if(strcmp("clResetPerformanceCounterVC4CL", funcname) == 0)
-        return reinterpret_cast<void*>(&VC4CL_FUNC(clResetPerformanceCounterValueVC4CL));
-
     DEBUG_LOG(DebugLevel::API_CALLS, std::cout << "extension function address not found for: " << funcname << std::endl)
 
     return nullptr;

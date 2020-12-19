@@ -242,24 +242,4 @@ struct _cl_sampler : public _cl_object
     }
 };
 
-/*
- * VC4CL performance counters (cl_vc4cl_performance_counters)
- */
-struct _cl_counter_vc4cl : public _cl_object
-{
-    constexpr static const char* TYPE_NAME = "cl_counter_vc4cl";
-
-    explicit _cl_counter_vc4cl(void* obj) : _cl_object(obj)
-    {
-        static_assert(std::is_standard_layout<_cl_counter_vc4cl>::value,
-            "This is required for the ICD-loader to correctly find the dispatcher");
-#if use_cl_khr_icd
-        static_assert(
-            offsetof(_cl_counter_vc4cl, dispatch) == 0, "The ICD dispatch-object is required to have no offset!");
-        assert(dispatch != nullptr);
-#endif
-        assert(object != nullptr);
-    }
-};
-
 #endif /* TYPES_H */

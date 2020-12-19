@@ -8,6 +8,7 @@
 
 #include "Buffer.h"
 #include "Device.h"
+#include "PerformanceCounter.h"
 #include "V3D.h"
 #include "extensions.h"
 
@@ -624,6 +625,9 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
         [](const auto& arg) { return arg->clone(); });
     source->tmpBuffers = std::move(tmpBuffers);
     source->persistentBuffers = std::move(persistentBuffers);
+    if(commandQueue->isProfilingEnabled() || isDebugModeEnabled(DebugLevel::PERFORMANCE_COUNTERS))
+        // enable performance counters for either event profiling or if the debug flag is explicitly set
+        source->performanceCounters.reset(new PerformanceCounters());
 
     kernelEvent->action.reset(source);
 
@@ -710,10 +714,23 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
 }
 
 KernelExecution::KernelExecution(Kernel* kernel) :
-    kernel(kernel), mailbox(vc4cl::mailbox()), v3d(V3D::instance()), numDimensions(0)
+    kernel(kernel), mailbox(vc4cl::mailbox()), v3d(V3D::instance()), numDimensions(0), performanceCounters(nullptr)
 {
 }
-KernelExecution::~KernelExecution() = default;
+
+KernelExecution::~KernelExecution()
+{
+    if(performanceCounters && isDebugModeEnabled(DebugLevel::PERFORMANCE_COUNTERS))
+    {
+        // If we explicitly enable the performance debug output, dump the counter values. We dump the contents here
+        // instead of directly after the kernel execution, since a) this is guaranteed to be executed exactly once and
+        // b) this destructor is most likely executed in the caller's thread and not our command loop
+        DEBUG_LOG(DebugLevel::PERFORMANCE_COUNTERS,
+            std::cout << "Performance counters for kernel execution: " << kernel->info.name << std::endl)
+        performanceCounters->dumpCounters();
+        DEBUG_LOG(DebugLevel::PERFORMANCE_COUNTERS, std::cout << std::endl)
+    }
+}
 
 cl_int KernelExecution::operator()()
 {

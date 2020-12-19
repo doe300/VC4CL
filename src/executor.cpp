@@ -9,6 +9,7 @@
 #include "Event.h"
 #include "Kernel.h"
 #include "Mailbox.h"
+#include "PerformanceCounter.h"
 #include "V3D.h"
 
 #include <CL/opencl.h>
@@ -365,7 +366,9 @@ cl_int executeKernel(KernelExecution& args)
             else if(auto scalarArg = dynamic_cast<const ScalarArgument*>(args.executionArguments.at(u).get()))
             {
                 // "default" scalar or vector of scalar kernel argument
-                for(cl_uchar i = 0; i < kernel->info.params[u].getVectorElements(); ++i)
+                // we use the actual number of vector elements here instead of the expected number, since e.g. for
+                // 64-bit integer we need 2 UNIFORMs for every vector element
+                for(cl_uchar i = 0; i < scalarArg->scalarValues.size(); ++i)
                     *p++ = scalarArg->scalarValues.at(i).getUnsigned();
                 DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
                     std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
@@ -446,6 +449,12 @@ cl_int executeKernel(KernelExecution& args)
     auto* uniformPointers_next = &uniformPointers[1];
     // calculate execution timeout depending on the number of work-groups to be executed at once
     auto timeout = KERNEL_TIMEOUT * std::max(std::size_t{30}, group_limits[0] * group_limits[1] * group_limits[2]);
+    // enable performance counters depending on whether they are configured, move to heap to be able to manually control
+    // object lifetime
+    std::unique_ptr<PerformanceCollector> perfCollector;
+    if(args.performanceCounters)
+        perfCollector.reset(new PerformanceCollector(*args.performanceCounters, args.kernel->info, num_qpus,
+            group_limits[0] * group_limits[1] * group_limits[2]));
     // on first execution, flush code cache
     auto result = executeQPU(args.mailbox, args.v3d, static_cast<unsigned>(num_qpus),
         std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), true, timeout);
@@ -484,6 +493,7 @@ cl_int executeKernel(KernelExecution& args)
 
     // wait for (possible asynchronous) execution before freeing the buffers
     auto status = result.waitFor();
+    perfCollector.reset();
 
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
         // Append the buffers after the kernel execution

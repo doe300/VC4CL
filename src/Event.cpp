@@ -363,17 +363,18 @@ cl_int VC4CL_FUNC(clWaitForEvents)(cl_uint num_events, const cl_event* event_lis
             return returnError(CL_INVALID_CONTEXT, __FILE__, __LINE__, "Contexts of events do not match!");
     }
 
-    bool with_errors = false;
+    cl_int waitListError = CL_SUCCESS;
     // wait for completion
     // in any case (error or not), we need to walk through all events to make sure they are all finished.
     for(cl_uint i = 0; i < num_events; ++i)
     {
-        if(toType<Event>(event_list[i])->waitFor() != CL_COMPLETE)
-            with_errors = true;
+        auto status = toType<Event>(event_list[i])->waitFor();
+        if(status != CL_COMPLETE)
+            waitListError = status;
     }
-    return with_errors ?
-        returnError(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST, __FILE__, __LINE__, "Error in event in wait-list!") :
-        CL_SUCCESS;
+    return waitListError != CL_SUCCESS ? returnError(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST, __FILE__, __LINE__,
+                                             "Error " + std::to_string(waitListError) + " in event in wait-list!") :
+                                         CL_SUCCESS;
 }
 
 // OpenCL 1.1 API function, deprecated in OpenCL 1.2

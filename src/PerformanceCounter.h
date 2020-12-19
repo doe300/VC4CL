@@ -7,25 +7,53 @@
 #ifndef PERFORMANCE_COUNTER_H
 #define PERFORMANCE_COUNTER_H
 
-#include "Context.h"
-#include "extensions.h"
+#include "V3D.h"
+#include "cl_ext_vc4cl.h"
+
+#include <map>
+#include <mutex>
+#include <set>
+#include <string>
 
 namespace vc4cl
 {
-    class PerformanceCounter final : public Object<_cl_counter_vc4cl, CL_INVALID_PERFORMANCE_COUNTER_VC4CL>
+    struct KernelInfo;
+
+    /**
+     * Container object for storing performance counter results
+     */
+    struct PerformanceCounters
     {
-    public:
-        PerformanceCounter(cl_counter_type_vc4cl type, cl_uchar index);
-        ~PerformanceCounter() override;
+        mutable std::mutex countersLock;
+        std::map<CounterType, int64_t> counterValues;
+        bool querySuccessful = true;
+        size_t clockSpeed;
+        size_t numInstructions;
+        size_t numExplicitUniforms;
+        size_t numWorkGroups;
+        size_t workGroupSize;
 
-        cl_int getValue(cl_uint* value) const;
-        cl_int reset();
-
-    private:
-        cl_counter_type_vc4cl type;
-        cl_uchar index;
+        void dumpCounters() const;
     };
 
+    /**
+     * RAII wrapper for configuring and collecting performance counter values
+     */
+    class PerformanceCollector
+    {
+    public:
+        PerformanceCollector(
+            PerformanceCounters& counters, const KernelInfo& kernelInfo, size_t localWorkSize, size_t numGroups);
+        PerformanceCollector(const PerformanceCollector&) = delete;
+        PerformanceCollector(PerformanceCollector&&) noexcept = delete;
+        ~PerformanceCollector() noexcept;
+
+        PerformanceCollector& operator=(const PerformanceCollector&) = delete;
+        PerformanceCollector& operator=(PerformanceCollector&&) noexcept = delete;
+
+    private:
+        PerformanceCounters& counters;
+    };
 } /* namespace vc4cl */
 
 #endif /* PERFORMANCE_COUNTER_H */

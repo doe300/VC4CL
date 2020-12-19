@@ -211,6 +211,13 @@ cl_int Buffer::enqueueReadRect(CommandQueue* commandQueue, bool blocking_read, c
     size_t host_row_pitch, size_t host_slice_pitch, void* ptr, cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list, cl_event* event)
 {
+    if(buffer_origin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Buffer origin pointer in NULL");
+    if(host_origin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Host origin pointer in NULL");
+    if(region == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Region pointer in NULL");
+
     // only used for range-checks
     const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
     const size_t size = calculate_size_bounds(region);
@@ -259,6 +266,13 @@ cl_int Buffer::enqueueWriteRect(CommandQueue* commandQueue, bool blocking_write,
     size_t host_row_pitch, size_t host_slice_pitch, const void* ptr, cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list, cl_event* event)
 {
+    if(buffer_origin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Buffer origin pointer in NULL");
+    if(host_origin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Host origin pointer in NULL");
+    if(region == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Region pointer in NULL");
+
     // only used for range-checks
     const size_t buffer_offset = calculate_offset(buffer_origin, buffer_row_pitch, buffer_slice_pitch);
     const size_t size = calculate_size_bounds(region);
@@ -406,6 +420,13 @@ cl_int Buffer::enqueueCopyIntoRect(CommandQueue* commandQueue, Buffer* destinati
     const size_t* dst_origin, const size_t* region, size_t src_row_pitch, size_t src_slice_pitch, size_t dst_row_pitch,
     size_t dst_slice_pitch, cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event)
 {
+    if(src_origin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Source buffer origin pointer in NULL");
+    if(dst_origin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Destination buffer origin pointer in NULL");
+    if(region == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Region pointer in NULL");
+
     // only used for range-checks
     const size_t src_offset = calculate_offset(src_origin, src_row_pitch, src_slice_pitch);
     const size_t size = calculate_size_bounds(region);
@@ -1362,6 +1383,7 @@ cl_int VC4CL_FUNC(clEnqueueWriteBuffer)(cl_command_queue command_queue, cl_mem b
  *  - CL_INVALID_CONTEXT if the context associated with command_queue and buffer are not the same or if the context
  * associated with command_queue and events in event_wait_list are not the same.
  *  - CL_INVALID_MEM_OBJECT if buffer is not a valid buffer object.
+ *  - CL_INVALID_VALUE if buffer_origin, host_origin, or region is NULL.
  *  - CL_INVALID_VALUE if the region being read or written specified by (buffer_origin, region, buffer_row_pitch,
  * buffer_slice_pitch) is out of bounds.
  *  - CL_INVALID_VALUE if ptr is a NULL value.
@@ -1372,6 +1394,7 @@ cl_int VC4CL_FUNC(clEnqueueWriteBuffer)(cl_command_queue command_queue, cl_mem b
  * of buffer_row_pitch.
  *  - CL_INVALID_VALUE if host_slice_pitch is not 0 and is less than region[1] * host_row_pitch and not a multiple of
  * host_row_pitch.
+ *  - CL_INVALID_VALUE if ptr is NULL.
  *  - CL_INVALID_EVENT_WAIT_LIST if event_wait_list is NULL and num_events_in_wait_list > 0, or event_wait_list is not
  * NULL and num_events_in_wait_listis 0, or if event objects in event_wait_list are not valid events.
  *  - CL_MISALIGNED_SUB_BUFFER_OFFSET if buffer is a sub-buffer object and offset specified when the sub-buffer object
@@ -1477,6 +1500,7 @@ cl_int VC4CL_FUNC(clEnqueueReadBufferRect)(cl_command_queue command_queue, cl_me
  *  - CL_INVALID_CONTEXT if the context associated with command_queue and buffer are not the same or if the context
  * associated with command_queue and events in event_wait_list are not the same.
  *  - CL_INVALID_MEM_OBJECT if buffer is not a valid buffer object.
+ *  - CL_INVALID_VALUE if buffer_origin, host_origin, or region is NULL.
  *  - CL_INVALID_VALUE if the region being read or written specified by (buffer_origin, region, buffer_row_pitch,
  * buffer_slice_pitch) is out of bounds.
  *  - CL_INVALID_VALUE if ptr is a NULL value.
@@ -1487,6 +1511,7 @@ cl_int VC4CL_FUNC(clEnqueueReadBufferRect)(cl_command_queue command_queue, cl_me
  * of buffer_row_pitch.
  *  - CL_INVALID_VALUE if host_slice_pitch is not 0 and is less than region[1] * host_row_pitch and not a multiple of
  * host_row_pitch.
+ *  - CL_INVALID_VALUE if ptr is NULL.
  *  - CL_INVALID_EVENT_WAIT_LIST if event_wait_list is NULL and num_events_in_wait_list > 0, or event_wait_list is not
  * NULL and num_events_in_wait_listis 0, or if event objects in event_wait_list are not valid events.
  *  - CL_MISALIGNED_SUB_BUFFER_OFFSET if buffer is a sub-buffer object and offset specified when the sub-buffer object
@@ -1660,6 +1685,7 @@ cl_int VC4CL_FUNC(clEnqueueCopyBuffer)(cl_command_queue command_queue, cl_mem sr
  *  - CL_INVALID_CONTEXT if the context associated with command_queue, src_buffer and dst_buffer are not the same or if
  * the context associated with command_queue and events in event_wait_list are not the same.
  *  - CL_INVALID_MEM_OBJECT if src_buffer and dst_buffer are not valid buffer objects.
+ *  - CL_INVALID_VALUE if src_origin, dst_origin, or region is NULL.
  *  - CL_INVALID_VALUE if (src_origin, region, src_row_pitch, src_slice_pitch) or (dst_origin, region, dst_row_pitch,
  * dst_slice_pitch) require accessing elements outside the src_buffer and dst_buffer buffer objects respectively.
  *  - CL_INVALID_VALUE if any region array element is 0.

@@ -119,6 +119,10 @@ cl_int Image::enqueueRead(CommandQueue* commandQueue, cl_bool blockingRead, cons
     size_t row_pitch, size_t slice_pitch, void* ptr, cl_uint numEventsInWaitList, const cl_event* waitList,
     cl_event* event)
 {
+    if(origin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Origin pointer cannot be NULL!");
+    if(region == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Region pointer cannot be NULL!");
     if(ptr == nullptr)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Host-pointer cannot be NULL!");
 
@@ -161,6 +165,10 @@ cl_int Image::enqueueWrite(CommandQueue* commandQueue, cl_bool blockingWrite, co
     const size_t* region, size_t row_pitch, size_t slice_pitch, const void* ptr, cl_uint numEventsInWaitList,
     const cl_event* waitList, cl_event* event)
 {
+    if(origin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Origin pointer cannot be NULL!");
+    if(region == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Region pointer cannot be NULL!");
     if(ptr == nullptr)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Host-pointer cannot be NULL!");
 
@@ -203,6 +211,12 @@ cl_int Image::enqueueCopyInto(CommandQueue* commandQueue, Image* destination, co
     const size_t* dstOrigin, const size_t* region, cl_uint numEventsInWaitList, const cl_event* waitList,
     cl_event* event)
 {
+    if(srcOrigin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Source origin pointer cannot be NULL!");
+    if(dstOrigin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Destination origin pointer cannot be NULL!");
+    if(region == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Region cannot be NULL!");
     if(context() != destination->context())
         return returnError(
             CL_INVALID_CONTEXT, __FILE__, __LINE__, "Context of source and destination images do not match!");
@@ -258,6 +272,10 @@ cl_int Image::enqueueCopyInto(CommandQueue* commandQueue, Image* destination, co
 cl_int Image::enqueueFill(CommandQueue* commandQueue, const void* color, const size_t* origin, const size_t* region,
     cl_uint numEventsInWaitList, const cl_event* waitList, cl_event* event)
 {
+    if(origin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Origin to fill is NULL!");
+    if(region == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Region to fill is NULL!");
     if(color == nullptr)
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Color to fill is NULL!");
 
@@ -284,6 +302,10 @@ cl_int Image::enqueueCopyFromToBuffer(CommandQueue* commandQueue, Buffer* buffer
     const size_t* region, const size_t bufferOffset, bool copyIntoImage, cl_uint numEventsInWaitList,
     const cl_event* waitList, cl_event* event)
 {
+    if(origin == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Origin is NULL!");
+    if(region == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Region is NULL!");
     if(context() != buffer->context())
         return returnError(CL_INVALID_CONTEXT, __FILE__, __LINE__, "Context of image and buffer do not match!");
     //"CL_INVALID_MEM_OBJECT [...] or if dst_image is a 1D image buffer object created from src_buffer."
@@ -319,6 +341,10 @@ void* Image::enqueueMap(CommandQueue* commandQueue, cl_bool blockingMap, cl_map_
     const size_t* region, size_t* rowPitchOutput, size_t* slicePitchOutput, cl_uint numEventsInWaitList,
     const cl_event* waitList, cl_event* event, cl_int* errcode_ret)
 {
+    if(origin == nullptr)
+        return returnError<void*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Origin is NULL!");
+    if(region == nullptr)
+        return returnError<void*>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "Region is NULL!");
     if(!hostReadable && hasFlag<cl_mem_flags>(mapFlags, CL_MAP_READ))
         return returnError<void*>(
             CL_INVALID_OPERATION, errcode_ret, __FILE__, __LINE__, "Cannot read from not host-readable image!");
@@ -1103,10 +1129,11 @@ cl_int VC4CL_FUNC(clGetSupportedImageFormats)(cl_context context, cl_mem_flags f
  *  - CL_INVALID_CONTEXT if the context associated with command_queue and image are not the same or if the context
  * associated with command_queue and events in event_wait_list are not the same.
  *  - CL_INVALID_MEM_OBJECT if image is not a valid image object.
- *  - CL_INVALID_VALUE if the region being read or written specified by origin and region is out of bounds or if ptr is
- * a NULL value.
+ *  - CL_INVALID_VALUE if origin or region is NULL.
+ *  - CL_INVALID_VALUE if the region being read or written specified by origin and region is out of bounds.
  *  - CL_INVALID_VALUE if values in origin and region do not follow rules described in the argument description for
  * origin and region.
+ *  - CL_INVALID_VALUE if ptr is NULL.
  *  - CL_INVALID_EVENT_WAIT_LIST if event_wait_list is NULL and num_events_in_wait_list > 0, or event_wait_list is not
  * NULL and num_events_in_wait_list is 0, or if event objects in event_wait_list are not valid events.
  *  - CL_INVALID_IMAGE_SIZE if image dimensions (image width, height, specified or compute row and/or slice pitch) for
@@ -1218,10 +1245,11 @@ cl_int VC4CL_FUNC(clEnqueueReadImage)(cl_command_queue command_queue, cl_mem ima
  *  - CL_INVALID_CONTEXT if the context associated with command_queue and image are not the same or if the context
  * associated with command_queue and events in event_wait_list are not the same.
  *  - CL_INVALID_MEM_OBJECT if image is not a valid image object.
- *  - CL_INVALID_VALUE if the region being read or written specified by origin and region is out of bounds or if ptr is
- * a NULL value.
+ *  - CL_INVALID_VALUE if origin or region is NULL.
+ *  - CL_INVALID_VALUE if the region being read or written specified by origin and region is out of bounds.
  *  - CL_INVALID_VALUE if values in origin and region do not follow rules described in the argument description for
  * origin and region.
+ *  - CL_INVALID_VALUE if ptr is NULL.
  *  - CL_INVALID_EVENT_WAIT_LIST if event_wait_list is NULL and num_events_in_wait_list > 0, or event_wait_list is not
  * NULL and num_events_in_wait_list is 0, or if event objects in event_wait_list are not valid events.
  *  - CL_INVALID_IMAGE_SIZE if image dimensions (image width, height, specified or compute row and/or slice pitch) for
@@ -1332,6 +1360,7 @@ cl_int VC4CL_FUNC(clEnqueueWriteImage)(cl_command_queue command_queue, cl_mem im
  * the context associated with command_queue and events in event_wait_list are not the same.
  *  - CL_INVALID_MEM_OBJECT if src_image and dst_image are not valid image objects.
  *  - CL_IMAGE_FORMAT_MISMATCH if src_image and dst_image do not use the same image format.
+ *  - CL_INVALID_VALUE if src_origin, dst_origin, or region is NULL.
  *  - CL_INVALID_VALUE if the 2D or 3D rectangular region specified by src_origin and src_origin + region refers to a
  * region outside src_image, or if the 2D or 3D rectangular region specified by dst_origin and dst_origin + region
  * refers to a region outside dst_image.
@@ -1421,9 +1450,9 @@ cl_int VC4CL_FUNC(clEnqueueCopyImage)(cl_command_queue command_queue, cl_mem src
  *  - CL_INVALID_CONTEXT if the context associated with command_queue and image are not the same or if the context
  * associated with command_queue and events in event_wait_list are not the same.
  *  - CL_INVALID_MEM_OBJECT if image is not a valid image object.
- *  - CL_INVALID_VALUE if fill_color is NULL .
- *  - CL_INVALID_VALUE if the region being filled as specified by origin and region is out of bounds or if ptr is a NULL
- * value.
+ *  - CL_INVALID_VALUE if fill_color is NULL.
+ *  - CL_INVALID_VALUE if origin or region is NULL.
+ *  - CL_INVALID_VALUE if the region being filled as specified by origin and region is out of bounds.
  *  - CL_INVALID_VALUE if values in origin and region do not follow rules described in the argument description for
  * origin and region.
  *  - CL_INVALID_EVENT_WAIT_LIST if event_wait_list is NULL and num_events_in_wait_list > 0, or event_wait_list is not
@@ -1506,6 +1535,7 @@ cl_int VC4CL_FUNC(clEnqueueFillImage)(cl_command_queue command_queue, cl_mem ima
  * the context associated with command_queue and events in event_wait_list are not the same.
  *  - CL_INVALID_MEM_OBJECT if src_image is not a valid image object or dst_buffer is not a valid buffer object or if
  * src_image is a 1D image buffer object created from dst_buffer.
+ *  - CL_INVALID_VALUE if src_origin or region is NULL.
  *  - CL_INVALID_VALUE if the 1D, 2D or 3D rectangular region specified by src_origin and src_origin + region refers to
  * a region outside src_image, or if the region specified by dst_offset and dst_offset + dst_cb to a region outside
  * dst_buffer.
@@ -1599,6 +1629,7 @@ cl_int VC4CL_FUNC(clEnqueueCopyImageToBuffer)(cl_command_queue command_queue, cl
  * the context associated with command_queue and events in event_wait_list are not the same.
  *  - CL_INVALID_MEM_OBJECT if src_buffer is not a valid buffer object or dst_image is not a valid image object or if
  * dst_image is a 1D image buffer object created from src_buffer.
+ *  - CL_INVALID_VALUE if dst_origin or region is NULL.
  *  - CL_INVALID_VALUE if the 1D, 2D or 3D rectangular region specified by dst_origin and dst_origin + region refer to a
  * region outside dst_image, or if the region specified by src_offset and src_offset + src_cb refer to a region outside
  * src_buffer.
@@ -1699,7 +1730,8 @@ cl_int VC4CL_FUNC(clEnqueueCopyBufferToImage)(cl_command_queue command_queue, cl
  *  - CL_INVALID_CONTEXT if context associated with command_queue and image are not the same or if context associated
  * with command_queue and events in event_wait_list are not the same.
  *  - CL_INVALID_MEM_OBJECT if image is not a valid image object.
- *  - CL_INVALID_VALUE if region being mapped given by (origin, origin+region) is out of bounds or if values specified
+ *  - CL_INVALID_VALUE if origin or region is NULL.
+ *  - CL_INVALID_VALUE if region being mapped given by (origin, origin + region) is out of bounds or if values specified
  * in map_flags are not valid.
  *  - CL_INVALID_VALUE if values in origin and region do not follow rules described in the argument description for
  * origin and region.

@@ -256,64 +256,6 @@ extern "C"
 #define CL_DEVICE_BUILT_IN_KERNELS_WITH_VERSION_KHR 0x1062
 #endif
 
-    /*
-     * VC4CL performance counters (cl_vc4cl_performance_counters)
-     */
-
-#define CL_COUNTER_IDLE_CYCLES_VC4CL 13
-#define CL_COUNTER_EXECUTION_CYCLES_VC4CL 16
-#define CL_COUNTER_TMU_STALL_CYCLES_VC4CL 17
-#define CL_COUNTER_INSTRUCTION_CACHE_HITS_VC4CL 20
-#define CL_COUNTER_INSTRUCTION_CACHE_MISSES_VC4CL 21
-#define CL_COUNTER_ARGUMENT_CACHE_HITS_VC4CL 22
-#define CL_COUNTER_ARGUMENT_CACHE_MISSES_VC4CL 23
-#define CL_COUNTER_MEMORY_WRITE_STALL_CYCES_VC4CL 26
-#define CL_COUNTER_MEMORY_READ_STALL_CYCLES_VC4CL 27
-#define CL_COUNTER_L2_CACHE_HITS_VC4CL 28
-#define CL_COUNTER_L2_CACHE_MISSES_VC4CL 29
-
-#define CL_INVALID_PERFORMANCE_COUNTER_VC4CL (-112)
-
-    typedef cl_uchar cl_counter_type_vc4cl;
-    typedef struct _cl_counter_vc4cl* cl_counter_vc4cl;
-
-    /*!
-     * Initializes one of the system performance-counters to the type specified and
-     * returns an object representing this counter. Returns NULL and sets errcode_ret on error
-     */
-    cl_counter_vc4cl VC4CL_FUNC(clCreatePerformanceCounterVC4CL)(
-        cl_device_id device, cl_counter_type_vc4cl counter_type, cl_int* errcode_ret);
-    typedef CL_API_ENTRY cl_counter_vc4cl(CL_API_CALL* clCreatePerformanceCounterVC4CL_fn)(
-        cl_device_id device, cl_counter_type_vc4cl counter_type, cl_int* errcode_ret);
-
-    /*!
-     * Reads the current value of the performance-counter object passed as argument and stores it into the value
-     * output-parameter. Returns the status of the read (CL_SUCCESS on success)
-     */
-    cl_int VC4CL_FUNC(clGetPerformanceCounterValueVC4CL)(cl_counter_vc4cl counter, cl_uint* value);
-    typedef CL_API_ENTRY cl_int(CL_API_CALL* clGetPerformanceCounterValueVC4CL_fn)(
-        cl_counter_vc4cl counter, cl_uint* value);
-
-    /*!
-     * Decreases the reference counter of the performance-counter object.
-     * IF the reference count becomes zero, the system performance-counter associated with this object is released
-     * and the memory used by the given object is freed.
-     */
-    cl_int VC4CL_FUNC(clReleasePerformanceCounterVC4CL)(cl_counter_vc4cl counter);
-    typedef CL_API_ENTRY cl_int(CL_API_CALL* clReleasePerformanceCounterVC4CL_fn)(cl_counter_vc4cl counter);
-
-    /*!
-     * Increases the reference-counter of the performance-counter object
-     */
-    cl_int VC4CL_FUNC(clRetainPerformanceCounterVC4CL)(cl_counter_vc4cl counter);
-    typedef CL_API_ENTRY cl_int(CL_API_CALL* clRetainPerformanceCounterVC4CL_fn)(cl_counter_vc4cl counter);
-
-    /*
-     * Resets the counter-value of the system performance-counter associated with this object to zero.
-     */
-    cl_int VC4CL_FUNC(clResetPerformanceCounterValueVC4CL)(cl_counter_vc4cl counter);
-    typedef CL_API_ENTRY cl_int(CL_API_CALL* clResetPerformanceCounterValueVC4CL_fn)(cl_counter_vc4cl counter);
-
 #ifdef __cplusplus
 }
 #endif
