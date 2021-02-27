@@ -8,7 +8,7 @@
 #define VC4CL_CONFIG_H
 
 // For unified OpenCL specification, we need to define the target version
-#define CL_TARGET_OPENCL_VERSION 300
+#define CL_TARGET_OPENCL_VERSION 120
 
 #include <CL/opencl.h>
 
@@ -31,7 +31,7 @@ namespace vc4cl
      */
     namespace platform_config
     {
-        static const std::string OPENCL_VERSION = "3.0";
+        static const std::string OPENCL_VERSION = "1.2";
         //#define VC4CL_VERSION is set via CMake
         static const std::string VC4CL_VERSION = VC4CL_LIBRARY_VERSION;
 #if defined(MOCK_HAL) && MOCK_HAL
@@ -144,7 +144,7 @@ namespace vc4cl
          * the work-groups sequentially.
          */
         static constexpr cl_uint NUM_COMPUTE_UNITS = 1;
-        // A QPU (compute unit) is a 16-way SIMD
+        // A QPU is a 16-way SIMD
         static constexpr cl_uint PREFERRED_VECTOR_WIDTH = 16;
         // since the QPU is a 16-way 32-bit processor, the maximum supported type is a 16-element 32-bit vector
         static constexpr cl_uint BUFFER_ALIGNMENT = sizeof(cl_int16);

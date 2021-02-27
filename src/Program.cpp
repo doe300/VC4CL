@@ -324,6 +324,14 @@ static cl_int compile_program(Program* program, const std::string& options)
 cl_int Program::compile(
     const std::string& options, const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders)
 {
+    if(creationType == CreationType::INTERMEDIATE_LANGUAGE)
+    {
+        // We need to support "compilation" of programs created with clCreateProgramWithIL(KHR), but there is actually
+        // nothing to do for them here
+        buildInfo.options = options;
+        buildInfo.status = CL_BUILD_SUCCESS;
+        return CL_SUCCESS;
+    }
     if(sourceCode.empty())
         return returnError(CL_INVALID_OPERATION, __FILE__, __LINE__, "There is no source code to compile!");
     // if the program was already compiled, clear all results
@@ -824,7 +832,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithILKHR)(cl_context context, const void* 
  *  - CL_INVALID_CONTEXT if context is not a valid context .
  *  - CL_INVALID_VALUE if device_list is NULL or num_devices is zero.
  *  - CL_INVALID_DEVICE if OpenCL devices listed in device_list are not in the list of devices associated with context.
- *  - CL_INVALID_VALUE if lengths or binaries are NULL or if any entry in lengths[i] is zero or binaries[i] is NULL .
+ *  - CL_INVALID_VALUE if lengths or binaries is NULL or if any entry in lengths[i] is zero or binaries[i] is NULL .
  *  - CL_INVALID_BINARY if an invalid program binary was encountered for any device. binary_status will return specific
  * status for each device.
  *  - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the

@@ -178,13 +178,15 @@ cl_int Device::getInfo(
         // the device."  OpenCL 2.0: "Alignment requirement (in bits) for sub-buffer offsets. The minimum value is the
         // size (in bits) of the largest OpenCL built-in data type supported by the device
         // (long16 in FULL profile, long16 or int16 in EMBEDDED profile)"
-        return returnValue<cl_uint>(8 * sizeof(cl_int16), param_value_size, param_value, param_value_size_ret);
+        return returnValue<cl_uint>(
+            8 * device_config::BUFFER_ALIGNMENT, param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
         //"The smallest alignment in bytes which can be used for any data type."
         //"The minimum value is the size (in bytes) of the largest OpenCL built-in data type supported by the device
         //(int16 in EMBEDDED profile)."
         //-> deprecated in OpenCL 1.2
-        return returnValue<cl_uint>(sizeof(cl_int16), param_value_size, param_value, param_value_size_ret);
+        return returnValue<cl_uint>(
+            device_config::BUFFER_ALIGNMENT, param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_SINGLE_FP_CONFIG:
         //"Describes single precision floating-point capability of the device.  This is a bit-field[...]
         // The mandated minimum floating-point capability is: CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN."
@@ -519,7 +521,9 @@ cl_int Device::getInfo(
     case CL_DEVICE_LATEST_CONFORMANCE_VERSION_PASSED:
         // "Returns the latest version of the conformance test suite that this device has fully passed in accordance
         // with the official conformance process."
-        return returnString("", param_value_size, param_value, param_value_size_ret);
+        // OpenCL-CTS checks that this string matches: vYYYY-MM-DD-XX
+        // Since we never passed a version, report some dummy date
+        return returnString("v1970-01-01-00", param_value_size, param_value, param_value_size_ret);
 #endif
     default:
         // invalid parameter-name
