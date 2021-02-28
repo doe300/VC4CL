@@ -41,15 +41,19 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <memory>
+#include <mutex>
 #include <utility>
-#include <vector>
-
-#define PAGE_ALIGNMENT 4096
 
 namespace vc4cl
 {
-    class Mailbox;
+    class DeviceBlock;
+
+    /**
+     * The native alignment of a page for the VideoCore IV accessible memory
+     */
+    constexpr unsigned DEVICE_PAGE_ALIGNMENT = 4096;
 
     struct DevicePointer
     {
@@ -78,8 +82,6 @@ namespace vc4cl
     struct DeviceBuffer
     {
     public:
-        // Identifier of the buffer allocated, think of it as a file-handle
-        const uint32_t memHandle;
         // Buffer address from VideoCore QPU (GPU) view (the pointer which is passed to the kernel)
         const DevicePointer qpuPointer;
         // Buffer address for ARM (host) view (the pointer to use on the host-side to fill/read the buffer)
@@ -97,12 +99,11 @@ namespace vc4cl
         void dumpContent() const;
 
     private:
-        DeviceBuffer(
-            const std::shared_ptr<Mailbox>& mb, uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size);
+        DeviceBuffer(const std::shared_ptr<DeviceBlock>& block, DevicePointer devPtr, void* hostPtr, uint32_t size);
 
-        std::shared_ptr<Mailbox> mailbox;
+        std::shared_ptr<DeviceBlock> block;
 
-        friend class Mailbox;
+        friend class DeviceBlock;
     };
 
     // taken from https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface
@@ -305,9 +306,11 @@ namespace vc4cl
         Mailbox& operator=(const Mailbox&) = delete;
         Mailbox& operator=(Mailbox&&) = delete;
 
-        DeviceBuffer* allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes = PAGE_ALIGNMENT,
+        std::unique_ptr<DeviceBuffer> allocateKernelBuffer(unsigned sizeInBytes,
+            unsigned alignmentInBytes = DEVICE_PAGE_ALIGNMENT, MemoryFlag flags = MemoryFlag::L1_NONALLOCATING);
+        std::shared_ptr<DeviceBuffer> allocateDataBuffer(unsigned sizeInBytes,
+            unsigned alignmentInBytes = device_config::BUFFER_ALIGNMENT,
             MemoryFlag flags = MemoryFlag::L1_NONALLOCATING);
-        bool deallocateBuffer(const DeviceBuffer* buffer) const;
 
         CHECK_RETURN ExecutionHandle executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1,
             unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const;
@@ -325,6 +328,8 @@ namespace vc4cl
 
     private:
         int fd;
+        std::mutex allocationLock;
+        std::map<void*, std::weak_ptr<DeviceBlock>> cachedBlocks;
 
         CHECK_RETURN int mailboxCall(void* buffer) const;
 
@@ -339,6 +344,12 @@ namespace vc4cl
         CHECK_RETURN bool readMailboxMessage(unsigned* buffer, unsigned bufferSize);
 
         CHECK_RETURN bool checkReturnValue(unsigned value) const __attribute__((const));
+
+        CHECK_RETURN std::pair<void*, std::shared_ptr<DeviceBlock>> allocateBlock(
+            unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags);
+        bool deallocateBlock(unsigned memHandle, void* hostPointer, DevicePointer qpuPointer, uint32_t size);
+
+        friend class DeviceBlock;
     };
 
     std::shared_ptr<Mailbox>& mailbox();

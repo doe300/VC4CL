@@ -122,7 +122,7 @@ Buffer* Buffer::createSubBuffer(
         }
         subBuffer->hostSize = region->size;
         subBuffer->subBufferOffset = region->origin;
-        if(deviceBuffer->memHandle != 0)
+        if(deviceBuffer)
         {
             subBuffer->deviceBuffer = deviceBuffer;
         }
@@ -1065,7 +1065,7 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
     Buffer* buffer = newOpenCLObject<Buffer>(toType<Context>(context), flags);
     CHECK_ALLOCATION_ERROR_CODE(buffer, errcode_ret, cl_mem)
 
-    buffer->deviceBuffer.reset(mailbox()->allocateBuffer(static_cast<unsigned>(size)));
+    buffer->deviceBuffer = mailbox()->allocateDataBuffer(static_cast<unsigned>(size));
     if(!buffer->deviceBuffer)
     {
         ignoreReturnValue(buffer->release(), __FILE__, __LINE__, "Already errored");

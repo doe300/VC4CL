@@ -51,6 +51,8 @@ namespace vc4cl
         OBJECTS = 1 << 5u,
         // V3D hardware performance counters are collected and their values logged to the standard output
         PERFORMANCE_COUNTERS = 1 << 6u,
+        // Device buffer allocations
+        DEVICE_MEMORY = 1 << 7u,
         ALL = 0xFF
 
     };

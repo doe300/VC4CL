@@ -22,6 +22,7 @@
 
 // TODO use for scan-build/valgrind!! analysis of tests
 // TODO emulate OpenCL-CTS with asan?
+// TODO buffers are not aligned correctly!
 
 static bool isQPUEnabled = false;
 
@@ -146,7 +147,7 @@ static bool emulateQPU(unsigned numQPUs, uint32_t bufferIndex, uint32_t controlO
         dumpEmulationLog(std::to_string(bufferIndex), logStream);
         return res.executionSuccessful;
     }
-    catch(const vc4c::CompilationError& err)
+    catch(const std::exception& err)
     {
         std::cerr << "Error in emulating kernel execution: " << std::endl;
         std::wcerr << logStream.rdbuf();

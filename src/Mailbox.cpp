@@ -33,13 +33,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Mailbox.h"
 
+#include "Allocator.h"
 #include "V3D.h"
 #include "hal.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <memory>
-#include <mutex>
 #include <system_error>
 
 using namespace vc4cl;
@@ -49,16 +50,15 @@ using namespace vc4cl;
 #define DEVICE_FILE_NAME "/dev/vcio"
 
 DeviceBuffer::DeviceBuffer(
-    const std::shared_ptr<Mailbox>& mb, uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size) :
-    memHandle(handle),
-    qpuPointer(devPtr), hostPointer(hostPtr), size(size), mailbox(mb)
+    const std::shared_ptr<DeviceBlock>& block, DevicePointer devPtr, void* hostPtr, uint32_t size) :
+    qpuPointer(devPtr),
+    hostPointer(hostPtr), size(size), block(block)
 {
 }
 
 DeviceBuffer::~DeviceBuffer()
 {
-    if(memHandle != 0)
-        mailbox->deallocateBuffer(this);
+    block->deallocateBuffer(hostPointer, size);
 }
 
 void DeviceBuffer::dumpContent() const
@@ -103,36 +103,82 @@ Mailbox::~Mailbox()
     DEBUG_LOG(DebugLevel::SYSCALL, std::cout << "[VC4CL] Mailbox file descriptor closed: " << fd << std::endl)
 }
 
-DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags)
+std::pair<void*, std::shared_ptr<DeviceBlock>> Mailbox::allocateBlock(
+    unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags)
 {
     // munmap requires an alignment of the system page size (4096), so we need to enforce it here
-    unsigned handle = memAlloc(sizeInBytes, std::max(static_cast<unsigned>(PAGE_ALIGNMENT), alignmentInBytes), flags);
+    unsigned handle =
+        memAlloc(sizeInBytes, std::max(static_cast<unsigned>(DEVICE_PAGE_ALIGNMENT), alignmentInBytes), flags);
     if(handle != 0)
     {
         DevicePointer qpuPointer = memLock(handle);
         void* hostPointer = mapmem(V3D::busAddressToPhysicalAddress(static_cast<unsigned>(qpuPointer)), sizeInBytes);
-        DEBUG_LOG(DebugLevel::SYSCALL,
-            std::cout << "Allocated " << sizeInBytes << " bytes of buffer: handle " << handle << ", device address "
-                      << std::hex << "0x" << qpuPointer << ", host address " << hostPointer << std::dec << std::endl)
-        return new DeviceBuffer(shared_from_this(), handle, qpuPointer, hostPointer, sizeInBytes);
+        DEBUG_LOG(DebugLevel::DEVICE_MEMORY,
+            std::cout << "Allocated " << sizeInBytes << " bytes of device memory: handle " << handle
+                      << ", device address " << std::hex << "0x" << qpuPointer << ", host address " << hostPointer
+                      << std::dec << std::endl)
+        return std::make_pair(hostPointer,
+            std::make_shared<DeviceBlock>(
+                shared_from_this(), handle, DevicePointer{qpuPointer}, hostPointer, sizeInBytes, flags));
     }
-    return nullptr;
+    return std::make_pair(nullptr, nullptr);
 }
 
-bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer) const
+std::unique_ptr<DeviceBuffer> Mailbox::allocateKernelBuffer(
+    unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags)
 {
-    if(buffer->hostPointer != nullptr)
-        unmapmem(buffer->hostPointer, buffer->size);
-    if(buffer->memHandle != 0)
+    // Kernels always use a new device block, since A) they might use different flags in the future and B) they likely
+    // use more than (half of) a page anyway
+    // For the same reasons, also do not add kernel buffers to the cache
+    std::lock_guard<std::mutex> guard(allocationLock);
+    auto newBlock = allocateBlock(sizeInBytes, alignmentInBytes, flags).second;
+    return newBlock->allocateBuffer(sizeInBytes, alignmentInBytes);
+}
+
+std::shared_ptr<DeviceBuffer> Mailbox::allocateDataBuffer(
+    unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags)
+{
+    std::lock_guard<std::mutex> guard(allocationLock);
+    if(sizeInBytes >= DEVICE_PAGE_ALIGNMENT)
     {
-        if(!memUnlock(buffer->memHandle))
+        // uses more then single block, allocate own block
+        auto newBlock = allocateBlock(sizeInBytes, alignmentInBytes, flags).second;
+        return newBlock->allocateBuffer(sizeInBytes, alignmentInBytes);
+    }
+    // Check if we can reuse any previously allocated device blocks
+    for(auto& weakBlock : cachedBlocks)
+    {
+        auto block = weakBlock.second.lock();
+        if(!block || block->flags != flags)
+            continue;
+        if(auto buffer = block->allocateBuffer(sizeInBytes, alignmentInBytes))
+            return buffer;
+    }
+    // allocate new block and add to cache
+    auto newBlock = allocateBlock(DEVICE_PAGE_ALIGNMENT, alignmentInBytes, flags);
+    cachedBlocks.emplace(newBlock.first, newBlock.second);
+    return newBlock.second->allocateBuffer(sizeInBytes, alignmentInBytes);
+}
+
+bool Mailbox::deallocateBlock(unsigned memHandle, void* hostPointer, DevicePointer qpuPointer, uint32_t size)
+{
+    {
+        std::lock_guard<std::mutex> guard(allocationLock);
+        // remove from cache
+        cachedBlocks.erase(hostPointer);
+    }
+    if(hostPointer)
+        unmapmem(hostPointer, size);
+    if(memHandle != 0)
+    {
+        if(!memUnlock(memHandle))
             return false;
-        if(!memFree(buffer->memHandle))
+        if(!memFree(memHandle))
             return false;
-        DEBUG_LOG(DebugLevel::SYSCALL,
-            std::cout << "Deallocated " << buffer->size << " bytes of buffer: handle " << buffer->memHandle
-                      << ", device address " << std::hex << "0x" << buffer->qpuPointer << ", host address "
-                      << buffer->hostPointer << std::dec << std::endl)
+        DEBUG_LOG(DebugLevel::DEVICE_MEMORY,
+            std::cout << "Deallocated " << size << " bytes of device memory: handle " << memHandle
+                      << ", device address " << std::hex << "0x" << qpuPointer << ", host address " << hostPointer
+                      << std::dec << std::endl)
     }
     return true;
 }

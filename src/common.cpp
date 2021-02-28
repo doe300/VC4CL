@@ -131,7 +131,7 @@ static DebugLevel getDebugLevel()
             level |= static_cast<uint8_t>(DebugLevel::API_CALLS);
         if(tmp.find("code") != std::string::npos)
             level |= static_cast<uint8_t>(DebugLevel::DUMP_CODE);
-        if(tmp.find("syscall") != std::string::npos)
+        if(tmp.find("sys") != std::string::npos)
             level |= static_cast<uint8_t>(DebugLevel::SYSCALL);
         if(tmp.find("execution") != std::string::npos)
             level |= static_cast<uint8_t>(DebugLevel::KERNEL_EXECUTION);
@@ -141,6 +141,8 @@ static DebugLevel getDebugLevel()
             level |= static_cast<uint8_t>(DebugLevel::OBJECTS);
         if(tmp.find("perf") != std::string::npos)
             level |= static_cast<uint8_t>(DebugLevel::PERFORMANCE_COUNTERS);
+        if(tmp.find("memory") != std::string::npos)
+            level |= static_cast<uint8_t>(DebugLevel::DEVICE_MEMORY);
         if(tmp.find("all") != std::string::npos)
             level = static_cast<uint8_t>(DebugLevel::ALL);
     }

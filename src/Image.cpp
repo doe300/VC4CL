@@ -925,7 +925,7 @@ cl_mem VC4CL_FUNC(clCreateImage)(cl_context context, cl_mem_flags flags, const c
     if(buffer != nullptr)
         image->deviceBuffer = buffer->deviceBuffer;
     else
-        image->deviceBuffer.reset(mailbox()->allocateBuffer(static_cast<unsigned>(size)));
+        image->deviceBuffer = mailbox()->allocateDataBuffer(static_cast<unsigned>(size));
     if(!image->deviceBuffer)
     {
         ignoreReturnValue(image->release(), __FILE__, __LINE__, "Already errored");

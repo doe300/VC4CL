@@ -611,7 +611,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
         }
     }
 
-    std::map<unsigned, std::unique_ptr<DeviceBuffer>> tmpBuffers;
+    std::map<unsigned, std::shared_ptr<DeviceBuffer>> tmpBuffers;
     std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>> persistentBuffers;
     auto state = allocateAndTrackBufferArguments(tmpBuffers, persistentBuffers);
     if(state != CL_SUCCESS)
@@ -644,7 +644,7 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
 }
 
 CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
-    std::map<unsigned, std::unique_ptr<DeviceBuffer>>& tmpBuffers,
+    std::map<unsigned, std::shared_ptr<DeviceBuffer>>& tmpBuffers,
     std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>>& persistentBuffers) const
 {
     /*
@@ -671,7 +671,8 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
             }
             else
             {
-                auto bufIt = tmpBuffers.emplace(i, mailbox()->allocateBuffer(localArg->sizeToAllocate)).first;
+                auto bufIt =
+                    tmpBuffers.emplace(i, mailbox()->allocateDataBuffer(localArg->sizeToAllocate)).first;
                 if(!bufIt->second)
                     // failed to allocate the temporary buffer
                     return CL_OUT_OF_RESOURCES;

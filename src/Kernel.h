@@ -52,7 +52,7 @@ namespace vc4cl
 
     private:
         CHECK_RETURN cl_int allocateAndTrackBufferArguments(
-            std::map<unsigned, std::unique_ptr<DeviceBuffer>>& tmpBuffers,
+            std::map<unsigned, std::shared_ptr<DeviceBuffer>>& tmpBuffers,
             std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>>& persistentBuffers) const;
     };
 
@@ -185,7 +185,7 @@ namespace vc4cl
          * - For persistent buffers, we guarantee they are not freed until the execution actually starts.
          *   See also https://github.com/KhronosGroup/OpenCL-Docs/issues/45
          */
-        std::map<unsigned, std::unique_ptr<DeviceBuffer>> tmpBuffers;
+        std::map<unsigned, std::shared_ptr<DeviceBuffer>> tmpBuffers;
         // The value is the buffer + the actual address (buffer + offset, for sub-buffers)
         std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>> persistentBuffers;
 

@@ -73,9 +73,10 @@ To generate debug information, set the `VC4CL_DEBUG` environment variable to one
 
 - `api` enables logging OpenCL API calls, parameters and non-success errors to the standard output
 - `code` enables dumping OpenCL C (or IR) source code as well as generated VC4C binary code into temporary files for the compilation functions
-- `syscall` enables logging detailed information for syscalls (e.g. mailbox) to the standard output
+- `sys` enables logging detailed information for syscalls (e.g. mailbox) to the standard output
 - `execution` enables logging of detailed kernel execution information (parameters, execution cycle, return codes) to the standard output
 - `events` enables logging of asynchronous event processing information to the standard output
 - `objects` enables logging of lifetime begin/end and leaks of OpenCL API objects to the standard output
 - `perf` enables collection and logging of V3D hardware performance counters to the standard output
+- `memory` enables collecting and logging of device memory management messages to the standard output
 - `all` enables all above logging modes

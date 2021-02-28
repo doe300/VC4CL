@@ -53,7 +53,7 @@ static size_t get_size(const std::shared_ptr<V3D>& v3d, size_t code_size, size_t
     size_t rawSize = code_size + uniformSize + global_data_size +
         numQPUS * stackFrameSizeInWords * sizeof(uint64_t) /* word-size */ + launchMessageSize;
     // round up to next multiple of alignment
-    return (rawSize / PAGE_ALIGNMENT + 1) * PAGE_ALIGNMENT;
+    return (rawSize / DEVICE_PAGE_ALIGNMENT + 1) * DEVICE_PAGE_ALIGNMENT;
 }
 
 static unsigned* set_work_item_info(unsigned* ptr, cl_uint num_dimensions,
@@ -265,7 +265,7 @@ cl_int executeKernel(KernelExecution& args)
         num_qpus * (MAX_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()),
         kernel->program->globalData.size() * sizeof(uint64_t), kernel->program->moduleInfo.getStackFrameSize());
 
-    std::unique_ptr<DeviceBuffer> buffer(args.mailbox->allocateBuffer(static_cast<unsigned>(buffer_size)));
+    auto buffer = mailbox()->allocateKernelBuffer(static_cast<unsigned>(buffer_size));
     if(!buffer)
         return CL_OUT_OF_RESOURCES;
 

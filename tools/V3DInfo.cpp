@@ -261,7 +261,7 @@ static void printMaximumAllocation()
     std::cout << "Testing maximum single allocation size:" << std::endl;
     for(uint32_t trySize = maxSize; trySize > 1; trySize >>= 1)
     {
-        std::unique_ptr<DeviceBuffer> buffer(mb->allocateBuffer(trySize));
+        std::unique_ptr<DeviceBuffer> buffer = mailbox()->allocateKernelBuffer(trySize);
         if(buffer != nullptr)
         {
             std::cout << "Maximum single allocation: " << buffer->size << " bytes (" << (buffer->size / 1024) / 1024
