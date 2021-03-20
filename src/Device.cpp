@@ -398,13 +398,17 @@ cl_int Device::getInfo(
         // "Returns detailed (major, minor, patch) numeric version information. The major and minor version numbers
         // returned must match those returned via `CL_DEVICE_VERSION`."
         return returnValue<cl_version_khr>(
-            CL_MAKE_VERSION_KHR(3, 0, 6), param_value_size, param_value, param_value_size_ret);
+            CL_MAKE_VERSION_KHR(platform_config::OPENCL_VERSION_MAJ0R, platform_config::OPENCL_VERSION_MINOR,
+                platform_config::OPENCL_VERSION_PATCH),
+            param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_OPENCL_C_NUMERIC_VERSION_KHR:
         // cl_khr_extended_versioning
         // "Returns detailed (major, minor, patch) numeric version information. The major and minor version numbers
         // returned must match those returned via `CL_DEVICE_OPENCL_C_VERSION`."
         return returnValue<cl_version_khr>(
-            CL_MAKE_VERSION_KHR(1, 2, 0), param_value_size, param_value, param_value_size_ret);
+            CL_MAKE_VERSION_KHR(device_config::OPENCL_C_VERSION_MAJ0R, device_config::OPENCL_C_VERSION_MINOR,
+                device_config::OPENCL_C_VERSION_PATCH),
+            param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_EXTENSIONS_WITH_VERSION_KHR:
     {
         // cl_khr_extended_versioning

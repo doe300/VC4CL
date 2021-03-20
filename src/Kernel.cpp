@@ -512,9 +512,12 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
         return returnError(CL_INVALID_PROGRAM_EXECUTABLE, __FILE__, __LINE__, "Kernel was not yet compiled!");
     }
 
-    if(argsSetMask != ((cl_ulong{1} << info.params.size()) - cl_ulong{1}))
+    cl_ulong expectedMask =
+        info.params.size() == 64 ? 0xFFFFFFFFFFFFFFFF : ((cl_ulong{1} << info.params.size()) - cl_ulong{1});
+    if(argsSetMask != expectedMask)
     {
-        return returnError(CL_INVALID_KERNEL_ARGS, __FILE__, __LINE__, "Not all kernel-arguments are set!");
+        return returnError(CL_INVALID_KERNEL_ARGS, __FILE__, __LINE__,
+            buildString("Not all kernel-arguments are set (mask: %s)!", argsSetMask.to_string().data()));
     }
 
     if(work_dim > kernel_config::NUM_DIMENSIONS || work_dim < 1)

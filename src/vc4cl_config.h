@@ -32,6 +32,9 @@ namespace vc4cl
     namespace platform_config
     {
         static const std::string OPENCL_VERSION = "1.2";
+        static constexpr cl_uint OPENCL_VERSION_MAJ0R = 1;
+        static constexpr cl_uint OPENCL_VERSION_MINOR = 2;
+        static constexpr cl_uint OPENCL_VERSION_PATCH = 0;
         //#define VC4CL_VERSION is set via CMake
         static const std::string VC4CL_VERSION = VC4CL_LIBRARY_VERSION;
 #if defined(MOCK_HAL) && MOCK_HAL
@@ -78,6 +81,9 @@ namespace vc4cl
     namespace device_config
     {
         static const std::string OPENCL_C_VERSION = "1.2";
+        static constexpr cl_uint OPENCL_C_VERSION_MAJ0R = 1;
+        static constexpr cl_uint OPENCL_C_VERSION_MINOR = 2;
+        static constexpr cl_uint OPENCL_C_VERSION_PATCH = 0;
 #if defined(MOCK_HAL) && MOCK_HAL
         static const std::string NAME = "VideoCore IV GPU (emulated)";
 #else

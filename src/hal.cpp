@@ -146,7 +146,7 @@ static bool emulateQPU(unsigned numQPUs, uint32_t bufferIndex, uint32_t controlO
         dumpEmulationLog(std::to_string(bufferIndex), logStream);
         return res.executionSuccessful;
     }
-    catch(const vc4c::CompilationError& err)
+    catch(const std::exception& err)
     {
         std::cerr << "Error in emulating kernel execution: " << std::endl;
         std::wcerr << logStream.rdbuf();
@@ -154,6 +154,30 @@ static bool emulateQPU(unsigned numQPUs, uint32_t bufferIndex, uint32_t controlO
         dumpEmulationLog(std::to_string(bufferIndex), logStream);
         return false;
     }
+}
+
+/**
+ * Since we always read a whole L2 cache line, we need to round the buffer size to the full cache-line sizes.
+ *
+ * For the actual hardware, this is not a problem, since the L2 cache just then reads some random memory contents (which
+ * should never be accessed). But since our emulator checks every address loaded whether it is properly allocated, it
+ * would otherwise fail here.
+ */
+static uint32_t roundToCacheLineSize(uint32_t numBytes)
+{
+    static constexpr uint32_t L2_CACHE_LINE_SIZE = 16u * sizeof(uint32_t);
+    auto numLines = numBytes / L2_CACHE_LINE_SIZE;
+    if(numBytes % L2_CACHE_LINE_SIZE != 0)
+        ++numLines;
+    // In theory we should be able to round to a single cache line, but in some cases (esp. for 64-bit reads), we
+    // preload more memory than a single cache line. Example: vload8 allocates 8 * 8 byte = a single cache line
+    // (assuming proper alignment). But since we (out of simplicity) via the TMU load 16 elements (2 * 16 words with 8
+    // byte stride), we read past the allocated buffer. In the worst case (where the address loaded by element 0 is not
+    // properly aligned), we load up to 120 (128 byte - first 2 words) after our buffer end (i.e. for single/2-element
+    // vector 64-bit load), so we reserve two single cache lines more than required.
+    numLines += 2;
+
+    return numLines * L2_CACHE_LINE_SIZE;
 }
 
 int vc4cl::ioctl_mailbox(int fd, unsigned long request, void* data)
@@ -183,7 +207,7 @@ int vc4cl::ioctl_mailbox(int fd, unsigned long request, void* data)
             auto it = std::find(allocatedMemory.begin(), allocatedMemory.end(), std::vector<uint8_t>{});
             if(it != allocatedMemory.end())
             {
-                *it = std::vector<uint8_t>(buffer[5], 0);
+                *it = std::vector<uint8_t>(roundToCacheLineSize(buffer[5]), 0);
                 // cannot start with index 0, since 0 is considered an error
                 buffer[5] = static_cast<uint32_t>(it - allocatedMemory.begin()) + 1u;
             }
