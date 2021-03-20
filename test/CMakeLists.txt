@@ -1,10 +1,18 @@
 add_executable(TestVC4CL "")
-target_link_libraries(TestVC4CL VC4CL)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(TestVC4CL PRIVATE -Wno-ignored-attributes -Wno-deprecated-declarations)
 endif()
+target_link_libraries(TestVC4CL VC4CL cpptest-lite ${SYSROOT_LIBRARY_FLAGS})
+target_compile_options(TestVC4CL PRIVATE ${VC4CL_ENABLED_WARNINGS})
 
 include(sources.list)
+
+if(VC4C_TEST_DATA_LIBRARY AND VC4C_TEST_DATA_INCLUDE)
+  message(STATUS "Activating VC4C TestData tests")
+  target_include_directories(TestVC4CL PRIVATE ${VC4C_TEST_DATA_INCLUDE})
+  target_compile_definitions(TestVC4CL PRIVATE HAS_TEST_DATA=1)
+  target_link_libraries(TestVC4CL ${VC4C_TEST_DATA_LIBRARY})
+endif()
 
 if(NOT TARGET cpptest-lite)
   target_include_directories(TestVC4CL PRIVATE ${PROJECT_SOURCE_DIR}/lib/cpptest-lite/include ${PROJECT_SOURCE_DIR})
@@ -13,8 +21,6 @@ if(NOT TARGET cpptest-lite)
   ExternalProject_Get_Property(cpptest-lite-project BINARY_DIR)
   set_target_properties(cpptest-lite PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/libcpptest-lite.so")
 endif()
-target_link_libraries(TestVC4CL VC4CL cpptest-lite ${SYSROOT_LIBRARY_FLAGS})
-target_compile_options(TestVC4CL PRIVATE ${VC4CL_ENABLED_WARNINGS})
 
 if(MOCK_HAL)
 	target_compile_definitions(TestVC4CL PRIVATE MOCK_HAL=1)

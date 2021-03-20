@@ -1,1 +1,0 @@
-../../VC4C/testing/test_builtins.cl

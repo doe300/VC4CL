@@ -25,8 +25,11 @@ jobs:
           name: get vc4c package
           command: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
       - run:
+          name: get vc4c test-data package
+          command: wget -O /tmp/vc4c_testdata.deb $(python .circleci/get_url.py "vc4c_testdata-" "/tmp/dump")
+      - run:
           name: unpack dependencies
-          command: sudo dpkg-deb -x /tmp/vc4cl-stdlib.deb / && sudo dpkg-deb -x /tmp/vc4c.deb /
+          command: sudo dpkg-deb -x /tmp/vc4cl-stdlib.deb / && sudo dpkg-deb -x /tmp/vc4c.deb / && sudo dpkg-deb -x /tmp/vc4c_testdata.deb /
       - run:
           name: download latest OpenCL header
           command: git clone https://github.com/KhronosGroup/OpenCL-Headers.git OpenCL-Headers
@@ -67,8 +70,11 @@ jobs:
           name: get vc4c package
           command: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
       - run:
+          name: get vc4c test-data package
+          command: wget -O /tmp/vc4c_testdata.deb $(python .circleci/get_url.py "vc4c_testdata-" "/tmp/dump")
+      - run:
           name: unpack dependencies
-          command: dpkg-deb -x /tmp/vc4cl-stdlib.deb / && dpkg-deb -x /tmp/vc4c.deb /
+          command: dpkg-deb -x /tmp/vc4cl-stdlib.deb / && dpkg-deb -x /tmp/vc4c.deb / && dpkg-deb -x /tmp/vc4c_testdata.deb /
       - run:
           name: configure
           command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DBUILD_TESTING=ON -DINCLUDE_COMPILER=ON -DMOCK_HAL=ON

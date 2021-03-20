@@ -60,7 +60,7 @@ bool TestProgram::setup()
 void TestProgram::testCreateProgramWithSource()
 {
     cl_int errcode = CL_SUCCESS;
-    auto sourceCode = readFile("./test/hello_world_vector.cl");
+    std::string sourceCode = hello_world_vector_src;
     const std::size_t sourceLength = sourceCode.size();
     TEST_ASSERT(sourceLength != 0);
     TEST_ASSERT(sourceCode.find("__kernel") != std::string::npos);

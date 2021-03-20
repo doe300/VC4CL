@@ -21,6 +21,7 @@
 #include "TestProgram.h"
 #include "TestSystem.h"
 
+#include "TestData.h"
 #include "src/Context.h"
 
 using namespace std;
@@ -65,5 +66,30 @@ int main(int argc, char** argv)
         Test::newInstance<TestExecutions>, "executions", "Tests the executions and results of a few selected kernels");
 #endif
 
-    return Test::runSuites(argc, argv);
+    std::vector<char*> args{};
+    // we need this first argument, since the  cpptest-lite helper expects the first argument to be skipped (as if
+    // passed directly the main arguments)
+    args.push_back(argv[0]);
+
+    // manually put together the list of selected emulation tests
+    std::vector<std::string> emulationTestNames;
+
+    for(auto i = 1; i < argc; ++i)
+    {
+        if(!test_data::parseTestDataParameter(argv[i], emulationTestNames))
+            args.emplace_back(argv[i]);
+    }
+
+    if(!emulationTestNames.empty())
+    {
+        args.emplace_back(const_cast<char*>("--custom-test-data"));
+        Test::registerSuite(
+            [&]() -> Test::Suite* {
+                return new TestExecutions(
+                    std::vector<std::string>(emulationTestNames.begin(), emulationTestNames.end()));
+            },
+            "custom-test-data");
+    }
+
+    return Test::runSuites(int(args.size()), args.data());
 }

@@ -55,7 +55,7 @@ static bool checkBuildStatus(const cl_program program)
 bool TestKernel::setup()
 {
     cl_int errcode = CL_SUCCESS;
-    sourceCode = readFile("./test/hello_world_vector.cl");
+    std::string sourceCode = hello_world_vector_src;
     const std::size_t sourceLength = sourceCode.size();
     cl_device_id device_id = Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase();
     context = VC4CL_FUNC(clCreateContext)(nullptr, 1, &device_id, nullptr, nullptr, &errcode);

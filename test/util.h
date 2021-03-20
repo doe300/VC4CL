@@ -11,7 +11,14 @@
 #include <sstream>
 #include <string>
 
-static std::string readFile(const std::string& fileName)
+static constexpr auto hello_world_vector_src = R"(
+__kernel __attribute__((reqd_work_group_size(1,1,1))) void hello_world(__global const char16* in, __global char16* out)
+{
+	size_t id = get_global_id(0);
+	out[id] = in[id];
+})";
+
+inline std::string readFile(const std::string& fileName)
 {
     std::string line;
     std::ifstream f(fileName);
