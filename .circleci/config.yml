@@ -25,17 +25,14 @@ jobs:
           name: get vc4c package
           command: wget -O /tmp/vc4c.deb $(python .circleci/get_url.py "vc4c-" "/tmp/dump")
       - run:
-          name: get vc4c test-data package
-          command: wget -O /tmp/vc4c_testdata.deb $(python .circleci/get_url.py "vc4c_testdata-" "/tmp/dump")
-      - run:
           name: unpack dependencies
-          command: sudo dpkg-deb -x /tmp/vc4cl-stdlib.deb / && sudo dpkg-deb -x /tmp/vc4c.deb / && sudo dpkg-deb -x /tmp/vc4c_testdata.deb /
+          command: sudo dpkg-deb -x /tmp/vc4cl-stdlib.deb / && sudo dpkg-deb -x /tmp/vc4c.deb /
       - run:
           name: download latest OpenCL header
           command: git clone https://github.com/KhronosGroup/OpenCL-Headers.git OpenCL-Headers
       - run:
           name: configure
-          command: mkdir build && cd build && LDFLAGS=-Wl,--warn-unresolved-symbols cmake ../ -DOpenCL_INCLUDE_DIRS=../OpenCL-Headers -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
+          command: mkdir build && cd build && LDFLAGS=-Wl,--warn-unresolved-symbols cmake ../ -DOpenCL_INCLUDE_DIRS=../OpenCL-Headers -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=OFF -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
       - run:
           name: build
           command: cd build && make -j`nproc`
@@ -45,9 +42,6 @@ jobs:
       - store_artifacts:
           path: build/src/libVC4CL.so.0.4
           distination: libVC4CL.so.0.4
-      - store_artifacts:
-          path: build/test/TestVC4CL
-          distination: TestVC4CL
       - store_artifacts:
           path: build/vc4cl-0.4-Linux.deb
           distination: vc4cl-0.4-Linux.deb
@@ -109,7 +103,7 @@ jobs:
       - checkout
       - run:
           name: configure
-          command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=ON -DINCLUDE_COMPILER=OFF -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
+          command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=OFF -DINCLUDE_COMPILER=OFF -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
       - run:
           name: make
           command: cd build && make -j`nproc`
@@ -119,9 +113,6 @@ jobs:
       - store_artifacts:
           path: build/src/libVC4CL.so.0.4
           distination: libVC4CL.so.0.4
-      - store_artifacts:
-          path: build/test/TestVC4CL
-          distination: TestVC4CL
       - store_artifacts:
           path: build/vc4cl-0.4-Linux.deb
           distination: vc4cl-0.4-Linux.deb

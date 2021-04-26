@@ -99,7 +99,7 @@ Kernel::Kernel(Program* program, const KernelInfo& info) : program(program), inf
     args.resize(info.params.size());
 }
 
-Kernel::Kernel(const Kernel& other) : program(other.program), info(other.info), argsSetMask(other.argsSetMask)
+Kernel::Kernel(const Kernel& other) : Object(), program(other.program), info(other.info), argsSetMask(other.argsSetMask)
 {
     args.reserve(other.args.size());
     for(const auto& arg : other.args)
