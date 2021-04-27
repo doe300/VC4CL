@@ -48,30 +48,6 @@ using namespace vc4cl;
 #define IOCTL_MBOX_PROPERTY _IOWR(MAJOR_NUM, 0, char*)
 #define DEVICE_FILE_NAME "/dev/vcio"
 
-DeviceBuffer::DeviceBuffer(
-    const std::shared_ptr<Mailbox>& mb, uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size) :
-    memHandle(handle),
-    qpuPointer(devPtr), hostPointer(hostPtr), size(size), mailbox(mb)
-{
-}
-
-DeviceBuffer::~DeviceBuffer()
-{
-    if(memHandle != 0)
-        mailbox->deallocateBuffer(this);
-}
-
-void DeviceBuffer::dumpContent() const
-{
-    // TODO rewrite
-    for(unsigned i = 0; i < size / sizeof(unsigned); ++i)
-    {
-        if((i % 8) == 0)
-            printf("\n[VC4CL] %08x:", static_cast<unsigned>(static_cast<unsigned>(qpuPointer) + i * sizeof(unsigned)));
-        printf(" %08x", reinterpret_cast<const unsigned*>(hostPointer)[i]);
-    }
-}
-
 static int mbox_open()
 {
     int file_desc;

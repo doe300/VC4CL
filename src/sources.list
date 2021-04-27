@@ -1,5 +1,6 @@
 target_sources(VC4CL
   PRIVATE
+    Allocator.cpp
     barriers.cpp
     Buffer.cpp
     CommandQueue.cpp
