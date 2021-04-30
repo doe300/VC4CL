@@ -4,8 +4,8 @@
  * See the file "LICENSE" for the full license governing this code.
  */
 
-#include "Mailbox.h"
 #include "common.h"
+#include "hal/Mailbox.h"
 
 #include <algorithm>
 #include <array>
@@ -58,13 +58,13 @@ static void checkResult(bool result)
         throw std::runtime_error("Error in V3D query!");
 }
 
-static int toWidth(int64_t val, int64_t total, int64_t totalWidth)
+static uint32_t toWidth(int64_t val, int64_t total, int64_t totalWidth)
 {
     // width = val / total * totalWidth
     // width = val * totalWidth / total (prevents requirement of float)
     if(val <= 0 || total <= 0 || totalWidth <= 0)
         return 0;
-    return static_cast<int>((val * totalWidth) / total);
+    return static_cast<uint32_t>((val * totalWidth) / total);
 }
 
 static double toPercent(int64_t val, int64_t total)
@@ -149,15 +149,17 @@ int main(int argc, char** argv)
                   << std::endl;
         return 0;
     }
+    // initializes the mailbox and with it the V3D hardware
+    Mailbox mailbox{};
+    V3D v3d{};
+
     // by default (all "older" models) this is 250MHz
     unsigned clockRate = 250000000;
     if(std::none_of(argv, argv + argc, [](char* arg) -> bool { return std::string("--noinit") == arg; }))
     {
-        // initializes the mailbox singleton and with it the V3D hardware
-        mailbox();
         // if we initialize the mailbox, we can also query the clock rate
         QueryMessage<MailboxTag::GET_MAX_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::V3D)});
-        if(mailbox()->readMailboxMessage(msg))
+        if(mailbox.readMailboxMessage(msg))
         {
             clockRate = msg.getContent(1);
         }
@@ -169,33 +171,33 @@ int main(int argc, char** argv)
     nodelay(window, true);   // Set getting key input non-blocking
 
     // initialize and reset the counters
-    checkResult(V3D::instance()->setCounter(COUNTER_IDLE, CounterType::IDLE_CYCLES));
-    checkResult(V3D::instance()->setCounter(COUNTER_EXECUTIONS, CounterType::EXECUTION_CYCLES));
-    checkResult(V3D::instance()->setCounter(COUNTER_TMU_STALLS, CounterType::TMU_STALL_CYCLES));
-    checkResult(V3D::instance()->setCounter(COUNTER_INSTRUCTION_CACHE_HITS, CounterType::INSTRUCTION_CACHE_HITS));
-    checkResult(V3D::instance()->setCounter(COUNTER_INSTRUCTION_CACHE_MISSES, CounterType::INSTRUCTION_CACHE_MISSES));
-    checkResult(V3D::instance()->setCounter(COUNTER_UNIFORM_CACHE_HITS, CounterType::UNIFORM_CACHE_HITS));
-    checkResult(V3D::instance()->setCounter(COUNTER_UNIFORM_CACHE_MISSES, CounterType::UNIFORM_CACHE_MISSES));
-    checkResult(V3D::instance()->setCounter(COUNTER_VPW_STALLS, CounterType::VDW_STALL_CYCES));
-    checkResult(V3D::instance()->setCounter(COUNTER_VPR_STALLS, CounterType::VCD_STALL_CYCLES));
-    checkResult(V3D::instance()->setCounter(COUNTER_L2_HITS, CounterType::L2_CACHE_HITS));
-    checkResult(V3D::instance()->setCounter(COUNTER_L2_MISSES, CounterType::L2_CACHE_MISSES));
-    checkResult(V3D::instance()->setCounter(COUNTER_TMU_TOTAL_LOADS, CounterType::TMU_TOTAL_WORDS));
-    checkResult(V3D::instance()->setCounter(COUNTER_TMU_CACHE_MISSES, CounterType::TMU_CACHE_MISSES));
+    checkResult(v3d.setCounter(COUNTER_IDLE, CounterType::IDLE_CYCLES));
+    checkResult(v3d.setCounter(COUNTER_EXECUTIONS, CounterType::EXECUTION_CYCLES));
+    checkResult(v3d.setCounter(COUNTER_TMU_STALLS, CounterType::TMU_STALL_CYCLES));
+    checkResult(v3d.setCounter(COUNTER_INSTRUCTION_CACHE_HITS, CounterType::INSTRUCTION_CACHE_HITS));
+    checkResult(v3d.setCounter(COUNTER_INSTRUCTION_CACHE_MISSES, CounterType::INSTRUCTION_CACHE_MISSES));
+    checkResult(v3d.setCounter(COUNTER_UNIFORM_CACHE_HITS, CounterType::UNIFORM_CACHE_HITS));
+    checkResult(v3d.setCounter(COUNTER_UNIFORM_CACHE_MISSES, CounterType::UNIFORM_CACHE_MISSES));
+    checkResult(v3d.setCounter(COUNTER_VPW_STALLS, CounterType::VDW_STALL_CYCES));
+    checkResult(v3d.setCounter(COUNTER_VPR_STALLS, CounterType::VCD_STALL_CYCLES));
+    checkResult(v3d.setCounter(COUNTER_L2_HITS, CounterType::L2_CACHE_HITS));
+    checkResult(v3d.setCounter(COUNTER_L2_MISSES, CounterType::L2_CACHE_MISSES));
+    checkResult(v3d.setCounter(COUNTER_TMU_TOTAL_LOADS, CounterType::TMU_TOTAL_WORDS));
+    checkResult(v3d.setCounter(COUNTER_TMU_CACHE_MISSES, CounterType::TMU_CACHE_MISSES));
 
-    V3D::instance()->resetCounterValue(COUNTER_IDLE);
-    V3D::instance()->resetCounterValue(COUNTER_EXECUTIONS);
-    V3D::instance()->resetCounterValue(COUNTER_TMU_STALLS);
-    V3D::instance()->resetCounterValue(COUNTER_INSTRUCTION_CACHE_HITS);
-    V3D::instance()->resetCounterValue(COUNTER_INSTRUCTION_CACHE_MISSES);
-    V3D::instance()->resetCounterValue(COUNTER_UNIFORM_CACHE_HITS);
-    V3D::instance()->resetCounterValue(COUNTER_UNIFORM_CACHE_MISSES);
-    V3D::instance()->resetCounterValue(COUNTER_VPW_STALLS);
-    V3D::instance()->resetCounterValue(COUNTER_VPR_STALLS);
-    V3D::instance()->resetCounterValue(COUNTER_L2_HITS);
-    V3D::instance()->resetCounterValue(COUNTER_L2_MISSES);
-    V3D::instance()->resetCounterValue(COUNTER_TMU_TOTAL_LOADS);
-    V3D::instance()->resetCounterValue(COUNTER_TMU_CACHE_MISSES);
+    v3d.resetCounterValue(COUNTER_IDLE);
+    v3d.resetCounterValue(COUNTER_EXECUTIONS);
+    v3d.resetCounterValue(COUNTER_TMU_STALLS);
+    v3d.resetCounterValue(COUNTER_INSTRUCTION_CACHE_HITS);
+    v3d.resetCounterValue(COUNTER_INSTRUCTION_CACHE_MISSES);
+    v3d.resetCounterValue(COUNTER_UNIFORM_CACHE_HITS);
+    v3d.resetCounterValue(COUNTER_UNIFORM_CACHE_MISSES);
+    v3d.resetCounterValue(COUNTER_VPW_STALLS);
+    v3d.resetCounterValue(COUNTER_VPR_STALLS);
+    v3d.resetCounterValue(COUNTER_L2_HITS);
+    v3d.resetCounterValue(COUNTER_L2_MISSES);
+    v3d.resetCounterValue(COUNTER_TMU_TOTAL_LOADS);
+    v3d.resetCounterValue(COUNTER_TMU_CACHE_MISSES);
 
     std::array<int64_t, 13> counters{};
     counters.fill(0);
@@ -234,7 +236,7 @@ int main(int argc, char** argv)
         std::array<int64_t, counters.size()> newCounters{};
         newCounters.fill(0);
         for(unsigned i = 0; i < counters.size(); ++i)
-            newCounters[i] = V3D::instance()->getCounter(i);
+            newCounters[i] = v3d.getCounter(i);
 
         if(std::any_of(newCounters.begin(), newCounters.end(), [](int64_t i) -> bool { return i < 0; }))
         {
@@ -395,7 +397,7 @@ int main(int argc, char** argv)
             }
 
             mvwprintw(window, 42, 0, "Errors:");
-            mvwprintw(window, 43, 1, getErrors().data());
+            mvwprintw(window, 43, 1, getErrors(v3d).data());
 
             mvwprintw(window, 44, 0, "Legend:");
             mvwprintw(window, 45, 1, "= : QPU execution");

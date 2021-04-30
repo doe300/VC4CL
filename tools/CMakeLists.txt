@@ -34,10 +34,6 @@ if(IMAGE_SUPPORT)
 	target_compile_definitions(v3d_info PRIVATE -DIMAGE_SUPPORT=1)
 endif()
 
-if(REGISTER_POKE_KERNELS)
-	target_compile_definitions(v3d_info PRIVATE -DREGISTER_POKE_KERNELS=1)
-endif()
-
 include(sources.list)
 ##
 # Installation targets

@@ -10,7 +10,7 @@
 #include "src/common.h"
 #include "src/icd_loader.h"
 #include "src/Platform.h"
-#include "src/V3D.h"
+#include "src/hal/hal.h"
 
 using namespace vc4cl;
 
@@ -186,7 +186,7 @@ void TestDevice::testGetDeviceInfo()
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
     TEST_ASSERT_EQUALS(sizeof(size_t), info_size);
-    TEST_ASSERT_EQUALS(V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT), *reinterpret_cast<size_t*>(buffer));
+    TEST_ASSERT_EQUALS(system()->getNumQPUs(), *reinterpret_cast<size_t*>(buffer));
     
     state = VC4CL_FUNC(clGetDeviceInfo)(device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);

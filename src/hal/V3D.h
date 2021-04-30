@@ -7,8 +7,9 @@
 #ifndef VC4CL_V3D
 #define VC4CL_V3D
 
-#include "common.h"
-#include "executor.h"
+#include "../common.h"
+#include "../executor.h"
+#include "hal.h"
 
 #include <chrono>
 #include <cstdint>
@@ -57,9 +58,9 @@ namespace vc4cl
         /**
          * "QPU Total instruction cache misses for all slices"
          *
-         * According to http://imrc.noip.me/blog/vc4/QI3/ this is ceil(InstructionCount)/8 (on a single QPU, when no
-         * branches are executed) which matches the instruction cache size of 64B (8 instructions) and a cache refresh
-         * policy always updating whole cache at once.
+         * According to http://imrc.noip.me/blog/vc4/QI3/ this is ceil(InstructionCount/8) (on a single QPU, when no
+         * branches are executed) which matches the instruction cache-line size of 64B (8 instructions) and a cache
+         * refresh policy always updating whole cache-line at once.
          *
          * Experiments have shown, this calculates as (ceil(#QPUs / 4) * #InstructionsPerQPU) / 8 (when all QPUs execute
          * the same amount of instructions and there are no branches in the code). The constant 4 seems to be the 4 QPUs
@@ -96,8 +97,8 @@ namespace vc4cl
          * According to http://imrc.noip.me/blog/vc4/QU16/, this results in UNIFORM misses = ceil(UNIFORM hits/16).
          *
          * Experiments have shown, this calculates as (ceil(#QPUs / 4) * (#UNIFORMSPerQPU + 2)) / 16 assuming all QPUs
-         * load the exact same UNIFORMs. The constant 4 seems to be the 4 QPUs per slice in use, since the instruction
-         * cache is per slice.
+         * load the exact same UNIFORMs. The constant 4 seems to be the 4 QPUs per slice in use, since the uniform cache
+         * is per slice.
          */
         UNIFORM_CACHE_MISSES = 23,
         /**
@@ -198,8 +199,7 @@ namespace vc4cl
     class V3D
     {
     public:
-        static std::shared_ptr<V3D>& instance();
-
+        V3D();
         ~V3D();
 
         uint32_t getSystemInfo(SystemInfo key) const __attribute__((pure));
@@ -221,8 +221,6 @@ namespace vc4cl
         static constexpr uint32_t MEMORY_PAGE_SIZE = 4 * 1024; // 4 KB
 
     private:
-        V3D();
-
         uint32_t* v3dBasePointer;
     };
 

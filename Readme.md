@@ -51,7 +51,6 @@ The following configuration options are available in CMake:
 - `VC4CC_LIBRARY` sets the path to the VC4C compiler library, defaults to `../VC4C/build/libVC4CC.xxx` or `lib/vc4c/build/libVC4CC.xxx`
 - `BUILD_ICD` toggles whether to build with support for the Khronos ICD loader, requires the ICD loader to be installed system-wide
 - `IMAGE_SUPPORT` toggles whether to enable the very experimental image-support
-- `REGISTER_POKE_KERNELS` toggles the use of register-poking to start kernels (if disabled, uses the mailbox system-calls). Enabling this increases performance up to 10%, but may crash the system, if any other application accesses the GPU at the same time!
 
 ## Khronos ICD Loader
 The Khronos ICD Loaders allows multiple OpenCL implementation to be used in parallel (e.g. VC4CL and [pocl](https://github.com/pocl/pocl)), but requires a bit of manual configuration:

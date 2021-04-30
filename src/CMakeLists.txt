@@ -17,6 +17,7 @@ target_compile_options(VC4CL PRIVATE ${VC4CL_ENABLED_WARNINGS})
 
 # Add all sources
 include(sources.list)
+include(hal/sources.list)
 
 if(INCLUDE_COMPILER AND EXISTS "${VC4C_HEADER_PATH}")
 	target_compile_definitions(VC4CL PUBLIC -DCOMPILER_HEADER="${VC4C_HEADER_PATH}" -DVC4C_TOOLS_HEADER="${VC4C_TOOLS_HEADER_PATH}" -DHAS_COMPILER=1)
@@ -48,10 +49,6 @@ endif()
 
 if(IMAGE_SUPPORT)
 	target_compile_definitions(VC4CL PUBLIC -DIMAGE_SUPPORT=1)
-endif()
-
-if(REGISTER_POKE_KERNELS)
-	target_compile_definitions(VC4CL PUBLIC -DREGISTER_POKE_KERNELS=1)
 endif()
 
 # "For shared libraries VERSION and SOVERSION can be used to specify the build version and API version respectively."

@@ -14,7 +14,7 @@
 
 namespace vc4cl
 {
-    class Mailbox;
+    class SystemAccess;
 
     struct DevicePointer
     {
@@ -51,6 +51,8 @@ namespace vc4cl
         // size of the buffer, in bytes
         const uint32_t size;
 
+        DeviceBuffer(const std::shared_ptr<SystemAccess>& sys, uint32_t handle, DevicePointer devPtr, void* hostPtr,
+            uint32_t size);
         DeviceBuffer(const DeviceBuffer&) = delete;
         DeviceBuffer(DeviceBuffer&&) = delete;
         ~DeviceBuffer();
@@ -61,12 +63,7 @@ namespace vc4cl
         void dumpContent() const;
 
     private:
-        DeviceBuffer(
-            const std::shared_ptr<Mailbox>& mb, uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size);
-
-        std::shared_ptr<Mailbox> mailbox;
-
-        friend class Mailbox;
+        std::shared_ptr<SystemAccess> system;
     };
 } // namespace vc4cl
 

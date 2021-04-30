@@ -7,17 +7,18 @@
 #ifndef PERFORMANCE_COUNTER_H
 #define PERFORMANCE_COUNTER_H
 
-#include "V3D.h"
 #include "cl_ext_vc4cl.h"
 
 #include <map>
 #include <mutex>
 #include <set>
 #include <string>
+#include <chrono>
 
 namespace vc4cl
 {
     struct KernelHeader;
+    enum class CounterType : unsigned char;
 
     /**
      * Container object for storing performance counter results
@@ -32,6 +33,7 @@ namespace vc4cl
         size_t numExplicitUniforms;
         size_t numWorkGroups;
         size_t workGroupSize;
+        std::chrono::microseconds elapsedTime;
 
         void dumpCounters() const;
 

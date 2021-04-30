@@ -9,8 +9,8 @@
 #include "Buffer.h"
 #include "Device.h"
 #include "PerformanceCounter.h"
-#include "V3D.h"
 #include "extensions.h"
+#include "hal/hal.h"
 
 #include <algorithm>
 
@@ -279,7 +279,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
             if(arg_size == 0)
                 return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
                     "The argument size for __local pointers must not be zero!");
-            if(arg_size > std::numeric_limits<unsigned>::max() || arg_size > mailbox()->getTotalGPUMemory())
+            if(arg_size > std::numeric_limits<unsigned>::max() || arg_size > system()->getTotalGPUMemory())
                 return returnError(CL_INVALID_ARG_VALUE, __FILE__, __LINE__,
                     "The argument size for __local pointers exceeds the supported maximum!");
             args[arg_index].reset(new TemporaryBufferArgument(static_cast<unsigned>(arg_size)));
@@ -346,8 +346,7 @@ cl_int Kernel::getWorkGroupInfo(
         return CL_INVALID_VALUE;
     case CL_KERNEL_WORK_GROUP_SIZE:
         //"[...] query the maximum work-group size that can be used to execute a kernel on a specific device [...]"
-        return returnValue<size_t>(
-            V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT), param_value_size, param_value, param_value_size_ret);
+        return returnValue<size_t>(system()->getNumQPUs(), param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
     {
         std::array<size_t, kernel_config::NUM_DIMENSIONS> tmp{
@@ -423,7 +422,7 @@ static bool split_compile_work_size(const std::array<uint16_t, kernel_config::NU
     if(compile_group_sizes[0] == 0 && compile_group_sizes[1] == 0 && compile_group_sizes[2] == 0)
         // no compile-time sizes set
         return false;
-    const cl_uint max_group_size = V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT);
+    const cl_uint max_group_size = system()->getNumQPUs();
 
     if((global_sizes[0] % compile_group_sizes[0]) != 0 || (global_sizes[1] % compile_group_sizes[1]) != 0 ||
         (global_sizes[2] % compile_group_sizes[2]) != 0)
@@ -450,7 +449,7 @@ static cl_int split_global_work_size(const std::array<std::size_t, kernel_config
     std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_sizes, cl_uint num_dimensions)
 {
     const size_t total_sizes = global_sizes[0] * global_sizes[1] * global_sizes[2];
-    const cl_uint max_group_size = V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT);
+    const cl_uint max_group_size = system()->getNumQPUs();
     if(total_sizes <= max_group_size)
     {
         // can be executed in a single work-group
@@ -599,11 +598,10 @@ cl_int Kernel::setWorkGroupSizes(CommandQueue* commandQueue, cl_uint work_dim, c
                 work_sizes[1] + work_offsets[1], kernel_config::MAX_WORK_ITEM_DIMENSIONS[1],
                 work_sizes[2] + work_offsets[2], kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]));
     }
-    if(exceedsLimits<size_t>(
-           local_sizes[0] * local_sizes[1] * local_sizes[2], 0, V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT)))
+    if(exceedsLimits<size_t>(local_sizes[0] * local_sizes[1] * local_sizes[2], 0, system()->getNumQPUs()))
         return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__,
             buildString("Local work-sizes exceed maximum: %u * %u * %u > %u", local_sizes[0], local_sizes[1],
-                local_sizes[2], V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT)));
+                local_sizes[2], system()->getNumQPUs()));
 
     // check divisibility of local_sizes[i] by work_sizes[i]
     for(cl_uint i = 0; i < kernel_config::NUM_DIMENSIONS; ++i)
@@ -694,7 +692,7 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
             }
             else
             {
-                auto bufIt = tmpBuffers.emplace(i, mailbox()->allocateBuffer(localArg->sizeToAllocate)).first;
+                auto bufIt = tmpBuffers.emplace(i, system()->allocateBuffer(localArg->sizeToAllocate)).first;
                 if(!bufIt->second)
                     // failed to allocate the temporary buffer
                     return CL_OUT_OF_RESOURCES;
@@ -744,7 +742,7 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
 }
 
 KernelExecution::KernelExecution(Kernel* kernel) :
-    kernel(kernel), mailbox(vc4cl::mailbox()), v3d(V3D::instance()), numDimensions(0), performanceCounters(nullptr)
+    kernel(kernel), system(vc4cl::system()), numDimensions(0), performanceCounters(nullptr)
 {
 }
 

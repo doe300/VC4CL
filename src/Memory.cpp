@@ -4,9 +4,9 @@
  * See the file "LICENSE" for the full license governing this code. See the copyright statement below for the original
  * code:
  */
-#include "Allocator.h"
+#include "Memory.h"
 
-#include "Mailbox.h"
+#include "hal/hal.h"
 
 #include <iomanip>
 
@@ -18,16 +18,16 @@ std::ostream& vc4cl::operator<<(std::ostream& s, const DevicePointer& ptr)
 }
 
 DeviceBuffer::DeviceBuffer(
-    const std::shared_ptr<Mailbox>& mb, uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size) :
+    const std::shared_ptr<SystemAccess>& sys, uint32_t handle, DevicePointer devPtr, void* hostPtr, uint32_t size) :
     memHandle(handle),
-    qpuPointer(devPtr), hostPointer(hostPtr), size(size), mailbox(mb)
+    qpuPointer(devPtr), hostPointer(hostPtr), size(size), system(sys)
 {
 }
 
 DeviceBuffer::~DeviceBuffer()
 {
     if(memHandle != 0)
-        mailbox->deallocateBuffer(this);
+        system->deallocateBuffer(this);
 }
 
 void DeviceBuffer::dumpContent() const

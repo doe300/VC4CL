@@ -6,10 +6,9 @@
 
 #include "Device.h"
 
-#include "Mailbox.h"
 #include "Platform.h"
-#include "V3D.h"
 #include "extensions.h"
+#include "hal/hal.h"
 
 #include <algorithm>
 #include <chrono>
@@ -54,15 +53,14 @@ cl_int Device::getInfo(
         //"Maximum number of work-items that can be specified in each dimension of the work-group.
         // Returns n size_t entries, where n is the value returned by the query for CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS.
         // The minimum value is (1, 1, 1)."
-        size_t numQPUs = V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT);
+        size_t numQPUs = system()->getNumQPUs();
         std::array<size_t, kernel_config::NUM_DIMENSIONS> tmp{numQPUs, numQPUs, numQPUs};
         return returnValue(tmp.data(), sizeof(size_t), tmp.size(), param_value_size, param_value, param_value_size_ret);
     }
     case CL_DEVICE_MAX_WORK_GROUP_SIZE:
         //"Maximum number of work-items in a work-group executing a kernel on a single compute unit, using the data
         // parallel execution model."
-        return returnValue<size_t>(
-            V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT), param_value_size, param_value, param_value_size_ret);
+        return returnValue<size_t>(system()->getNumQPUs(), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:
         //"Preferred native vector width size for built-in scalar types that can be put into vectors.
         // The vector width is defined as the number of scalar elements that can be stored in the vector. "
@@ -102,11 +100,8 @@ cl_int Device::getInfo(
     case CL_DEVICE_MAX_CLOCK_FREQUENCY:
     {
         //"Maximum configured clock frequency of the device in MHz."
-        QueryMessage<MailboxTag::GET_MAX_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::V3D)});
-        if(!mailbox()->readMailboxMessage(msg))
-            return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Error reading mailbox-info V3D max clock rate!");
-        return returnValue<cl_uint>(msg.getContent(1) / 1000000 /* clock rate is in Hz -> MHz */, param_value_size,
-            param_value, param_value_size_ret);
+        return returnValue<cl_uint>(system()->getQPUClockRateInHz() / 1000000 /* clock rate is in Hz -> MHz */,
+            param_value_size, param_value, param_value_size_ret);
     }
     case CL_DEVICE_ADDRESS_BITS:
         //"The default compute device address space size specified as an unsigned integer value in bits.
@@ -117,7 +112,7 @@ cl_int Device::getInfo(
         //"Max size of memory object allocation in bytes.  The minimum value is max (1/4th of CL_DEVICE_GLOBAL_MEM_SIZE,
         // 1 MB)"
         return returnValue<cl_ulong>(
-            mailbox()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
+            system()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_IMAGE_SUPPORT:
         //"Is CL_TRUE if images are supported by the OpenCL device and CL_FALSE otherwise."
 #ifdef IMAGE_SUPPORT
@@ -220,11 +215,11 @@ cl_int Device::getInfo(
     case CL_DEVICE_GLOBAL_MEM_SIZE:
         //"Size of global device memory in bytes."
         return returnValue<cl_ulong>(
-            mailbox()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
+            system()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
         //"Max size in bytes of a constant buffer allocation.  The minimum value is 64 KB (1KB for EMBEDDED PROFILE)"
         return returnValue<cl_ulong>(
-            mailbox()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
+            system()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_MAX_CONSTANT_ARGS:
         //"Max number of arguments declared with the __constant qualifier in a kernel.  The minimum value is 8 (4 for
         // EMBEDDED PROFILE)"
@@ -239,7 +234,7 @@ cl_int Device::getInfo(
     case CL_DEVICE_LOCAL_MEM_SIZE:
         //"Size of local memory arena in bytes.  The minimum value is 32 KB (1KB for EMBEDDED PROFILE)"
         return returnValue<cl_ulong>(
-            mailbox()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
+            system()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
         // Is CL_TRUE if the device implements error correction for all accesses to compute device memory (global and
         // constant)"
@@ -383,11 +378,8 @@ cl_int Device::getInfo(
         // https://www.khronos.org/registry/OpenCL/extensions/altera/cl_altera_device_temperature.txt "The core die
         // temperature of the device, in degrees Celsius. If the device does not support the query, the result will
         // default to 0."
-        QueryMessage<MailboxTag::GET_TEMPERATURE> msg({0});
-        //"Return the temperature of the SoC in thousandths of a degree C. id should be zero."
-        if(!mailbox()->readMailboxMessage(msg))
-            return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Error reading mailbox-info device temperature!");
-        return returnValue<cl_int>(msg.getContent(1) / 1000, param_value_size, param_value, param_value_size_ret);
+        return returnValue<cl_int>(
+            system()->getGPUTemperatureInMilliDegree() / 1000, param_value_size, param_value, param_value_size_ret);
     }
     case CL_DEVICE_COMPUTE_UNITS_BITFIELD_ARM:
         // cl_arm_core_id - https://www.khronos.org/registry/OpenCL/extensions/arm/cl_arm_get_core_id.txt

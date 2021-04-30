@@ -5,6 +5,8 @@
  */
 #include "Buffer.h"
 
+#include "hal/hal.h"
+
 using namespace vc4cl;
 
 Buffer::Buffer(Context* context, cl_mem_flags flags) :
@@ -1048,9 +1050,9 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
         return returnError<cl_mem>(
             CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "More than one host-access flag set!");
 
-    if(exceedsLimits<size_t>(size, 1, mailbox()->getTotalGPUMemory()))
+    if(exceedsLimits<size_t>(size, 1, system()->getTotalGPUMemory()))
         return returnError<cl_mem>(CL_INVALID_BUFFER_SIZE, errcode_ret, __FILE__, __LINE__,
-            buildString("Buffer size (%u) exceeds system maximum (%u)!", size, mailbox()->getTotalGPUMemory()));
+            buildString("Buffer size (%u) exceeds system maximum (%u)!", size, system()->getTotalGPUMemory()));
 
     if(host_ptr == nullptr &&
         (hasFlag<cl_mem_flags>(flags, CL_MEM_USE_HOST_PTR) || hasFlag<cl_mem_flags>(flags, CL_MEM_COPY_HOST_PTR)))
@@ -1065,7 +1067,7 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
     Buffer* buffer = newOpenCLObject<Buffer>(toType<Context>(context), flags);
     CHECK_ALLOCATION_ERROR_CODE(buffer, errcode_ret, cl_mem)
 
-    buffer->deviceBuffer.reset(mailbox()->allocateBuffer(static_cast<unsigned>(size)));
+    buffer->deviceBuffer = system()->allocateBuffer(static_cast<unsigned>(size));
     if(!buffer->deviceBuffer)
     {
         ignoreReturnValue(buffer->release(), __FILE__, __LINE__, "Already errored");

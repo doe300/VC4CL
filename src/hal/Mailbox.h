@@ -35,9 +35,8 @@
 #ifndef VC4CL_MAILBOX
 #define VC4CL_MAILBOX
 
-#include "Allocator.h"
-#include "common.h"
-#include "executor.h"
+#include "../common.h"
+#include "hal.h"
 
 #include <chrono>
 #include <cstring>
@@ -45,10 +44,11 @@
 #include <utility>
 #include <vector>
 
-#define PAGE_ALIGNMENT 4096
-
 namespace vc4cl
 {
+    struct DevicePointer;
+    class ExecutionHandle;
+
     // taken from https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface
     // additional documentation from:
     // https://github.com/raspberrypi/userland/blob/master/vcfw/rtos/common/rtos_common_mem.h
@@ -249,9 +249,9 @@ namespace vc4cl
         Mailbox& operator=(const Mailbox&) = delete;
         Mailbox& operator=(Mailbox&&) = delete;
 
-        DeviceBuffer* allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes = PAGE_ALIGNMENT,
-            MemoryFlag flags = MemoryFlag::L1_NONALLOCATING);
-        bool deallocateBuffer(const DeviceBuffer* buffer) const;
+        std::unique_ptr<DeviceBuffer> allocateBuffer(const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes,
+            unsigned alignmentInBytes = PAGE_ALIGNMENT, MemoryFlag flags = MemoryFlag::L1_NONALLOCATING);
+        bool deallocateBuffer(const DeviceBuffer* buffer);
 
         CHECK_RETURN ExecutionHandle executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1,
             unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const;
@@ -284,8 +284,6 @@ namespace vc4cl
 
         CHECK_RETURN bool checkReturnValue(unsigned value) const __attribute__((const));
     };
-
-    std::shared_ptr<Mailbox>& mailbox();
 
     enum class VC4Clock
     {

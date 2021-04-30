@@ -22,8 +22,7 @@ namespace vc4cl
     struct DevicePointer;
     struct KernelArgument;
     class Buffer;
-    class Mailbox;
-    class V3D;
+    class SystemAccess;
     struct PerformanceCounters;
 
     class Kernel final : public Object<_cl_kernel, CL_INVALID_KERNEL>
@@ -159,12 +158,10 @@ namespace vc4cl
     struct KernelExecution final : public EventAction
     {
         object_wrapper<Kernel> kernel;
-        // Keep a reference to the mailbox to guarantee it still exists when we actually do the execution. This is
-        // mostly to gracefully handle application errors, e.g. when a kernel is executed and not waited for finished
-        // and then the application shuts down.
-        std::shared_ptr<Mailbox> mailbox;
-        // Keep a reference to the V3D instance for the same reason as for the Mailbox above.
-        std::shared_ptr<V3D> v3d;
+        // Keep a reference to the system access abstraction to guarantee it still exists when we actually do the
+        // execution. This is mostly to gracefully handle application errors, e.g. when a kernel is executed and not
+        // waited for finished and then the application shuts down.
+        std::shared_ptr<SystemAccess> system;
         cl_uchar numDimensions;
         std::array<std::size_t, kernel_config::NUM_DIMENSIONS> globalOffsets;
         std::array<std::size_t, kernel_config::NUM_DIMENSIONS> globalSizes;

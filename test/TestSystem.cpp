@@ -5,7 +5,8 @@
  */
 
 #include "TestSystem.h"
-#include "src/V3D.h"
+#include "src/hal/V3D.h"
+#include "src/hal/hal.h"
 
 #include <CL/cl_platform.h>
 
@@ -13,23 +14,24 @@ using namespace vc4cl;
 
 TestSystem::TestSystem()
 {
-    //"warm-up" V3D hardware
-    V3D::instance();
+    if(!system()->getV3DIfAvailable())
+        return;
     TEST_ADD(TestSystem::testGetSystemInfo);
 }
 
 void TestSystem::testGetSystemInfo()
 {
-    uint32_t res = V3D::instance()->getSystemInfo(SystemInfo::VPM_MEMORY_SIZE);
+    auto v3d = system()->getV3DIfAvailable();
+    uint32_t res = v3d->getSystemInfo(SystemInfo::VPM_MEMORY_SIZE);
     TEST_ASSERT(res > 1024);
-    res = V3D::instance()->getSystemInfo(SystemInfo::SEMAPHORES_COUNT);
+    res = v3d->getSystemInfo(SystemInfo::SEMAPHORES_COUNT);
     TEST_ASSERT_EQUALS(16u, res);
-    res = V3D::instance()->getSystemInfo(SystemInfo::SLICE_TMU_COUNT);
+    res = v3d->getSystemInfo(SystemInfo::SLICE_TMU_COUNT);
     TEST_ASSERT_EQUALS(2u, res);
-    res = V3D::instance()->getSystemInfo(SystemInfo::SLICE_QPU_COUNT);
+    res = v3d->getSystemInfo(SystemInfo::SLICE_QPU_COUNT);
     TEST_ASSERT_EQUALS(4u, res);
-    res = V3D::instance()->getSystemInfo(SystemInfo::SLICES_COUNT);
+    res = v3d->getSystemInfo(SystemInfo::SLICES_COUNT);
     TEST_ASSERT_EQUALS(3u, res);
-    res = V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT);
+    res = v3d->getSystemInfo(SystemInfo::QPU_COUNT);
     TEST_ASSERT_EQUALS(12u, res);
 }

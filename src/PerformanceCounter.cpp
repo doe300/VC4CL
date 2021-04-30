@@ -6,10 +6,11 @@
 
 #include "PerformanceCounter.h"
 
-#include "Mailbox.h"
 #include "Program.h"
-#include "V3D.h"
+#include "hal/V3D.h"
+#include "hal/hal.h"
 
+#include <chrono>
 #include <cmath>
 #include <vector>
 
@@ -40,7 +41,9 @@ void PerformanceCounters::dumpCounters() const
             std::cout << "Failed to query performance counters, no results available!" << std::endl)
         return;
     }
-    DEBUG_LOG(DebugLevel::PERFORMANCE_COUNTERS, std::cout << "Clock speed : " << clockSpeed << std::endl)
+    DEBUG_LOG(
+        DebugLevel::PERFORMANCE_COUNTERS, std::cout << "Elapsed time: " << elapsedTime.count() << "us" << std::endl)
+    DEBUG_LOG(DebugLevel::PERFORMANCE_COUNTERS, std::cout << "Clock speed: " << clockSpeed << std::endl)
     DEBUG_LOG(DebugLevel::PERFORMANCE_COUNTERS, std::cout << "Instruction count: " << numInstructions << std::endl)
     DEBUG_LOG(
         DebugLevel::PERFORMANCE_COUNTERS, std::cout << "Explicit uniform count: " << numExplicitUniforms << std::endl)
@@ -104,19 +107,17 @@ PerformanceCollector::PerformanceCollector(
 {
     // set-up and clear the performance counters
     std::lock_guard<std::mutex> guard(counters.countersLock);
-    auto v3d = V3D::instance();
-    auto mb = mailbox();
-    if(!v3d || !mb)
+    auto sys = system();
+    auto v3d = system()->getV3DIfAvailable();
+    if(!v3d || !sys)
     {
         counters.querySuccessful = false;
         return;
     }
     // fill the static kernel info
-    QueryMessage<MailboxTag::GET_MAX_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::V3D)});
-    if(mb->readMailboxMessage(msg))
-        counters.clockSpeed = msg.getContent(1);
-    counters.numInstructions = kernel.getLength();
-    counters.numExplicitUniforms = static_cast<uint32_t>(kernel.getExplicitUniformCount());
+    counters.clockSpeed = sys->getQPUClockRateInHz();
+    counters.numInstructions = kernelInfo.getLength();
+    counters.numExplicitUniforms = static_cast<uint32_t>(kernelInfo.getExplicitUniformCount());
     counters.numWorkGroups = numGroups;
     counters.workGroupSize = localWorkSize;
     for(uint8_t i = 0; i < PERFORMANCE_COUNTERS.size(); ++i)
@@ -127,6 +128,9 @@ PerformanceCollector::PerformanceCollector(
             break;
         }
     }
+    // set to start timestamp
+    counters.elapsedTime = std::chrono::duration_cast<decltype(counters.elapsedTime)>(
+        std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
 PerformanceCollector::~PerformanceCollector() noexcept
@@ -135,7 +139,10 @@ PerformanceCollector::~PerformanceCollector() noexcept
     if(!counters.querySuccessful)
         return;
     std::lock_guard<std::mutex> guard(counters.countersLock);
-    auto v3d = V3D::instance();
+    // calculate actual duration
+    counters.elapsedTime = std::chrono::duration_cast<decltype(counters.elapsedTime)>(
+        std::chrono::high_resolution_clock::now().time_since_epoch() - counters.elapsedTime);
+    auto v3d = system()->getV3DIfAvailable();
     if(!v3d)
     {
         counters.querySuccessful = false;

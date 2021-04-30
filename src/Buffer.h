@@ -8,7 +8,7 @@
 
 #include "CommandQueue.h"
 #include "Event.h"
-#include "Mailbox.h"
+#include "Memory.h"
 #include "Object.h"
 
 #include <list>

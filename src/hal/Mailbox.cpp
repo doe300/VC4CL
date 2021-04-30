@@ -36,11 +36,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "V3D.h"
 #include "hal.h"
 
+#include <cstdio>
+#include <fcntl.h>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <sys/ioctl.h>
 #include <system_error>
+#include <unistd.h>
 
 using namespace vc4cl;
 
@@ -53,7 +57,7 @@ static int mbox_open()
     int file_desc;
 
     // open a char device file used for communicating with kernel mbox driver
-    file_desc = open_mailbox(DEVICE_FILE_NAME, 0);
+    file_desc = open(DEVICE_FILE_NAME, 0);
     if(file_desc < 0)
     {
         std::cout << "[VC4CL] Can't open device file: " << DEVICE_FILE_NAME << std::endl;
@@ -75,11 +79,12 @@ Mailbox::~Mailbox()
 {
     ignoreReturnValue(enableQPU(false) ? CL_SUCCESS : CL_OUT_OF_RESOURCES, __FILE__, __LINE__,
         "There is no way of handling an error here");
-    close_mailbox(fd);
+    close(fd);
     DEBUG_LOG(DebugLevel::SYSCALL, std::cout << "[VC4CL] Mailbox file descriptor closed: " << fd << std::endl)
 }
 
-DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags)
+std::unique_ptr<DeviceBuffer> Mailbox::allocateBuffer(
+    const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags)
 {
     // munmap requires an alignment of the system page size (4096), so we need to enforce it here
     unsigned handle = memAlloc(sizeInBytes, std::max(static_cast<unsigned>(PAGE_ALIGNMENT), alignmentInBytes), flags);
@@ -90,12 +95,12 @@ DeviceBuffer* Mailbox::allocateBuffer(unsigned sizeInBytes, unsigned alignmentIn
         DEBUG_LOG(DebugLevel::SYSCALL,
             std::cout << "Allocated " << sizeInBytes << " bytes of buffer: handle " << handle << ", device address "
                       << std::hex << "0x" << qpuPointer << ", host address " << hostPointer << std::dec << std::endl)
-        return new DeviceBuffer(shared_from_this(), handle, qpuPointer, hostPointer, sizeInBytes);
+        return std::unique_ptr<DeviceBuffer>{new DeviceBuffer(system, handle, qpuPointer, hostPointer, sizeInBytes)};
     }
     return nullptr;
 }
 
-bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer) const
+bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer)
 {
     if(buffer->hostPointer != nullptr)
         unmapmem(buffer->hostPointer, buffer->size);
@@ -166,7 +171,7 @@ int Mailbox::mailboxCall(void* buffer) const
         std::cout << std::endl;
     })
 
-    int ret_val = ioctl_mailbox(fd, IOCTL_MBOX_PROPERTY, buffer);
+    int ret_val = ioctl(fd, IOCTL_MBOX_PROPERTY, buffer);
     if(ret_val < 0)
     {
         DEBUG_LOG(DebugLevel::SYSCALL, std::cout << "ioctl_set_msg failed: " << ret_val << std::endl)
@@ -244,10 +249,4 @@ CHECK_RETURN bool Mailbox::checkReturnValue(unsigned value) const
         DEBUG_LOG(DebugLevel::SYSCALL, std::cout << "Unknown return code: " << value << std::endl)
         return false;
     }
-}
-
-std::shared_ptr<Mailbox>& vc4cl::mailbox()
-{
-    static std::shared_ptr<Mailbox> mb(new Mailbox());
-    return mb;
 }

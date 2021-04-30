@@ -7,8 +7,8 @@
 #include "Program.h"
 
 #include "Device.h"
-#include "V3D.h"
 #include "extensions.h"
+#include "hal/hal.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -267,7 +267,7 @@ static cl_int compile_program(Program* program, const std::string& options)
      * NOTE: VC4 OpenGL driver disables the VPM user-memory completely
      * (see https://github.com/raspberrypi/linux/blob/rpi-4.9.y/drivers/gpu/drm/vc4/vc4_v3d.c #vc4_v3d_init_hw)
      */
-    config.availableVPMSize = V3D::instance()->getSystemInfo(SystemInfo::VPM_MEMORY_SIZE);
+    config.availableVPMSize = system()->getTotalVPMMemory();
 
     program->buildInfo.options = options;
     DEBUG_LOG(DebugLevel::DUMP_CODE, std::cout << "Compiling source with: " << program->buildInfo.options << std::endl)

@@ -10,8 +10,6 @@ option(INCLUDE_COMPILER "Includes the VC4C compiler" ON)
 option(BUILD_TESTING "Build testing program" OFF)
 option(BUILD_ICD "Build with support for ICD" ON)
 option(IMAGE_SUPPORT "Experimental image support" OFF)
-# Option whether to use register-poking (faster) or mailbox-calls (synchronized system-wide) to run kernels
-option(REGISTER_POKE_KERNELS "Use the faster way of register to run kernels" ON)
 # Option to enable/disable cross compilation
 option(CROSS_COMPILE "Cross compile for Raspbian" OFF)
 # Option whether to emulate the hardware interface for testing purposes
@@ -92,13 +90,6 @@ if(MOCK_HAL)
 	# Disable ICD loading to support directly forcing the emulation runtime
 	# (e.g. via LD_PRELOAD)
 	set(BUILD_ICD OFF)
-	# Disable register poking for emulation, since it is not yet supported
-	set(REGISTER_POKE_KERNELS OFF)
-endif()
-
-# Enable register poking for kernels
-if(REGISTER_POKE_KERNELS)
-	message(STATUS "Enabling register-poking to run kernels")
 endif()
 
 set(CURSES_NEED_NCURSES TRUE)

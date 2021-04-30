@@ -9,7 +9,8 @@
 #include "src/CommandQueue.h"
 #include "src/Kernel.h"
 #include "src/Program.h"
-#include "src/V3D.h"
+#include "src/hal/V3D.h"
+#include "src/hal/hal.h"
 #include "src/icd_loader.h"
 #include "util.h"
 
@@ -50,7 +51,10 @@ TestExecutions::TestExecutions(std::vector<std::string>&& customTestNames) :
             TEST_ADD_WITH_STRING(TestExecutions::runNoSuchTestData, testName);
         }
     }
-    TEST_ADD(TestExecutions::testHungState);
+    if(system()->getV3DIfAvailable())
+    {
+        TEST_ADD(TestExecutions::testHungState);
+    }
 }
 
 bool TestExecutions::setup()
@@ -62,25 +66,29 @@ bool TestExecutions::setup()
         VC4CL_FUNC(clCreateCommandQueue)(context, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(), 0, &errcode);
 
     return errcode == CL_SUCCESS && context != nullptr && queue != nullptr &&
-        V3D::instance()->setCounter(COUNTER_IDLE, CounterType::IDLE_CYCLES) &&
-        V3D::instance()->setCounter(COUNTER_EXECUTIONS, CounterType::EXECUTION_CYCLES);
+        (!system()->getV3DIfAvailable() ||
+            (system()->getV3DIfAvailable()->setCounter(COUNTER_IDLE, CounterType::IDLE_CYCLES) &&
+                system()->getV3DIfAvailable()->setCounter(COUNTER_EXECUTIONS, CounterType::EXECUTION_CYCLES)));
 }
 
 void TestExecutions::testHungState()
 {
+    auto v3d = system()->getV3DIfAvailable();
+    if(!v3d)
+        return;
     // If an execution test-case has finished (successful or timed-out) and the VC4 is still active,
     // it is in a hung state (or another program is using it!)
 
     // reset previous counter values
-    V3D::instance()->resetCounterValue(COUNTER_IDLE);
-    V3D::instance()->resetCounterValue(COUNTER_EXECUTIONS);
+    v3d->resetCounterValue(COUNTER_IDLE);
+    v3d->resetCounterValue(COUNTER_EXECUTIONS);
 
     // wait some amount
     std::this_thread::sleep_for(std::chrono::seconds{1});
 
     // read new counter values
-    auto qpuIdle = static_cast<float>(V3D::instance()->getCounter(COUNTER_IDLE));
-    auto qpuExec = static_cast<float>(V3D::instance()->getCounter(COUNTER_EXECUTIONS));
+    auto qpuIdle = static_cast<float>(v3d->getCounter(COUNTER_IDLE));
+    auto qpuExec = static_cast<float>(v3d->getCounter(COUNTER_EXECUTIONS));
 
     if(qpuIdle >= 0 && qpuExec >= 0 && (qpuIdle + qpuExec) > 0)
     {
@@ -97,8 +105,11 @@ void TestExecutions::tear_down()
 {
     VC4CL_FUNC(clReleaseCommandQueue)(queue);
     VC4CL_FUNC(clReleaseContext)(context);
-    V3D::instance()->disableCounter(COUNTER_IDLE);
-    V3D::instance()->disableCounter(COUNTER_EXECUTIONS);
+    if(auto v3d = system()->getV3DIfAvailable())
+    {
+        v3d->disableCounter(COUNTER_IDLE);
+        v3d->disableCounter(COUNTER_EXECUTIONS);
+    }
 }
 
 void TestExecutions::buildProgram(cl_program* program, const std::string& fileName)
