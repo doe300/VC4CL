@@ -224,6 +224,46 @@ extern "C"
         return 0xDEADBEEF;
     }
 
-#ifdef __cplusplus
+    int vcsm_init_ex(int want_cma, int fd)
+    {
+        throw std::runtime_error{"vcsm_init_ex() should not be called for emulated build"};
+    }
+
+    void vcsm_exit(void)
+    {
+        throw std::runtime_error{"vcsm_exit() should not be called for emulated build"};
+    }
+
+    unsigned int vcsm_malloc_cache(unsigned int size, int cache, const char* name)
+    {
+        throw std::runtime_error{"vcsm_malloc_cache() should not be called for emulated build"};
+    }
+
+    void vcsm_free(unsigned int handle)
+    {
+        throw std::runtime_error{"vcsm_free() should not be called for emulated build"};
+    }
+
+    unsigned int vcsm_vc_addr_from_hdl(unsigned int handle)
+    {
+        throw std::runtime_error{"vcsm_vc_addr_from_hdl() should not be called for emulated build"};
+    }
+
+    void* vcsm_lock(unsigned int handle)
+    {
+        throw std::runtime_error{"vcsm_lock() should not be called for emulated build"};
+    }
+
+    int vcsm_unlock_ptr_sp(void* usr_ptr, int cache_no_flush)
+    {
+        throw std::runtime_error{"vcsm_unlock_ptr_sp() should not be called for emulated build"};
+    }
+
+    int vcsm_export_dmabuf(unsigned int vcsm_handle)
+    {
+        throw std::runtime_error{"vcsm_export_dmabuf() should not be called for emulated build"};
+    }
+
+#if defined(MOCK_HAL) && defined(__cplusplus)
 }
 #endif

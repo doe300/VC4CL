@@ -253,7 +253,9 @@ static void printMaximumAllocation()
 {
     uint32_t maxSize = system()->getTotalGPUMemory();
 
-    std::cout << "Testing maximum single allocation size:" << std::endl;
+    std::cout << "Testing maximum single allocation size (GPU memory: " << (maxSize) / (1024 * 1024)
+              << "MB):" << std::endl;
+    bool couldAllocateAnything = false;
     for(uint32_t trySize = maxSize; trySize > 1; trySize >>= 1)
     {
         std::unique_ptr<DeviceBuffer> buffer(system()->allocateBuffer(trySize));
@@ -261,9 +263,12 @@ static void printMaximumAllocation()
         {
             std::cout << "Maximum single allocation: " << buffer->size << " bytes (" << (buffer->size / 1024) / 1024
                       << " MB)" << std::endl;
+            couldAllocateAnything = true;
             break;
         }
     }
+    if(!couldAllocateAnything)
+        std::cout << "Failed to allocate any buffer!" << std::endl;
 }
 
 int main(int argc, char** argv)

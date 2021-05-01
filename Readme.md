@@ -77,4 +77,14 @@ To generate debug information, set the `VC4CL_DEBUG` environment variable to one
 - `events` enables logging of asynchronous event processing information to the standard output
 - `objects` enables logging of lifetime begin/end and leaks of OpenCL API objects to the standard output
 - `perf` enables collection and logging of V3D hardware performance counters to the standard output
+- `system` enables logging high-level information about the selected system interfaces (e.g. mailbox, V3D, VCSM, etc.) to the standard output
 - `all` enables all above logging modes
+
+## Experimental features
+Mostly for development, performance comparison and debugging purposes, the system interfaces used for specific system accesses can be selected via following environment variables:
+
+- `VC4CL_EMULATOR` forces to use the emulator, does not actually access any specific VideoCore hardware
+- `VC4CL_EXECUTE_MAILBOX` uses the mailbox interface to execute kernels. By default the V3D registers are written directly, which is faster, but less compatible with other applications using the VideoCore IV hardware
+- `VC4CL_MEMORY_CMA` uses the VCSM CMA interface (with fall-back to the VCSM interface) to manage GPU-accessible memory. By default, the Mailbox is used
+- `VC4CL_MEMORY_VCSM` uses the VCSM interface (with fall-back to the VCSM CMA interface) to manage GPU-accessible memory. By default, the Mailbox is used
+- `VC4CL_NO_<COMPONENT>` with `<COMPONENT>` either `MAILBOX`, `V3D` or `VCSM` disables the given component completely

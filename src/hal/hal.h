@@ -18,6 +18,7 @@ namespace vc4cl
 
     class Mailbox;
     class V3D;
+    class VCSM;
 
     /**
      * Abstraction for any system access.
@@ -58,6 +59,7 @@ namespace vc4cl
 
         std::unique_ptr<Mailbox> mailbox;
         std::unique_ptr<V3D> v3d;
+        std::unique_ptr<VCSM> vcsm;
 
         friend std::shared_ptr<SystemAccess>& system();
     };

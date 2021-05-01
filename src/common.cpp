@@ -141,6 +141,8 @@ static DebugLevel getDebugLevel()
             level |= static_cast<uint8_t>(DebugLevel::OBJECTS);
         if(tmp.find("perf") != std::string::npos)
             level |= static_cast<uint8_t>(DebugLevel::PERFORMANCE_COUNTERS);
+        if(tmp.find("system") != std::string::npos)
+            level |= static_cast<uint8_t>(DebugLevel::SYSTEM_ACCESS);
         if(tmp.find("all") != std::string::npos)
             level = static_cast<uint8_t>(DebugLevel::ALL);
     }

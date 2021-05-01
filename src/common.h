@@ -51,6 +51,8 @@ namespace vc4cl
         OBJECTS = 1 << 5u,
         // V3D hardware performance counters are collected and their values logged to the standard output
         PERFORMANCE_COUNTERS = 1 << 6u,
+        // Prints high-level information on the selected system access interfaces
+        SYSTEM_ACCESS = 1 << 7u,
         ALL = 0xFF
 
     };
