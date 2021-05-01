@@ -20,6 +20,14 @@ namespace vc4cl
     class V3D;
     class VCSM;
 
+    enum class CacheType : uint8_t
+    {
+        UNCACHED = 0,
+        HOST_CACHED = 1,
+        GPU_CACHED = 2,
+        BOTH_CACHED = 3
+    };
+
     /**
      * Abstraction for any system access.
      *
@@ -46,7 +54,8 @@ namespace vc4cl
             return v3d.get();
         }
 
-        std::unique_ptr<DeviceBuffer> allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes = PAGE_ALIGNMENT);
+        std::unique_ptr<DeviceBuffer> allocateBuffer(
+            unsigned sizeInBytes, const std::string& name, CacheType cacheType = CacheType::BOTH_CACHED);
         bool deallocateBuffer(const DeviceBuffer* buffer);
 
         CHECK_RETURN ExecutionHandle executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> controlAddress,

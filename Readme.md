@@ -88,3 +88,4 @@ Mostly for development, performance comparison and debugging purposes, the syste
 - `VC4CL_MEMORY_CMA` uses the VCSM CMA interface (with fall-back to the VCSM interface) to manage GPU-accessible memory. By default, the Mailbox is used
 - `VC4CL_MEMORY_VCSM` uses the VCSM interface (with fall-back to the VCSM CMA interface) to manage GPU-accessible memory. By default, the Mailbox is used
 - `VC4CL_NO_<COMPONENT>` with `<COMPONENT>` either `MAILBOX`, `V3D` or `VCSM` disables the given component completely
+- `VC4CL_CACHE_FORCE=<VAL>` forces the buffer caching behavior to uncached (`<VAL> = 0`), host-cached (`<VAL> = 1`), GPU-cached (`<VAL> = 2`) or host- and GPU-cached (`<VAL> = 3`)

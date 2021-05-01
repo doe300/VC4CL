@@ -241,7 +241,8 @@ cl_int executeKernel(KernelExecution& args)
         num_qpus * (MAX_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()),
         kernel->program->globalData.size() * sizeof(uint64_t), kernel->program->moduleInfo.getStackFrameSize());
 
-    std::unique_ptr<DeviceBuffer> buffer(args.system->allocateBuffer(static_cast<unsigned>(buffer_size)));
+    std::unique_ptr<DeviceBuffer> buffer(
+        args.system->allocateBuffer(static_cast<unsigned>(buffer_size), "VC4CL kernel"));
     if(!buffer)
         return CL_OUT_OF_RESOURCES;
 

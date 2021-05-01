@@ -12,7 +12,6 @@
 #include "emulator.h"
 
 #include <cstdlib>
-#include <thread>
 
 using namespace vc4cl;
 
@@ -33,6 +32,17 @@ static const bool manageMemoryViaMailbox = !manageMemoryViaVCSM;
 static const bool enableMailbox = (executeViaMailbox || manageMemoryViaMailbox) && !std::getenv("VC4CL_NO_MAILBOX");
 static const bool enableV3D = (true || executeViaV3D) && !std::getenv("VC4CL_NO_V3D");
 static const bool enableVCSM = (manageMemoryViaVCSM) && !std::getenv("VC4CL_NO_VCSM");
+
+static const std::pair<bool, CacheType> forcedCacheType = []() {
+    auto envvar = std::getenv("VC4CL_CACHE_FORCE");
+    if(!envvar)
+        return std::make_pair(false, CacheType::UNCACHED);
+    std::string env(envvar);
+    auto start = env.find_first_of("0123456789");
+    if(start != std::string::npos)
+        return std::make_pair(true, static_cast<CacheType>(strtoul(env.data() + start, nullptr, 0)));
+    return std::make_pair(false, CacheType::UNCACHED);
+}();
 
 static std::unique_ptr<Mailbox> initializeMailbox()
 {
@@ -71,6 +81,27 @@ SystemAccess::SystemAccess() : mailbox(initializeMailbox()), v3d(initializeV3D()
         DEBUG_LOG(DebugLevel::SYSTEM_ACCESS,
             std::cout << "[VC4CL] Using VCSM (" << (vcsm->isUsingCMA() ? "CMA" : "non-CMA")
                       << ") for: " << (manageMemoryViaVCSM ? "memory allocation" : "") << std::endl)
+    if(forcedCacheType.first)
+    {
+        std::string cacheType;
+        switch(forcedCacheType.second)
+        {
+        case CacheType::UNCACHED:
+            cacheType = "uncached";
+            break;
+        case CacheType::HOST_CACHED:
+            cacheType = "host cached";
+            break;
+        case CacheType::GPU_CACHED:
+            cacheType = "GPU cached";
+            break;
+        case CacheType::BOTH_CACHED:
+            cacheType = "host and GPU cached";
+            break;
+        }
+        DEBUG_LOG(
+            DebugLevel::SYSTEM_ACCESS, std::cout << "[VC4CL] Forcing memory caching type: " << cacheType << std::endl)
+    }
 }
 
 uint32_t SystemAccess::getTotalGPUMemory()
@@ -125,12 +156,14 @@ uint32_t SystemAccess::getTotalVPMMemory()
     return 0;
 }
 
-std::unique_ptr<DeviceBuffer> SystemAccess::allocateBuffer(unsigned sizeInBytes, unsigned alignmentInBytes)
+std::unique_ptr<DeviceBuffer> SystemAccess::allocateBuffer(
+    unsigned sizeInBytes, const std::string& name, CacheType cacheType)
 {
+    auto effectiveCacheType = forcedCacheType.first ? forcedCacheType.second : cacheType;
     if(vcsm)
-        return vcsm->allocateBuffer(shared_from_this(), sizeInBytes, alignmentInBytes);
+        return vcsm->allocateBuffer(shared_from_this(), sizeInBytes, name, effectiveCacheType);
     if(mailbox)
-        return mailbox->allocateBuffer(shared_from_this(), sizeInBytes, alignmentInBytes);
+        return mailbox->allocateBuffer(shared_from_this(), sizeInBytes, effectiveCacheType);
     return nullptr;
 }
 
@@ -152,16 +185,6 @@ ExecutionHandle SystemAccess::executeQPU(unsigned numQPUs, std::pair<uint32_t*, 
     {
         if(!mailbox)
             return ExecutionHandle{false};
-        if(!flushBuffer)
-            /*
-             * For some reason, successive mailbox-calls without delays freeze the system (does the kernel get too
-             * swamped??) A delay of 1ms has the same effect as no delay, 10ms slow down the execution, but work
-             *
-             * clpeak's global-bandwidth test runs ok without delay
-             * clpeaks's compute-sp test hangs/freezes with/without delay
-             */
-            // TODO test with less delay? hangs? works? better performance?
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         return mailbox->executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
     }
     if(v3d)

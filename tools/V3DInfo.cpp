@@ -258,7 +258,7 @@ static void printMaximumAllocation()
     bool couldAllocateAnything = false;
     for(uint32_t trySize = maxSize; trySize > 1; trySize >>= 1)
     {
-        std::unique_ptr<DeviceBuffer> buffer(system()->allocateBuffer(trySize));
+        std::unique_ptr<DeviceBuffer> buffer(system()->allocateBuffer(trySize, "VC4CL V3D info"));
         if(buffer != nullptr)
         {
             std::cout << "Maximum single allocation: " << buffer->size << " bytes (" << (buffer->size / 1024) / 1024

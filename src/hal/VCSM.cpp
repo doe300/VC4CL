@@ -7,6 +7,7 @@
 #include "VCSM.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <stdexcept>
 
@@ -17,7 +18,7 @@ extern "C"
 {
 #endif
 
-    // see "/opt/vc/include/user-vcsm.h"
+    // see "/opt/vc/include/interface/vcsm/user-vcsm.h"
     typedef enum
     {
         VCSM_CACHE_TYPE_NONE = 0,    // No caching applies.
@@ -40,6 +41,22 @@ extern "C"
 
     int vcsm_export_dmabuf(unsigned int vcsm_handle);
 
+    struct vcsm_user_clean_invalid2_s
+    {
+        unsigned char op_count;
+        unsigned char zero[3];
+        struct vcsm_user_clean_invalid2_block_s
+        {
+            unsigned short invalidate_mode;
+            unsigned short block_count;
+            void* start_address;
+            unsigned int block_size;
+            unsigned int inter_block_stride;
+        } s[0];
+    };
+
+    int vcsm_clean_invalid2(struct vcsm_user_clean_invalid2_s* s);
+
 #ifdef __cplusplus
 }
 #endif
@@ -61,10 +78,26 @@ VCSM::~VCSM()
     DEBUG_LOG(DebugLevel::SYSCALL, std::cout << "[VC4CL] VCSM shut down" << std::endl)
 }
 
-std::unique_ptr<DeviceBuffer> VCSM::allocateBuffer(
-    const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes, unsigned alignmentInBytes)
+static VCSM_CACHE_TYPE_T toCacheType(CacheType type)
 {
-    auto handle = vcsm_malloc_cache(sizeInBytes, VCSM_CACHE_TYPE_HOST_AND_VC, "VC4CL buffer");
+    switch(type)
+    {
+    case CacheType::UNCACHED:
+        return VCSM_CACHE_TYPE_NONE;
+    case CacheType::HOST_CACHED:
+        return VCSM_CACHE_TYPE_HOST;
+    case CacheType::GPU_CACHED:
+        return VCSM_CACHE_TYPE_VC;
+    case CacheType::BOTH_CACHED:
+    default:
+        return VCSM_CACHE_TYPE_HOST_AND_VC;
+    }
+}
+
+std::unique_ptr<DeviceBuffer> VCSM::allocateBuffer(
+    const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes, const std::string& name, CacheType cacheType)
+{
+    auto handle = vcsm_malloc_cache(sizeInBytes, toCacheType(cacheType), name.data());
     if(handle == 0)
     {
         DEBUG_LOG(DebugLevel::SYSCALL,
@@ -113,6 +146,39 @@ bool VCSM::deallocateBuffer(const DeviceBuffer* buffer)
                   << ", device address " << std::hex << "0x" << buffer->qpuPointer << ", host address "
                   << buffer->hostPointer << std::dec << std::endl)
     return true;
+}
+
+static std::unique_ptr<vcsm_user_clean_invalid2_s, decltype(&free)> allocateInvalidateCleanData(uint8_t numBlocks)
+{
+    auto bufferSize = sizeof(vcsm_user_clean_invalid2_s) +
+        numBlocks * sizeof(vcsm_user_clean_invalid2_s::vcsm_user_clean_invalid2_block_s);
+    std::unique_ptr<vcsm_user_clean_invalid2_s, decltype(&free)> data{
+        reinterpret_cast<vcsm_user_clean_invalid2_s*>(malloc(bufferSize)), free};
+    memset(data.get(), '\0', bufferSize);
+    data->op_count = numBlocks;
+    return data;
+}
+
+bool VCSM::flushCPUCache(const DeviceBuffer* buffer)
+{
+    auto data = allocateInvalidateCleanData(1);
+    data->s[0].invalidate_mode = 2; // clean
+    data->s[0].block_count = 1;
+    data->s[0].start_address = buffer->hostPointer;
+    data->s[0].block_size = buffer->size;
+    data->s[0].inter_block_stride = 0;
+    return vcsm_clean_invalid2(data.get()) == 0;
+}
+
+bool VCSM::clearCPUCache(const DeviceBuffer* buffer)
+{
+    auto data = allocateInvalidateCleanData(1);
+    data->s[0].invalidate_mode = 1; // invalidate
+    data->s[0].block_count = 1;
+    data->s[0].start_address = buffer->hostPointer;
+    data->s[0].block_size = buffer->size;
+    data->s[0].inter_block_stride = 0;
+    return vcsm_clean_invalid2(data.get()) == 0;
 }
 
 uint32_t VCSM::getTotalGPUMemory() const

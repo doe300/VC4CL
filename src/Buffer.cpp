@@ -1067,7 +1067,7 @@ cl_mem VC4CL_FUNC(clCreateBuffer)(
     Buffer* buffer = newOpenCLObject<Buffer>(toType<Context>(context), flags);
     CHECK_ALLOCATION_ERROR_CODE(buffer, errcode_ret, cl_mem)
 
-    buffer->deviceBuffer = system()->allocateBuffer(static_cast<unsigned>(size));
+    buffer->deviceBuffer = system()->allocateBuffer(static_cast<unsigned>(size), "VC4CL buffer");
     if(!buffer->deviceBuffer)
     {
         ignoreReturnValue(buffer->release(), __FILE__, __LINE__, "Already errored");

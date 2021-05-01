@@ -692,7 +692,9 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
             }
             else
             {
-                auto bufIt = tmpBuffers.emplace(i, system()->allocateBuffer(localArg->sizeToAllocate)).first;
+                auto bufIt =
+                    tmpBuffers.emplace(i, system()->allocateBuffer(localArg->sizeToAllocate, "VC4CL temp buffer"))
+                        .first;
                 if(!bufIt->second)
                     // failed to allocate the temporary buffer
                     return CL_OUT_OF_RESOURCES;

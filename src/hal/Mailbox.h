@@ -249,8 +249,8 @@ namespace vc4cl
         Mailbox& operator=(const Mailbox&) = delete;
         Mailbox& operator=(Mailbox&&) = delete;
 
-        std::unique_ptr<DeviceBuffer> allocateBuffer(const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes,
-            unsigned alignmentInBytes = PAGE_ALIGNMENT, MemoryFlag flags = MemoryFlag::L1_NONALLOCATING);
+        std::unique_ptr<DeviceBuffer> allocateBuffer(
+            const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes, CacheType cacheType);
         bool deallocateBuffer(const DeviceBuffer* buffer);
 
         CHECK_RETURN ExecutionHandle executeCode(uint32_t codeAddress, unsigned valueR0, unsigned valueR1,

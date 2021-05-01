@@ -20,8 +20,11 @@ namespace vc4cl
         ~VCSM();
 
         std::unique_ptr<DeviceBuffer> allocateBuffer(const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes,
-            unsigned alignmentInBytes = PAGE_ALIGNMENT);
+            const std::string& name, CacheType cacheType);
         bool deallocateBuffer(const DeviceBuffer* buffer);
+
+        bool flushCPUCache(const DeviceBuffer* buffer);
+        bool clearCPUCache(const DeviceBuffer* buffer);
 
         uint32_t getTotalGPUMemory() const;
 

@@ -264,6 +264,12 @@ extern "C"
         throw std::runtime_error{"vcsm_export_dmabuf() should not be called for emulated build"};
     }
 
+    struct vcsm_user_clean_invalid2_s;
+    int vcsm_clean_invalid2(struct vcsm_user_clean_invalid2_s* s)
+    {
+        throw std::runtime_error{"vcsm_clean_invalid2() should not be called for emulated build"};
+    }
+
 #if defined(MOCK_HAL) && defined(__cplusplus)
 }
 #endif

@@ -83,11 +83,27 @@ Mailbox::~Mailbox()
     DEBUG_LOG(DebugLevel::SYSCALL, std::cout << "[VC4CL] Mailbox file descriptor closed: " << fd << std::endl)
 }
 
+static MemoryFlag toFlags(CacheType type)
+{
+    // TODO are these mappings halfway correct?
+    switch(type)
+    {
+    case CacheType::UNCACHED:
+        return MemoryFlag::DIRECT;
+    case CacheType::GPU_CACHED:
+        return MemoryFlag::NORMAL;
+    case CacheType::HOST_CACHED:
+    case CacheType::BOTH_CACHED:
+    default:
+        return MemoryFlag::L1_NONALLOCATING;
+    }
+}
+
 std::unique_ptr<DeviceBuffer> Mailbox::allocateBuffer(
-    const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes, unsigned alignmentInBytes, MemoryFlag flags)
+    const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes, CacheType cacheType)
 {
     // munmap requires an alignment of the system page size (4096), so we need to enforce it here
-    unsigned handle = memAlloc(sizeInBytes, std::max(static_cast<unsigned>(PAGE_ALIGNMENT), alignmentInBytes), flags);
+    unsigned handle = memAlloc(sizeInBytes, PAGE_ALIGNMENT, toFlags(cacheType));
     if(handle != 0)
     {
         DevicePointer qpuPointer = memLock(handle);
