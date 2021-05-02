@@ -6,7 +6,7 @@
 
 # VC4CL
 
-**VC4CL** is an implementation of the **OpenCL 1.2** standard for the VideoCore IV GPU (found in all Raspberry Pi models).
+**VC4CL** is an implementation of the **OpenCL 1.2** standard for the VideoCore IV GPU (found in Raspberry Pi 1 - 3 models).
 
 The implementation consists of:
 
@@ -35,8 +35,6 @@ The GPU (which is located on the same chip as the CPU) has 12 cores, able of run
 - The OpenCL headers in version >= 1.2 (available in the Raspbian repositories as `sudo apt-get install opencl-headers`)
 - The Raspberry Pi [firmware](https://github.com/raspberrypi/firmware) GPU-side and host-side binaries as well as the [mailbox kernel module](https://github.com/raspberrypi/linux).
   These are already provided by default on Raspbian OS. For other Linux distributions, see [here](https://github.com/doe300/VC4CL/issues/53).
- 
- 
 
 ## Build
 
@@ -62,7 +60,8 @@ The program clinfo can be used to test, whether the ICD loader finds the VC4CL i
 Because of the DMA-interface which has no MMU between the GPU and the RAM, code executed on the GPU can **access any part of the main memory**!
 This means, an OpenCL kernel could be used to read sensitive data or write into kernel memory!
 
-**Therefore, any program using the VC4CL implementation must be run as root!**
+Depending on the configuration used for the VC4CL (see [Experimental Features](#experimental-features) below), the process using the VC4CL library needs to be either `root` (e.g. via `sudo <program>`) or be in the `video` group).
+The `v3d_info` and `v3d_profiling` tools in this project need to be run as root to give the maximum amount of information.
 
 ## Debug
 Since this software is still in development, some functionality might not work.
@@ -84,8 +83,10 @@ To generate debug information, set the `VC4CL_DEBUG` environment variable to one
 Mostly for development, performance comparison and debugging purposes, the system interfaces used for specific system accesses can be selected via following environment variables:
 
 - `VC4CL_EMULATOR` forces to use the emulator, does not actually access any specific VideoCore hardware
-- `VC4CL_EXECUTE_MAILBOX` uses the mailbox interface to execute kernels. By default the V3D registers are written directly, which is faster, but less compatible with other applications using the VideoCore IV hardware
-- `VC4CL_MEMORY_CMA` uses the VCSM CMA interface (with fall-back to the VCSM interface) to manage GPU-accessible memory. By default, the Mailbox is used
-- `VC4CL_MEMORY_VCSM` uses the VCSM interface (with fall-back to the VCSM CMA interface) to manage GPU-accessible memory. By default, the Mailbox is used
+- `VC4CL_EXECUTE_MAILBOX` explicitly uses the mailbox interface to execute kernels, which has a system-wide lock on the GPU access
+- `VC4CL_EXECUTE_REGISTER_POKING` explicitly directly writes the V3D registers, which is faster, but less compatible with other applications using the VideoCore IV hardware
+- `VC4CL_MEMORY_CMA` explicitly uses the newer VCSM CMA interface (with fall-back to the VCSM interface) to manage GPU-accessible memory
+- `VC4CL_MEMORY_VCSM` explicitly uses the older VCSM interface (with fall-back to the VCSM CMA interface) to manage GPU-accessible memory
+- `VC4CL_MEMORY_MAILBOX` explicitly uses the mailbox interface to manage GPU-accessible memory
 - `VC4CL_NO_<COMPONENT>` with `<COMPONENT>` either `MAILBOX`, `V3D` or `VCSM` disables the given component completely
 - `VC4CL_CACHE_FORCE=<VAL>` forces the buffer caching behavior to uncached (`<VAL> = 0`), host-cached (`<VAL> = 1`), GPU-cached (`<VAL> = 2`) or host- and GPU-cached (`<VAL> = 3`)

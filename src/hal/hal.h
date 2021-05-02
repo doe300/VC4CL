@@ -28,6 +28,19 @@ namespace vc4cl
         BOTH_CACHED = 3
     };
 
+    enum class ExecutionMode : uint8_t
+    {
+        MAILBOX_IOCTL,
+        V3D_REGISTER_POKING
+    };
+
+    enum class MemoryManagement : uint8_t
+    {
+        MAILBOX,
+        VCSM,
+        VCSM_CMA
+    };
+
     /**
      * Abstraction for any system access.
      *
@@ -54,6 +67,11 @@ namespace vc4cl
             return v3d.get();
         }
 
+        inline VCSM* getVCSMIfAvailable()
+        {
+            return vcsm.get();
+        }
+
         std::unique_ptr<DeviceBuffer> allocateBuffer(
             unsigned sizeInBytes, const std::string& name, CacheType cacheType = CacheType::BOTH_CACHED);
         bool deallocateBuffer(const DeviceBuffer* buffer);
@@ -66,6 +84,10 @@ namespace vc4cl
     private:
         SystemAccess();
 
+        const bool isEmulated;
+        const ExecutionMode executionMode;
+        const MemoryManagement memoryManagement;
+        const std::pair<bool, CacheType> forcedCacheType;
         std::unique_ptr<Mailbox> mailbox;
         std::unique_ptr<V3D> v3d;
         std::unique_ptr<VCSM> vcsm;

@@ -7,7 +7,6 @@
 #include "emulator.h"
 
 #include "../common.h"
-#include "Mailbox.h"
 #ifdef COMPILER_HEADER
 #define CPPLOG_NAMESPACE logging
 #include COMPILER_HEADER

@@ -112,6 +112,8 @@ PerformanceCollector::PerformanceCollector(
     if(!v3d || !sys)
     {
         counters.querySuccessful = false;
+        DEBUG_LOG(DebugLevel::PERFORMANCE_COUNTERS,
+            std::cout << "Performance counters are disabled, since V3D interface is not active!" << std::endl)
         return;
     }
     // fill the static kernel info
