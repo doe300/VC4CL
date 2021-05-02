@@ -213,6 +213,8 @@ uint32_t SystemAccess::getTotalVPMMemory()
 std::unique_ptr<DeviceBuffer> SystemAccess::allocateBuffer(
     unsigned sizeInBytes, const std::string& name, CacheType cacheType)
 {
+    if(isEmulated)
+        return allocateEmulatorBuffer(shared_from_this(), sizeInBytes);
     auto effectiveCacheType = forcedCacheType.first ? forcedCacheType.second : cacheType;
     if(vcsm && (memoryManagement == MemoryManagement::VCSM || memoryManagement == MemoryManagement::VCSM_CMA))
         return vcsm->allocateBuffer(shared_from_this(), sizeInBytes, name, effectiveCacheType);
@@ -223,6 +225,8 @@ std::unique_ptr<DeviceBuffer> SystemAccess::allocateBuffer(
 
 bool SystemAccess::deallocateBuffer(const DeviceBuffer* buffer)
 {
+    if(isEmulated)
+        deallocateEmulatorBuffer(buffer);
     if(vcsm && (memoryManagement == MemoryManagement::VCSM || memoryManagement == MemoryManagement::VCSM_CMA))
         return vcsm->deallocateBuffer(buffer);
     if(mailbox && memoryManagement == MemoryManagement::MAILBOX)

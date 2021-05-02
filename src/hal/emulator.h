@@ -12,8 +12,7 @@
 namespace vc4cl
 {
     uint32_t getTotalEmulatedMemory();
-    std::unique_ptr<DeviceBuffer> allocateEmulatorBuffer(
-        std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes, unsigned alignmentInBytes);
+    std::unique_ptr<DeviceBuffer> allocateEmulatorBuffer(const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes);
     bool deallocateEmulatorBuffer(const DeviceBuffer* buffer);
 
     uint8_t getNumEmulatedQPUs();

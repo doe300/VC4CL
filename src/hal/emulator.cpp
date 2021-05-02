@@ -78,7 +78,7 @@ static uint32_t roundToCacheLineSize(uint32_t numBytes)
 }
 
 std::unique_ptr<DeviceBuffer> vc4cl::allocateEmulatorBuffer(
-    std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes, unsigned alignmentInBytes)
+    const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes)
 {
     std::lock_guard<std::mutex> guard(memoryLock);
     // 1. allocate
@@ -144,6 +144,7 @@ static void dumpEmulationLog(std::string&& fileName, std::wistream& logStream)
 
 bool vc4cl::emulateQPU(unsigned numQPUs, uint32_t bufferQPUAddress, std::chrono::milliseconds timeout)
 {
+#ifdef COMPILER_HEADER
     auto bufferIndex = bufferQPUAddress >> INDEX_OFFSET;
     auto controlOffset = bufferQPUAddress & ADDRESS_MASK;
     std::wstringstream logStream;
@@ -198,6 +199,9 @@ bool vc4cl::emulateQPU(unsigned numQPUs, uint32_t bufferQPUAddress, std::chrono:
         dumpEmulationLog(std::to_string(bufferIndex), logStream);
         return false;
     }
+#else
+    return false;
+#endif
 }
 
 #if defined(MOCK_HAL) && defined(__cplusplus)
