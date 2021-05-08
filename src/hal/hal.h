@@ -19,6 +19,7 @@ namespace vc4cl
     class Mailbox;
     class V3D;
     class VCSM;
+    class VCHI;
 
     enum class CacheType : uint8_t
     {
@@ -31,7 +32,8 @@ namespace vc4cl
     enum class ExecutionMode : uint8_t
     {
         MAILBOX_IOCTL,
-        V3D_REGISTER_POKING
+        V3D_REGISTER_POKING,
+        VCHI_GPU_SERVICE
     };
 
     enum class MemoryManagement : uint8_t
@@ -39,6 +41,19 @@ namespace vc4cl
         MAILBOX,
         VCSM,
         VCSM_CMA
+    };
+
+    enum class SystemQuery : uint8_t
+    {
+        NUM_QPUS,
+        TOTAL_GPU_MEMORY_IN_BYTES,
+        TOTAL_ARM_MEMORY_IN_BYTES,
+        CURRENT_QPU_CLOCK_RATE_IN_HZ,
+        MAXIMUM_QPU_CLOCK_RATE_IN_HZ,
+        CURRENT_ARM_CLOCK_RATE_IN_HZ,
+        MAXIMUM_ARM_CLOCK_RATE_IN_HZ,
+        QPU_TEMPERATURE_IN_MILLI_DEGREES,
+        TOTAL_VPM_MEMORY_IN_BYTES
     };
 
     /**
@@ -51,11 +66,33 @@ namespace vc4cl
     class SystemAccess : public std::enable_shared_from_this<SystemAccess>
     {
     public:
-        uint32_t getTotalGPUMemory();
-        uint8_t getNumQPUs();
-        uint32_t getQPUClockRateInHz();
-        uint32_t getGPUTemperatureInMilliDegree();
+        inline uint32_t getTotalGPUMemory()
+        {
+            return querySystem(SystemQuery::TOTAL_GPU_MEMORY_IN_BYTES, 0);
+        }
+
+        inline uint8_t getNumQPUs()
+        {
+            return static_cast<uint8_t>(querySystem(SystemQuery::NUM_QPUS, 12));
+        }
+
+        inline uint32_t getCurrentQPUClockRateInHz()
+        {
+            return querySystem(SystemQuery::CURRENT_QPU_CLOCK_RATE_IN_HZ, 0);
+        }
+
+        inline uint32_t getMaximumQPUClockRateInHz()
+        {
+            return querySystem(SystemQuery::MAXIMUM_QPU_CLOCK_RATE_IN_HZ, 0);
+        }
+
+        inline uint32_t getGPUTemperatureInMilliDegree()
+        {
+            return querySystem(SystemQuery::QPU_TEMPERATURE_IN_MILLI_DEGREES, 0);
+        }
+
         uint32_t getTotalVPMMemory();
+        uint32_t querySystem(SystemQuery query, uint32_t defaultValue);
 
         inline Mailbox* getMailboxIfAvailable()
         {
@@ -72,6 +109,11 @@ namespace vc4cl
             return vcsm.get();
         }
 
+        inline VCHI* getVCHIIfAvailable()
+        {
+            return vchi.get();
+        }
+
         std::unique_ptr<DeviceBuffer> allocateBuffer(
             unsigned sizeInBytes, const std::string& name, CacheType cacheType = CacheType::BOTH_CACHED);
         bool deallocateBuffer(const DeviceBuffer* buffer);
@@ -79,18 +121,18 @@ namespace vc4cl
         CHECK_RETURN ExecutionHandle executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> controlAddress,
             bool flushBuffer, std::chrono::milliseconds timeout);
 
-        bool executesKernelsViaV3D() const;
-
-    private:
-        SystemAccess();
-
         const bool isEmulated;
         const ExecutionMode executionMode;
         const MemoryManagement memoryManagement;
         const std::pair<bool, CacheType> forcedCacheType;
+
+    private:
+        SystemAccess();
+
         std::unique_ptr<Mailbox> mailbox;
         std::unique_ptr<V3D> v3d;
         std::unique_ptr<VCSM> vcsm;
+        std::unique_ptr<VCHI> vchi;
 
         friend std::shared_ptr<SystemAccess>& system();
     };

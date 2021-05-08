@@ -108,26 +108,30 @@ bool vc4cl::deallocateEmulatorBuffer(const DeviceBuffer* buffer)
     return true;
 }
 
-uint8_t vc4cl::getNumEmulatedQPUs()
+uint32_t vc4cl::getEmulatedSystemQuery(SystemQuery query)
 {
-    return 12;
+    switch(query)
+    {
+    case SystemQuery::CURRENT_QPU_CLOCK_RATE_IN_HZ:
+    case SystemQuery::MAXIMUM_QPU_CLOCK_RATE_IN_HZ:
+        return 250 * 1000 * 1000;
+    case SystemQuery::CURRENT_ARM_CLOCK_RATE_IN_HZ:
+    case SystemQuery::MAXIMUM_ARM_CLOCK_RATE_IN_HZ:
+        return 1000 * 1000 * 1000;
+    case SystemQuery::NUM_QPUS:
+        return 12;
+    case SystemQuery::QPU_TEMPERATURE_IN_MILLI_DEGREES:
+        return 25 * 1000;
+    case SystemQuery::TOTAL_ARM_MEMORY_IN_BYTES:
+    case SystemQuery::TOTAL_GPU_MEMORY_IN_BYTES:
+        return 1024 * 1024 * 1024;
+    case SystemQuery::TOTAL_VPM_MEMORY_IN_BYTES:
+        return 12 * 1024;
+    }
+    return 0;
 }
 
-uint32_t vc4cl::getEmulatedQPUClockRateInHz()
-{
-    return 250 * 1000 * 1000;
-}
-
-uint32_t vc4cl::getEmulatedGPUTemperatureInMilliDegree()
-{
-    return 25 * 1000;
-}
-
-uint32_t vc4cl::getTotalEmulatedVPMMemory()
-{
-    return 12 * 1024;
-}
-
+#ifdef COMPILER_HEADER
 static void dumpEmulationLog(std::string&& fileName, std::wistream& logStream)
 {
     using namespace vc4cl;
@@ -141,6 +145,7 @@ static void dumpEmulationLog(std::string&& fileName, std::wistream& logStream)
         f << logStream.rdbuf();
     })
 }
+#endif
 
 bool vc4cl::emulateQPU(unsigned numQPUs, uint32_t bufferQPUAddress, std::chrono::milliseconds timeout)
 {
@@ -271,6 +276,56 @@ extern "C"
     int vcsm_clean_invalid2(struct vcsm_user_clean_invalid2_s* s)
     {
         throw std::runtime_error{"vcsm_clean_invalid2() should not be called for emulated build"};
+    }
+
+    struct opaque_vchi_instance_handle_t;
+    struct vchi_connection_t;
+
+    int32_t vchi_initialise(opaque_vchi_instance_handle_t** instance_handle)
+    {
+        throw std::runtime_error{"vchi_initialise() should not be called for emulated build"};
+    }
+
+    int32_t vchi_connect(
+        vchi_connection_t** connections, const uint32_t num_connections, opaque_vchi_instance_handle_t* instance_handle)
+    {
+        throw std::runtime_error{"vchi_connect() should not be called for emulated build"};
+    }
+
+    int32_t vchi_disconnect(opaque_vchi_instance_handle_t* instance_handle)
+    {
+        throw std::runtime_error{"vchi_disconnect() should not be called for emulated build"};
+    }
+
+    void vc_vchi_gencmd_init(
+        opaque_vchi_instance_handle_t* initialise_instance, vchi_connection_t** connections, uint32_t num_connections)
+    {
+        throw std::runtime_error{"vc_vchi_gencmd_init() should not be called for emulated build"};
+    }
+
+    void vc_gencmd_stop(void)
+    {
+        throw std::runtime_error{"vc_gencmd_stop() should not be called for emulated build"};
+    }
+
+    int vc_gencmd(char* response, int maxlen, const char* format, ...)
+    {
+        throw std::runtime_error{"vc_gencmd() should not be called for emulated build"};
+    }
+
+    int32_t vc_gpuserv_init(void)
+    {
+        throw std::runtime_error{"vc_gpuserv_init() should not be called for emulated build"};
+    }
+
+    void vc_gpuserv_deinit(void)
+    {
+        throw std::runtime_error{"vc_gpuserv_deinit() should not be called for emulated build"};
+    }
+
+    int32_t vc_gpuserv_execute_code(int num_jobs, struct gpu_job_s jobs[])
+    {
+        throw std::runtime_error{"vc_gpuserv_execute_code() should not be called for emulated build"};
     }
 
 #if defined(MOCK_HAL) && defined(__cplusplus)

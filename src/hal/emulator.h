@@ -12,13 +12,11 @@
 namespace vc4cl
 {
     uint32_t getTotalEmulatedMemory();
-    std::unique_ptr<DeviceBuffer> allocateEmulatorBuffer(const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes);
+    std::unique_ptr<DeviceBuffer> allocateEmulatorBuffer(
+        const std::shared_ptr<SystemAccess>& system, unsigned sizeInBytes);
     bool deallocateEmulatorBuffer(const DeviceBuffer* buffer);
 
-    uint8_t getNumEmulatedQPUs();
-    uint32_t getEmulatedQPUClockRateInHz();
-    uint32_t getEmulatedGPUTemperatureInMilliDegree();
-    uint32_t getTotalEmulatedVPMMemory();
+    uint32_t getEmulatedSystemQuery(SystemQuery query);
 
     bool emulateQPU(unsigned numQPUs, uint32_t bufferQPUAddress, std::chrono::milliseconds timeout);
 

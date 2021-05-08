@@ -100,7 +100,7 @@ cl_int Device::getInfo(
     case CL_DEVICE_MAX_CLOCK_FREQUENCY:
     {
         //"Maximum configured clock frequency of the device in MHz."
-        return returnValue<cl_uint>(system()->getQPUClockRateInHz() / 1000000 /* clock rate is in Hz -> MHz */,
+        return returnValue<cl_uint>(system()->getMaximumQPUClockRateInHz() / 1000000 /* clock rate is in Hz -> MHz */,
             param_value_size, param_value, param_value_size_ret);
     }
     case CL_DEVICE_ADDRESS_BITS:
@@ -111,8 +111,9 @@ cl_int Device::getInfo(
     case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
         //"Max size of memory object allocation in bytes.  The minimum value is max (1/4th of CL_DEVICE_GLOBAL_MEM_SIZE,
         // 1 MB)"
+        // VCSM (CMA) does not allow allocations of the full (CMA) range, so only return half of it
         return returnValue<cl_ulong>(
-            system()->getTotalGPUMemory(), param_value_size, param_value, param_value_size_ret);
+            system()->getTotalGPUMemory() / 2, param_value_size, param_value, param_value_size_ret);
     case CL_DEVICE_IMAGE_SUPPORT:
         //"Is CL_TRUE if images are supported by the OpenCL device and CL_FALSE otherwise."
 #ifdef IMAGE_SUPPORT

@@ -247,6 +247,28 @@ ExecutionHandle V3D::executeQPU(
     return ExecutionHandle{checkFunc};
 }
 
+bool V3D::readValue(SystemQuery query, uint32_t& output) noexcept
+{
+    switch(query)
+    {
+    case SystemQuery::CURRENT_QPU_CLOCK_RATE_IN_HZ:
+    case SystemQuery::MAXIMUM_QPU_CLOCK_RATE_IN_HZ:
+    case SystemQuery::CURRENT_ARM_CLOCK_RATE_IN_HZ:
+    case SystemQuery::MAXIMUM_ARM_CLOCK_RATE_IN_HZ:
+    case SystemQuery::QPU_TEMPERATURE_IN_MILLI_DEGREES:
+    case SystemQuery::TOTAL_ARM_MEMORY_IN_BYTES:
+    case SystemQuery::TOTAL_GPU_MEMORY_IN_BYTES:
+        return false;
+    case SystemQuery::NUM_QPUS:
+        output = getSystemInfo(SystemInfo::QPU_COUNT);
+        return true;
+    case SystemQuery::TOTAL_VPM_MEMORY_IN_BYTES:
+        output = getSystemInfo(SystemInfo::VPM_MEMORY_SIZE);
+        return true;
+    }
+    return false;
+}
+
 uint32_t V3D::busAddressToPhysicalAddress(uint32_t busAddress)
 {
     return busAddress & ~0xC0000000;

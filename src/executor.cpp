@@ -419,17 +419,19 @@ cl_int executeKernel(KernelExecution& args)
     //
     // EXECUTION
     //
+    // calculate execution timeout depending on the number of work-groups to be executed at once
+    auto timeout = KERNEL_TIMEOUT * std::max(std::size_t{30}, group_limits[0] * group_limits[1] * group_limits[2]);
+
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
         std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", " << group_indices[2]
-                  << std::endl)
+                  << " with a timeout of " << std::chrono::duration_cast<std::chrono::microseconds>(timeout).count()
+                  << " us" << std::endl)
     // toggle between the first and second launch message block to toggle between the first and second UNIFORMs
     // block
     auto qpu_msg_current = qpu_msg_0;
     auto qpu_msg_next = qpu_msg_1;
     auto* uniformPointers_current = &uniformPointers[0];
     auto* uniformPointers_next = &uniformPointers[1];
-    // calculate execution timeout depending on the number of work-groups to be executed at once
-    auto timeout = KERNEL_TIMEOUT * std::max(std::size_t{30}, group_limits[0] * group_limits[1] * group_limits[2]);
     // enable performance counters depending on whether they are configured, move to heap to be able to manually control
     // object lifetime
     std::unique_ptr<PerformanceCollector> perfCollector;
@@ -437,11 +439,16 @@ cl_int executeKernel(KernelExecution& args)
         perfCollector.reset(new PerformanceCollector(*args.performanceCounters, args.kernel->info, num_qpus,
             group_limits[0] * group_limits[1] * group_limits[2]));
     // on first execution, flush code cache
+    auto start = std::chrono::high_resolution_clock::now();
     auto result = args.system->executeQPU(static_cast<unsigned>(num_qpus),
         std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), true, timeout);
-    // NOTE: This disables background-execution!
-    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
-        std::cout << "Execution: " << (result.waitFor() ? "successful" : "failed") << std::endl)
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
+        // NOTE: This disables background-execution!
+        auto success = result.waitFor();
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout << "Execution: " << (success ? "successful" : "failed") << " after "
+                  << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " us" << std::endl;
+    })
 
     while(!isWorkGroupLoopEnabled && increment_index(group_indices, group_limits, 1))
     {

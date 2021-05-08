@@ -93,6 +93,34 @@ static void printModelInfo()
     }
 }
 
+static std::string toString(ExecutionMode mode)
+{
+    switch(mode)
+    {
+    case ExecutionMode::MAILBOX_IOCTL:
+        return "mailbox";
+    case ExecutionMode::V3D_REGISTER_POKING:
+        return "V3D register poking";
+    case ExecutionMode::VCHI_GPU_SERVICE:
+        return "VCHI GPU service";
+    }
+    throw std::invalid_argument{"Unknown execution mode: " + std::to_string(static_cast<unsigned>(mode))};
+}
+
+static std::string toString(MemoryManagement mode)
+{
+    switch(mode)
+    {
+    case MemoryManagement::MAILBOX:
+        return "mailbox";
+    case MemoryManagement::VCSM:
+        return "VCSM";
+    case MemoryManagement::VCSM_CMA:
+        return "VCSM CMA";
+    }
+    throw std::invalid_argument{"Unknown memory management mode: " + std::to_string(static_cast<unsigned>(mode))};
+}
+
 static void printVC4CLInfo()
 {
     std::cout << "VC4CL info:" << std::endl;
@@ -119,7 +147,26 @@ static void printVC4CLInfo()
 #endif
 
     std::cout << std::setw(NAME_LENGTH) << "Execution mode:" << std::setw(VAL_LENGTH)
-              << (system()->executesKernelsViaV3D() ? "register" : "mailbox") << std::endl;
+              << toString(system()->executionMode) << std::endl;
+    std::cout << std::setw(NAME_LENGTH) << "Memory management mode:" << std::setw(VAL_LENGTH)
+              << toString(system()->memoryManagement) << std::endl;
+}
+
+static void printSystemOverview(SystemAccess& system)
+{
+    std::cout << "System Overview:" << std::endl;
+    std::cout << std::setw(NAME_LENGTH) << "ARM Memory:" << std::setw(VAL_LENGTH)
+              << (system.querySystem(SystemQuery::TOTAL_ARM_MEMORY_IN_BYTES, 0) / 1024 / 1024) << " MB" << std::endl;
+    std::cout << std::setw(NAME_LENGTH) << "VideoCore IV Memory:" << std::setw(VAL_LENGTH)
+              << (system.querySystem(SystemQuery::TOTAL_GPU_MEMORY_IN_BYTES, 0) / 1024 / 1024) << " MB" << std::endl;
+    std::cout << std::setw(NAME_LENGTH) << "Clock Rate (ARM):" << std::setw(VAL_LENGTH)
+              << (system.querySystem(SystemQuery::CURRENT_ARM_CLOCK_RATE_IN_HZ, 0) / 1000000) << " MHz (max. "
+              << (system.querySystem(SystemQuery::MAXIMUM_ARM_CLOCK_RATE_IN_HZ, 0) / 1000000) << " MHz)" << std::endl;
+    std::cout << std::setw(NAME_LENGTH) << "Clock Rate (V3D):" << std::setw(VAL_LENGTH)
+              << (system.querySystem(SystemQuery::CURRENT_QPU_CLOCK_RATE_IN_HZ, 0) / 1000000) << " MHz (max. "
+              << (system.querySystem(SystemQuery::MAXIMUM_QPU_CLOCK_RATE_IN_HZ, 0) / 1000000) << " MHz)" << std::endl;
+    std::cout << std::setw(NAME_LENGTH) << "SoC Temperature:" << std::setw(VAL_LENGTH)
+              << (system.querySystem(SystemQuery::QPU_TEMPERATURE_IN_MILLI_DEGREES, 0) / 1000) << " C" << std::endl;
 }
 
 static void printMailboxInfo(Mailbox& mb)
@@ -280,6 +327,8 @@ int main(int argc, char** argv)
     printVC4CLInfo();
     if(auto mailbox = system()->getMailboxIfAvailable())
         printMailboxInfo(*mailbox);
+    else
+        printSystemOverview(*system());
     if(auto v3d = system()->getV3DIfAvailable())
         printV3DInfo(*v3d);
     printMaximumAllocation();

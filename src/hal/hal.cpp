@@ -8,6 +8,7 @@
 
 #include "Mailbox.h"
 #include "V3D.h"
+#include "VCHI.h"
 #include "VCSM.h"
 #include "emulator.h"
 
@@ -25,15 +26,25 @@ static bool getEmulated()
 #endif
 }
 
+static bool isRoot()
+{
+    // we might not be "root" user, but at least have elevated effective privileges
+    return geteuid() == 0;
+}
+
 static ExecutionMode getExecMode()
 {
     if(std::getenv("VC4CL_EXECUTE_REGISTER_POKING"))
         return ExecutionMode::V3D_REGISTER_POKING;
     if(std::getenv("VC4CL_EXECUTE_MAILBOX"))
         return ExecutionMode::MAILBOX_IOCTL;
+    if(std::getenv("VC4CL_EXECUTE_VCHI"))
+        return ExecutionMode::VCHI_GPU_SERVICE;
 
-    // fall back to mailbox execution, since it does not require root rights
-    return ExecutionMode::MAILBOX_IOCTL;
+    // mailbox and VCHI GPU service execution do not require root rights
+    // Due to https://github.com/raspberrypi/linux/issues/4321, do not use mailbox as default for anything
+    // keep V3D as default for root for now to keep current behavior
+    return isRoot() ? ExecutionMode::V3D_REGISTER_POKING : ExecutionMode::VCHI_GPU_SERVICE;
 }
 
 static MemoryManagement getMemoryMode()
@@ -50,7 +61,8 @@ static MemoryManagement getMemoryMode()
     //   https://github.com/raspberrypi/linux/issues/4112
     // - CMA is more interoperable with other GPU memory management (e.g. mesa) and can be monitored via debugfs
     //  (/sys/kernel/debug/dma_buf/bufinfo and /sys/kernel/debug/vcsm-cma/state)
-    return MemoryManagement::VCSM_CMA;
+    // for root keep the current default of mailbox memory management, since this will already be configured correctly
+    return isRoot() ? MemoryManagement::MAILBOX : MemoryManagement::VCSM_CMA;
 }
 
 static std::pair<bool, CacheType> getForcedCacheType()
@@ -67,7 +79,6 @@ static std::pair<bool, CacheType> getForcedCacheType()
 
 static std::unique_ptr<Mailbox> initializeMailbox(bool isEmulated, ExecutionMode execMode, MemoryManagement memoryMode)
 {
-    // TODO is mailbox required to boot up GPU/QPUS?
     if(isEmulated || std::getenv("VC4CL_NO_MAILBOX"))
         // explicitly disabled
         return nullptr;
@@ -84,7 +95,7 @@ static std::unique_ptr<V3D> initializeV3D(bool isEmulated, ExecutionMode execMod
         return nullptr;
 
     if(isDebugModeEnabled(DebugLevel::PERFORMANCE_COUNTERS) || execMode == ExecutionMode::V3D_REGISTER_POKING ||
-        geteuid() == 0 /* we are root (or at least have root rights), so we can access the registers */)
+        isRoot() /* we are root (or at least have root rights), so we can access the registers */)
         return std::unique_ptr<V3D>(new V3D());
 
     // by default, do not activate, since it requires root access
@@ -96,16 +107,28 @@ static std::unique_ptr<VCSM> initializeVCSM(bool isEmulated, MemoryManagement me
     if(isEmulated || std::getenv("VC4CL_NO_VCSM"))
         // explicitly disabled
         return nullptr;
-    if(memoryMode == MemoryManagement::MAILBOX)
+    if(memoryMode != MemoryManagement::VCSM && memoryMode != MemoryManagement::VCSM_CMA)
         // no need for the component
         return nullptr;
     return std::unique_ptr<VCSM>{new VCSM(memoryMode == MemoryManagement::VCSM_CMA)};
 }
 
+static std::unique_ptr<VCHI> initializeVCHI(bool isEmulated, ExecutionMode execMode)
+{
+    if(isEmulated || std::getenv("VC4CL_NO_VCHI"))
+        // explicitly disabled
+        return nullptr;
+    if(execMode != ExecutionMode::VCHI_GPU_SERVICE)
+        // no need for the component
+        return nullptr;
+    return std::unique_ptr<VCHI>{new VCHI()};
+}
+
 SystemAccess::SystemAccess() :
     isEmulated(getEmulated()), executionMode(getExecMode()), memoryManagement(getMemoryMode()),
     forcedCacheType(getForcedCacheType()), mailbox(initializeMailbox(isEmulated, executionMode, memoryManagement)),
-    v3d(initializeV3D(isEmulated, executionMode)), vcsm(initializeVCSM(isEmulated, memoryManagement))
+    v3d(initializeV3D(isEmulated, executionMode)), vcsm(initializeVCSM(isEmulated, memoryManagement)),
+    vchi(initializeVCHI(isEmulated, executionMode))
 {
     if(isEmulated)
         DEBUG_LOG(DebugLevel::SYSTEM_ACCESS, std::cout << "[VC4CL] Using emulated system accesses " << std::endl)
@@ -127,6 +150,11 @@ SystemAccess::SystemAccess() :
                                  "memory allocation" :
                                  "")
                       << std::endl)
+    if(vchi)
+        DEBUG_LOG(DebugLevel::SYSTEM_ACCESS,
+            std::cout << "[VC4CL] Using VCHI for: "
+                      << (executionMode == ExecutionMode::VCHI_GPU_SERVICE ? "kernel execution" : "") << std::endl)
+
     if(forcedCacheType.first)
     {
         std::string cacheType;
@@ -150,64 +178,28 @@ SystemAccess::SystemAccess() :
     }
 }
 
-uint32_t SystemAccess::getTotalGPUMemory()
-{
-    if(isEmulated)
-        return getTotalEmulatedMemory();
-    if(vcsm && vcsm->isUsingCMA())
-        return vcsm->getTotalGPUMemory();
-    if(mailbox)
-        return mailbox->getTotalGPUMemory();
-    return 0;
-}
-
-uint8_t SystemAccess::getNumQPUs()
-{
-    if(isEmulated)
-        return getNumEmulatedQPUs();
-    if(v3d)
-        return static_cast<uint8_t>(v3d->getSystemInfo(SystemInfo::QPU_COUNT));
-    // all models have 12 QPUs
-    return 12;
-}
-
-uint32_t SystemAccess::getQPUClockRateInHz()
-{
-    if(isEmulated)
-        return getEmulatedQPUClockRateInHz();
-    if(mailbox)
-    {
-        QueryMessage<MailboxTag::GET_MAX_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::V3D)});
-        return mailbox->readMailboxMessage(msg) ? msg.getContent(1) : 0;
-    }
-    return 0;
-}
-
-uint32_t SystemAccess::getGPUTemperatureInMilliDegree()
-{
-    if(isEmulated)
-        return getEmulatedGPUTemperatureInMilliDegree();
-    if(mailbox)
-    {
-        QueryMessage<MailboxTag::GET_TEMPERATURE> msg({0});
-        //"Return the temperature of the SoC in thousandths of a degree C. id should be zero."
-        return mailbox->readMailboxMessage(msg) ? msg.getContent(1) : 0;
-    }
-    return 0;
-}
-
 uint32_t SystemAccess::getTotalVPMMemory()
 {
-    if(isEmulated)
-        return getTotalEmulatedVPMMemory();
-    if(v3d)
-        return v3d->getSystemInfo(SystemInfo::VPM_MEMORY_SIZE);
     /*
      * Assume all accessible VPM memory:
      * Due to a hardware bug (HW-2253), user programs can only use the first 64 rows of VPM, resulting in a total of 4KB
      * available VPM cache size (64 * 16 * sizeof(uint))
      */
-    return 64 * 16 * sizeof(uint32_t);
+    return querySystem(SystemQuery::TOTAL_VPM_MEMORY_IN_BYTES, 64 * 16 * sizeof(uint32_t));
+}
+
+uint32_t SystemAccess::querySystem(SystemQuery query, uint32_t defaultValue)
+{
+    uint32_t value = defaultValue;
+    if(isEmulated)
+        return getEmulatedSystemQuery(query);
+    if(v3d && v3d->readValue(query, value))
+        return value;
+    if(vchi && vchi->readValue(query, value))
+        return value;
+    if(mailbox && mailbox->readValue(query, value))
+        return value;
+    return defaultValue;
 }
 
 std::unique_ptr<DeviceBuffer> SystemAccess::allocateBuffer(
@@ -239,16 +231,13 @@ ExecutionHandle SystemAccess::executeQPU(unsigned numQPUs, std::pair<uint32_t*, 
 {
     if(isEmulated)
         return ExecutionHandle(emulateQPU(numQPUs, controlAddress.second, timeout));
+    if(vchi && executionMode == ExecutionMode::VCHI_GPU_SERVICE)
+        return vchi->executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
     if(mailbox && executionMode == ExecutionMode::MAILBOX_IOCTL)
         return mailbox->executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
     if(v3d && executionMode == ExecutionMode::V3D_REGISTER_POKING)
         return v3d->executeQPU(numQPUs, controlAddress, flushBuffer, timeout);
     return ExecutionHandle{false};
-}
-
-bool SystemAccess::executesKernelsViaV3D() const
-{
-    return v3d && executionMode == ExecutionMode::V3D_REGISTER_POKING;
 }
 
 std::shared_ptr<SystemAccess>& vc4cl::system()

@@ -165,12 +165,72 @@ ExecutionHandle Mailbox::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint3
     return ExecutionHandle{msg.getContent(0) == 0};
 }
 
-uint32_t Mailbox::getTotalGPUMemory() const
+bool Mailbox::readValue(SystemQuery query, uint32_t& output) noexcept
 {
-    SimpleQueryMessage<MailboxTag::VC_MEMORY> msg;
-    if(!readMailboxMessage(msg))
-        return 0;
-    return msg.getContent(1);
+    switch(query)
+    {
+    case SystemQuery::CURRENT_QPU_CLOCK_RATE_IN_HZ:
+    {
+        QueryMessage<MailboxTag::GET_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::V3D)});
+        if(!readMailboxMessage(msg))
+            return false;
+        output = msg.getContent(1);
+        return true;
+    }
+    case SystemQuery::MAXIMUM_QPU_CLOCK_RATE_IN_HZ:
+    {
+        QueryMessage<MailboxTag::GET_MAX_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::V3D)});
+        if(!readMailboxMessage(msg))
+            return false;
+        output = msg.getContent(1);
+        return true;
+    }
+    case SystemQuery::CURRENT_ARM_CLOCK_RATE_IN_HZ:
+    {
+        QueryMessage<MailboxTag::GET_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::ARM)});
+        if(!readMailboxMessage(msg))
+            return false;
+        output = msg.getContent(1);
+        return true;
+    }
+    case SystemQuery::MAXIMUM_ARM_CLOCK_RATE_IN_HZ:
+    {
+        QueryMessage<MailboxTag::GET_MAX_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::ARM)});
+        if(!readMailboxMessage(msg))
+            return false;
+        output = msg.getContent(1);
+        return true;
+    }
+    case SystemQuery::QPU_TEMPERATURE_IN_MILLI_DEGREES:
+    {
+        QueryMessage<MailboxTag::GET_TEMPERATURE> msg({0});
+        //"Return the temperature of the SoC in thousandths of a degree C. id should be zero."
+        if(!readMailboxMessage(msg))
+            return false;
+        output = msg.getContent(1);
+        return true;
+    }
+    case SystemQuery::TOTAL_ARM_MEMORY_IN_BYTES:
+    {
+        SimpleQueryMessage<MailboxTag::ARM_MEMORY> msg;
+        if(!readMailboxMessage(msg))
+            return false;
+        output = msg.getContent(1);
+        return true;
+    }
+    case SystemQuery::TOTAL_GPU_MEMORY_IN_BYTES:
+    {
+        SimpleQueryMessage<MailboxTag::VC_MEMORY> msg;
+        if(!readMailboxMessage(msg))
+            return false;
+        output = msg.getContent(1);
+        return true;
+    }
+    case SystemQuery::NUM_QPUS:
+    case SystemQuery::TOTAL_VPM_MEMORY_IN_BYTES:
+        return false;
+    }
+    return false;
 }
 
 /*

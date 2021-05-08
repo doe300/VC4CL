@@ -220,6 +220,8 @@ namespace vc4cl
         static uint32_t busAddressToPhysicalAddress(uint32_t busAddress) __attribute__((const));
         static constexpr uint32_t MEMORY_PAGE_SIZE = 4 * 1024; // 4 KB
 
+        bool readValue(SystemQuery query, uint32_t& output) noexcept;
+
     private:
         uint32_t* v3dBasePointer;
     };

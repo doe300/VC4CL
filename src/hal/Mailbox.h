@@ -257,7 +257,6 @@ namespace vc4cl
             unsigned valueR2, unsigned valueR3, unsigned valueR4, unsigned valueR5) const;
         CHECK_RETURN ExecutionHandle executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t> controlAddress,
             bool flushBuffer, std::chrono::milliseconds timeout) const;
-        uint32_t getTotalGPUMemory() const;
 
         template <MailboxTag Tag, unsigned RequestSize, unsigned MaxResponseSize>
         bool readMailboxMessage(MailboxMessage<Tag, RequestSize, MaxResponseSize>& message) const
@@ -266,6 +265,8 @@ namespace vc4cl
                 return false;
             return checkReturnValue(message.getResponseValue());
         }
+
+        bool readValue(SystemQuery query, uint32_t& output) noexcept;
 
     private:
         int fd;
