@@ -85,8 +85,9 @@ Mostly for development, performance comparison and debugging purposes, the syste
 - `VC4CL_EMULATOR` forces to use the emulator, does not actually access any specific VideoCore hardware
 - `VC4CL_EXECUTE_MAILBOX` explicitly uses the mailbox interface to execute kernels, which has a system-wide lock on the GPU access
 - `VC4CL_EXECUTE_REGISTER_POKING` explicitly directly writes the V3D registers, which is faster, but less compatible with other applications using the VideoCore IV hardware
+- `VC4CL_EXECUTE_VCHI` explicitly uses the VCHI "GPUS" service to execute kernels
 - `VC4CL_MEMORY_CMA` explicitly uses the newer VCSM CMA interface (with fall-back to the VCSM interface) to manage GPU-accessible memory
 - `VC4CL_MEMORY_VCSM` explicitly uses the older VCSM interface (with fall-back to the VCSM CMA interface) to manage GPU-accessible memory
 - `VC4CL_MEMORY_MAILBOX` explicitly uses the mailbox interface to manage GPU-accessible memory
-- `VC4CL_NO_<COMPONENT>` with `<COMPONENT>` either `MAILBOX`, `V3D` or `VCSM` disables the given component completely
+- `VC4CL_NO_<COMPONENT>` with `<COMPONENT>` either `MAILBOX`, `V3D`, `VCSM` or `VCHI` disables the given component completely
 - `VC4CL_CACHE_FORCE=<VAL>` forces the buffer caching behavior to uncached (`<VAL> = 0`), host-cached (`<VAL> = 1`), GPU-cached (`<VAL> = 2`) or host- and GPU-cached (`<VAL> = 3`)

@@ -4,5 +4,6 @@ target_sources(VC4CL
     hal/hal.cpp
     hal/Mailbox.cpp
     hal/V3D.cpp
+    hal/VCHI.cpp
     hal/VCSM.cpp
 )
