@@ -11,6 +11,7 @@
 #include "../executor.h"
 
 #include <memory>
+#include <vector>
 
 namespace vc4cl
 {
@@ -116,7 +117,10 @@ namespace vc4cl
 
         std::unique_ptr<DeviceBuffer> allocateBuffer(
             unsigned sizeInBytes, const std::string& name, CacheType cacheType = CacheType::BOTH_CACHED);
+        std::unique_ptr<DeviceBuffer> allocateGPUOnlyBuffer(
+            unsigned sizeInBytes, const std::string& name, CacheType cacheType = CacheType::GPU_CACHED);
         bool deallocateBuffer(const DeviceBuffer* buffer);
+        bool flushCPUCache(const std::vector<const DeviceBuffer*>& buffers);
 
         CHECK_RETURN ExecutionHandle executeQPU(unsigned numQPUs, std::pair<uint32_t*, unsigned> controlAddress,
             bool flushBuffer, std::chrono::milliseconds timeout);

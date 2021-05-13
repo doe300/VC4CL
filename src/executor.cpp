@@ -128,7 +128,7 @@ static bool increment_index(std::array<std::size_t, kernel_config::NUM_DIMENSION
 
 static void dumpBuffer(std::ostream& os, const DeviceBuffer* buffer)
 {
-    if(!buffer)
+    if(!buffer || !buffer->hostPointer)
     {
         uint32_t numWords = 1;
         os.write(reinterpret_cast<char*>(&numWords), sizeof(unsigned));
@@ -195,6 +195,28 @@ static void dumpMemoryState(std::ostream& os, const Kernel* kernel, const Kernel
             }
         }
     }
+}
+
+static bool flushHostCache(SystemAccess& system, const std::unique_ptr<DeviceBuffer>& kernelBuffer,
+    const std::map<unsigned, std::unique_ptr<DeviceBuffer>>& tmpBuffers,
+    const std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>>& persistentBuffers)
+{
+    std::vector<const DeviceBuffer*> toBeFlushed;
+    toBeFlushed.reserve(1 + tmpBuffers.size() + persistentBuffers.size());
+    toBeFlushed.emplace_back(kernelBuffer.get());
+    for(auto& buf : tmpBuffers)
+    {
+        if(buf.second && buf.second->hostPointer)
+            toBeFlushed.emplace_back(buf.second.get());
+    }
+    for(auto& buf : persistentBuffers)
+        toBeFlushed.emplace_back(buf.second.first.get());
+
+    auto status = system.flushCPUCache(toBeFlushed);
+    DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
+        std::cout << "Flushing cache for " << toBeFlushed.size() << " host-accessible device buffers "
+                  << (status ? "succeeded" : "failed") << std::endl)
+    return status;
 }
 
 cl_int executeKernel(KernelExecution& args)
@@ -416,6 +438,9 @@ cl_int executeKernel(KernelExecution& args)
         dumpMemoryState(f, kernel, args, *buffer, qpu_code, uniformPointers[0][0], true);
     })
 
+    // flush the host caches for all host-writable buffers
+    flushHostCache(*args.system, buffer, args.tmpBuffers, args.persistentBuffers);
+
     //
     // EXECUTION
     //
@@ -468,6 +493,7 @@ cl_int executeKernel(KernelExecution& args)
         // wait for and check previous work-group (possible asynchronous) execution
         if(!result.waitFor())
             return CL_OUT_OF_RESOURCES;
+        flushHostCache(*args.system, buffer, {}, {});
         DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
             std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", "
                       << group_indices[2] << std::endl)

@@ -193,6 +193,8 @@ uint32_t SystemAccess::querySystem(SystemQuery query, uint32_t defaultValue)
     uint32_t value = defaultValue;
     if(isEmulated)
         return getEmulatedSystemQuery(query);
+    if(vcsm && vcsm->readValue(query, value))
+        return value;
     if(v3d && v3d->readValue(query, value))
         return value;
     if(vchi && vchi->readValue(query, value))
@@ -215,6 +217,12 @@ std::unique_ptr<DeviceBuffer> SystemAccess::allocateBuffer(
     return nullptr;
 }
 
+std::unique_ptr<DeviceBuffer> SystemAccess::allocateGPUOnlyBuffer(
+    unsigned sizeInBytes, const std::string& name, CacheType cacheType)
+{
+    return allocateBuffer(sizeInBytes, name, cacheType);
+}
+
 bool SystemAccess::deallocateBuffer(const DeviceBuffer* buffer)
 {
     if(isEmulated)
@@ -223,6 +231,13 @@ bool SystemAccess::deallocateBuffer(const DeviceBuffer* buffer)
         return vcsm->deallocateBuffer(buffer);
     if(mailbox && memoryManagement == MemoryManagement::MAILBOX)
         return mailbox->deallocateBuffer(buffer);
+    return false;
+}
+
+bool SystemAccess::flushCPUCache(const std::vector<const DeviceBuffer*>& buffers)
+{
+    if(vcsm && (memoryManagement == MemoryManagement::VCSM || memoryManagement == MemoryManagement::VCSM_CMA))
+        return vcsm->flushCPUCache(buffers);
     return false;
 }
 

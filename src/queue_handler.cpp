@@ -131,11 +131,19 @@ void EventQueue::runEventQueue()
                 event->updateStatus(CL_RUNNING);
                 if(event->action)
                 {
-                    cl_int status = event->action->operator()();
-                    if(status != CL_SUCCESS)
-                        event->updateStatus(status);
-                    else
-                        event->updateStatus(CL_COMPLETE);
+                    try
+                    {
+                        cl_int status = event->action->operator()();
+                        if(status != CL_SUCCESS)
+                            event->updateStatus(status);
+                        else
+                            event->updateStatus(CL_COMPLETE);
+                    }
+                    catch(const std::exception& err)
+                    {
+                        event->updateStatus(returnError(CL_OUT_OF_RESOURCES, __FILE__, __LINE__,
+                            std::string{"Exception thrown during even execution: "} + err.what()));
+                    }
                 }
                 else
                     event->updateStatus(

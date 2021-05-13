@@ -89,7 +89,7 @@ extern "C"
         // qpu or vpu jobs
         union
         {
-            // struct vpu_job_s v;
+            // struct vpu_job_s v; // not of interest to us
             struct qpu_job_s q;
             struct sync_job_s s;
         } u;
@@ -134,6 +134,7 @@ std::atomic_bool isJobDone{false};
 static void onJobDone(uintptr_t jobId)
 {
     // make sure we don't e.g. update the next job if our current one timed out
+    std::lock_guard<std::mutex> guard(jobStatusLock);
     if(currentJobId == jobId)
     {
         isJobDone = true;
@@ -151,8 +152,11 @@ ExecutionHandle VCHI::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t
         return ExecutionHandle{false};
     }
 
-    ++currentJobId;
-    isJobDone = false;
+    {
+        std::lock_guard<std::mutex> guard(jobStatusLock);
+        ++currentJobId;
+        isJobDone = false;
+    }
 
     gpu_job_s execJob{};
     execJob.command = EXECUTE_QPU;

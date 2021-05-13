@@ -692,19 +692,30 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
             }
             else
             {
-                auto bufIt =
-                    tmpBuffers.emplace(i, system()->allocateBuffer(localArg->sizeToAllocate, "VC4CL temp buffer"))
-                        .first;
-                if(!bufIt->second)
+                auto bufIt = tmpBuffers.end();
+                bool initializeMemory = localArg->data.empty();
+                bool zeroMemory = program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR);
+                if(initializeMemory || zeroMemory)
+                    // we need to write from host-side
+                    bufIt =
+                        tmpBuffers.emplace(i, system()->allocateBuffer(localArg->sizeToAllocate, "VC4CL temp buffer"))
+                            .first;
+                else
+                    // no need to write from host-side
+                    bufIt =
+                        tmpBuffers
+                            .emplace(i, system()->allocateGPUOnlyBuffer(localArg->sizeToAllocate, "VC4CL temp buffer"))
+                            .first;
+                if(bufIt == tmpBuffers.end() || !bufIt->second)
                     // failed to allocate the temporary buffer
                     return CL_OUT_OF_RESOURCES;
-                if(!localArg->data.empty())
+                if(initializeMemory)
                 {
                     // copy the parameter values to the buffer
                     memcpy(bufIt->second->hostPointer, localArg->data.data(),
                         std::min(static_cast<unsigned>(localArg->data.size()), localArg->sizeToAllocate));
                 }
-                else if(program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR))
+                else if(zeroMemory)
                 {
                     // we need to initialize the local memory to zero
                     memset(bufIt->second->hostPointer, '\0', localArg->sizeToAllocate);
