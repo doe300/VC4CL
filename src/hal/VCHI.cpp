@@ -6,8 +6,11 @@
 
 #include "VCHI.h"
 
+#include "userland.h"
+
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <stdexcept>
@@ -16,97 +19,6 @@ using namespace vc4cl;
 
 // This is the only usage I could find for executing code:
 // https://searchcode.com/total-file/116503467/
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-    // see "/opt/vc/include/interface/vchi/vchi.h"
-    struct opaque_vchi_instance_handle_t;
-    struct vchi_connection_t;
-
-    int32_t vchi_initialise(opaque_vchi_instance_handle_t** instance_handle);
-    int32_t vchi_connect(vchi_connection_t** connections, const uint32_t num_connections,
-        opaque_vchi_instance_handle_t* instance_handle);
-    int32_t vchi_disconnect(opaque_vchi_instance_handle_t* instance_handle);
-
-    // see "/opt/vc/include/interface/vmcs_host/vc_vchi_gencmd.h"
-    void vc_vchi_gencmd_init(
-        opaque_vchi_instance_handle_t* initialise_instance, vchi_connection_t** connections, uint32_t num_connections);
-    void vc_gencmd_stop(void);
-    int vc_gencmd(char* response, int maxlen, const char* format, ...);
-
-    // see "/opt/vc/include/interface/vmcs_host/vc_vchi_gpuserv.h"
-
-    // these go in command word of gpu_job_s
-    // EXECUTE_VPU and EXECUTE_QPU are valid from host
-    enum
-    {
-        EXECUTE_NONE,
-        EXECUTE_VPU,
-        EXECUTE_QPU,
-        EXECUTE_SYNC,
-        LAUNCH_VPU1
-    };
-
-    struct qpu_job_s
-    {
-        // parameters for qpu job
-        uint32_t jobs;
-        uint32_t noflush;
-        uint32_t timeout;
-        uint32_t dummy;
-        uint32_t control[12][2];
-    };
-
-    struct sync_job_s
-    {
-        // parameters for syncjob
-        // bit 0 set means wait for preceding vpu jobs to complete
-        // bit 1 set means wait for preceding qpu jobs to complete
-        uint32_t mask;
-        uint32_t dummy[27];
-    };
-
-    struct gpu_callback_s
-    {
-        // callback to call when complete (can be NULL)
-        void (*func)();
-        void* cookie;
-    };
-
-    struct gpu_internal_s
-    {
-        void* message;
-        int refcount;
-    };
-
-    struct gpu_job_s
-    {
-        // from enum above
-        uint32_t command;
-        // qpu or vpu jobs
-        union
-        {
-            // struct vpu_job_s v; // not of interest to us
-            struct qpu_job_s q;
-            struct sync_job_s s;
-        } u;
-        // callback function to call when complete
-        struct gpu_callback_s callback;
-        // for internal use - leave as zero
-        struct gpu_internal_s internal;
-    };
-
-    int32_t vc_gpuserv_init(void);
-    void vc_gpuserv_deinit(void);
-
-    int32_t vc_gpuserv_execute_code(int num_jobs, struct gpu_job_s jobs[]);
-
-#ifdef __cplusplus
-}
-#endif
 
 VCHI::VCHI()
 {
@@ -183,10 +95,12 @@ ExecutionHandle VCHI::executeQPU(unsigned numQPUs, std::pair<uint32_t*, uint32_t
         std::unique_lock<std::mutex> guard(jobStatusLock);
         // can't use wait_for here, since this function is not called immediately and putting the start to the start of
         // the function would extend our timeout
-        jobStatusCondition.wait_until(guard, start + timeout, []() -> bool { return isJobDone; });
+        // we need to wait a little bit longer here to allow the VPU timeout to be handled
+        jobStatusCondition.wait_until(
+            guard, start + timeout + std::chrono::seconds{1}, []() -> bool { return isJobDone; });
         return isJobDone;
     };
-    return ExecutionHandle{checkFunc};
+    return ExecutionHandle{std::move(checkFunc)};
 }
 
 template <std::size_t N>

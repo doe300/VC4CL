@@ -88,6 +88,8 @@ namespace vc4cl
         EventAction& operator=(EventAction&&) = delete;
 
         CHECK_RETURN virtual cl_int operator()() = 0;
+
+        virtual std::string to_string() const = 0;
     };
 
     /*
@@ -104,6 +106,11 @@ namespace vc4cl
         {
             return func();
         }
+
+        std::string to_string() const override
+        {
+            return "custom action";
+        }
     };
 
     /*
@@ -118,6 +125,11 @@ namespace vc4cl
         cl_int operator()() override final
         {
             return status;
+        }
+
+        std::string to_string() const override
+        {
+            return "no action";
         }
     };
 

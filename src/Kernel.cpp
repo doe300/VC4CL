@@ -13,6 +13,7 @@
 #include "hal/hal.h"
 
 #include <algorithm>
+#include <sstream>
 
 using namespace vc4cl;
 
@@ -776,6 +777,16 @@ KernelExecution::~KernelExecution()
 cl_int KernelExecution::operator()()
 {
     return executeKernel(*this);
+}
+
+std::string KernelExecution::to_string() const
+{
+    std::stringstream ss;
+    ss << "run kernel 0x" << kernel.get() << " (" << kernel->info.name << ") with " << kernel->info.getLength()
+       << " instructions, " << executionArguments.size() << " parameters and " << localSizes[0] << ", " << localSizes[1]
+       << ", " << localSizes[2] << " (" << globalSizes[0] << ", " << globalSizes[1] << ", " << globalSizes[2]
+       << ") work-items";
+    return ss.str();
 }
 
 cl_int KernelExecution::getPerformanceCounter(

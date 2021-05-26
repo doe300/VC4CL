@@ -7,6 +7,7 @@
 #include "V3D.h"
 
 #include "hal.h"
+#include "userland.h"
 
 #include <cerrno>
 #include <cstdio>
@@ -20,20 +21,6 @@
 using namespace vc4cl;
 
 static const uint32_t V3D_BASE_OFFSET = 0x00c00000;
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-    // see "/opt/vc/include/bcm_host.h"
-    void bcm_host_init(void);
-    void bcm_host_deinit(void);
-    unsigned bcm_host_get_peripheral_address(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 // The offsets are byte-offsets, but we need to convert them to 32-bit word offsets
 static constexpr uint32_t V3D_IDENT0 = 0x0000 / sizeof(uint32_t);

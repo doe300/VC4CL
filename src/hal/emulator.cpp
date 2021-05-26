@@ -7,6 +7,7 @@
 #include "emulator.h"
 
 #include "../common.h"
+#include "userland.h"
 #ifdef COMPILER_HEADER
 #define CPPLOG_NAMESPACE logging
 #include COMPILER_HEADER
@@ -209,125 +210,129 @@ bool vc4cl::emulateQPU(unsigned numQPUs, uint32_t bufferQPUAddress, std::chrono:
 #endif
 }
 
-#if defined(MOCK_HAL) && defined(__cplusplus)
-extern "C"
+#ifdef MOCK_HAL
+
+// Define some unused functions just to make sure they can be found when linked
+
+void bcm_host_init()
 {
-#endif
+    throw std::runtime_error{"bcm_host_init() should not be called for emulated build"};
+}
 
-    // Define some unused functions just to make sure they can be found when linked
+void bcm_host_deinit()
+{
+    throw std::runtime_error{"bcm_host_deinit() should not be called for emulated build"};
+}
 
-    void bcm_host_init()
-    {
-        throw std::runtime_error{"bcm_host_init() should not be called for emulated build"};
-    }
+unsigned bcm_host_get_peripheral_address()
+{
+    throw std::runtime_error{"bcm_host_get_peripheral_address() should not be called for emulated build"};
+    return 0xDEADBEEF;
+}
 
-    void bcm_host_deinit()
-    {
-        throw std::runtime_error{"bcm_host_deinit() should not be called for emulated build"};
-    }
+int bcm_host_get_model_type(void)
+{
+    return -1;
+}
 
-    unsigned bcm_host_get_peripheral_address()
-    {
-        throw std::runtime_error{"bcm_host_get_peripheral_address() should not be called for emulated build"};
-        return 0xDEADBEEF;
-    }
+int bcm_host_get_processor_id(void)
+{
+    return -1;
+}
 
-    int vcsm_init_ex(int want_cma, int fd)
-    {
-        throw std::runtime_error{"vcsm_init_ex() should not be called for emulated build"};
-    }
+int vcsm_init_ex(int want_cma, int fd)
+{
+    throw std::runtime_error{"vcsm_init_ex() should not be called for emulated build"};
+}
 
-    void vcsm_exit(void)
-    {
-        throw std::runtime_error{"vcsm_exit() should not be called for emulated build"};
-    }
+void vcsm_exit(void)
+{
+    throw std::runtime_error{"vcsm_exit() should not be called for emulated build"};
+}
 
-    unsigned int vcsm_malloc_cache(unsigned int size, int cache, const char* name)
-    {
-        throw std::runtime_error{"vcsm_malloc_cache() should not be called for emulated build"};
-    }
+unsigned int vcsm_malloc_cache(unsigned int size, VCSM_CACHE_TYPE_T cache, const char* name)
+{
+    throw std::runtime_error{"vcsm_malloc_cache() should not be called for emulated build"};
+}
 
-    void vcsm_free(unsigned int handle)
-    {
-        throw std::runtime_error{"vcsm_free() should not be called for emulated build"};
-    }
+void vcsm_free(unsigned int handle)
+{
+    throw std::runtime_error{"vcsm_free() should not be called for emulated build"};
+}
 
-    unsigned int vcsm_vc_addr_from_hdl(unsigned int handle)
-    {
-        throw std::runtime_error{"vcsm_vc_addr_from_hdl() should not be called for emulated build"};
-    }
+unsigned int vcsm_vc_addr_from_hdl(unsigned int handle)
+{
+    throw std::runtime_error{"vcsm_vc_addr_from_hdl() should not be called for emulated build"};
+}
 
-    void* vcsm_lock(unsigned int handle)
-    {
-        throw std::runtime_error{"vcsm_lock() should not be called for emulated build"};
-    }
+void* vcsm_lock(unsigned int handle)
+{
+    throw std::runtime_error{"vcsm_lock() should not be called for emulated build"};
+}
 
-    int vcsm_unlock_ptr_sp(void* usr_ptr, int cache_no_flush)
-    {
-        throw std::runtime_error{"vcsm_unlock_ptr_sp() should not be called for emulated build"};
-    }
+int vcsm_unlock_ptr(void* usr_ptr)
+{
+    throw std::runtime_error{"vcsm_unlock_ptr() should not be called for emulated build"};
+}
 
-    int vcsm_export_dmabuf(unsigned int vcsm_handle)
-    {
-        throw std::runtime_error{"vcsm_export_dmabuf() should not be called for emulated build"};
-    }
+int vcsm_export_dmabuf(unsigned int vcsm_handle)
+{
+    throw std::runtime_error{"vcsm_export_dmabuf() should not be called for emulated build"};
+}
 
-    struct vcsm_user_clean_invalid2_s;
-    int vcsm_clean_invalid2(struct vcsm_user_clean_invalid2_s* s)
-    {
-        throw std::runtime_error{"vcsm_clean_invalid2() should not be called for emulated build"};
-    }
+struct vcsm_user_clean_invalid2_s;
+int vcsm_clean_invalid2(struct vcsm_user_clean_invalid2_s* s)
+{
+    throw std::runtime_error{"vcsm_clean_invalid2() should not be called for emulated build"};
+}
 
-    struct opaque_vchi_instance_handle_t;
-    struct vchi_connection_t;
+struct opaque_vchi_instance_handle_t;
+struct vchi_connection_t;
 
-    int32_t vchi_initialise(opaque_vchi_instance_handle_t** instance_handle)
-    {
-        throw std::runtime_error{"vchi_initialise() should not be called for emulated build"};
-    }
+int32_t vchi_initialise(opaque_vchi_instance_handle_t** instance_handle)
+{
+    throw std::runtime_error{"vchi_initialise() should not be called for emulated build"};
+}
 
-    int32_t vchi_connect(
-        vchi_connection_t** connections, const uint32_t num_connections, opaque_vchi_instance_handle_t* instance_handle)
-    {
-        throw std::runtime_error{"vchi_connect() should not be called for emulated build"};
-    }
+int32_t vchi_connect(
+    vchi_connection_t** connections, const uint32_t num_connections, opaque_vchi_instance_handle_t* instance_handle)
+{
+    throw std::runtime_error{"vchi_connect() should not be called for emulated build"};
+}
 
-    int32_t vchi_disconnect(opaque_vchi_instance_handle_t* instance_handle)
-    {
-        throw std::runtime_error{"vchi_disconnect() should not be called for emulated build"};
-    }
+int32_t vchi_disconnect(opaque_vchi_instance_handle_t* instance_handle)
+{
+    throw std::runtime_error{"vchi_disconnect() should not be called for emulated build"};
+}
 
-    void vc_vchi_gencmd_init(
-        opaque_vchi_instance_handle_t* initialise_instance, vchi_connection_t** connections, uint32_t num_connections)
-    {
-        throw std::runtime_error{"vc_vchi_gencmd_init() should not be called for emulated build"};
-    }
+void vc_vchi_gencmd_init(
+    opaque_vchi_instance_handle_t* initialise_instance, vchi_connection_t** connections, uint32_t num_connections)
+{
+    throw std::runtime_error{"vc_vchi_gencmd_init() should not be called for emulated build"};
+}
 
-    void vc_gencmd_stop(void)
-    {
-        throw std::runtime_error{"vc_gencmd_stop() should not be called for emulated build"};
-    }
+void vc_gencmd_stop(void)
+{
+    throw std::runtime_error{"vc_gencmd_stop() should not be called for emulated build"};
+}
 
-    int vc_gencmd(char* response, int maxlen, const char* format, ...)
-    {
-        throw std::runtime_error{"vc_gencmd() should not be called for emulated build"};
-    }
+int vc_gencmd(char* response, int maxlen, const char* format, ...)
+{
+    throw std::runtime_error{"vc_gencmd() should not be called for emulated build"};
+}
 
-    int32_t vc_gpuserv_init(void)
-    {
-        throw std::runtime_error{"vc_gpuserv_init() should not be called for emulated build"};
-    }
+int32_t vc_gpuserv_init(void)
+{
+    throw std::runtime_error{"vc_gpuserv_init() should not be called for emulated build"};
+}
 
-    void vc_gpuserv_deinit(void)
-    {
-        throw std::runtime_error{"vc_gpuserv_deinit() should not be called for emulated build"};
-    }
+void vc_gpuserv_deinit(void)
+{
+    throw std::runtime_error{"vc_gpuserv_deinit() should not be called for emulated build"};
+}
 
-    int32_t vc_gpuserv_execute_code(int num_jobs, struct gpu_job_s jobs[])
-    {
-        throw std::runtime_error{"vc_gpuserv_execute_code() should not be called for emulated build"};
-    }
-
-#if defined(MOCK_HAL) && defined(__cplusplus)
+int32_t vc_gpuserv_execute_code(int num_jobs, struct gpu_job_s jobs[])
+{
+    throw std::runtime_error{"vc_gpuserv_execute_code() should not be called for emulated build"};
 }
 #endif

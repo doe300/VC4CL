@@ -146,6 +146,7 @@ namespace vc4cl
         ~BufferMapping() override;
 
         cl_int operator()() override final;
+        std::string to_string() const override;
     };
 
     struct BufferAccess : public EventAction
@@ -161,6 +162,7 @@ namespace vc4cl
         ~BufferAccess() override;
 
         cl_int operator()() override;
+        std::string to_string() const override;
     };
 
     struct BufferRectAccess final : public BufferAccess
@@ -177,6 +179,7 @@ namespace vc4cl
         ~BufferRectAccess() override;
 
         cl_int operator()() override final;
+        std::string to_string() const override;
     };
 
     struct BufferFill final : public EventAction
@@ -190,6 +193,7 @@ namespace vc4cl
         ~BufferFill() override;
 
         cl_int operator()() override final;
+        std::string to_string() const override;
     };
 
     struct BufferCopy final : public EventAction
@@ -204,6 +208,7 @@ namespace vc4cl
         ~BufferCopy() override;
 
         cl_int operator()() override final;
+        std::string to_string() const override;
     };
 
     struct BufferRectCopy final : public EventAction
@@ -222,6 +227,7 @@ namespace vc4cl
         ~BufferRectCopy() override;
 
         cl_int operator()() override final;
+        std::string to_string() const override;
     };
 
 } /* namespace vc4cl */

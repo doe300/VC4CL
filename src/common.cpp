@@ -123,28 +123,31 @@ std::unique_lock<std::mutex> vc4cl::lockLog()
 
 static DebugLevel getDebugLevel()
 {
-    std::underlying_type<DebugLevel>::type level = 0;
+    using IntType = std::underlying_type<DebugLevel>::type;
+    IntType level = static_cast<IntType>(DebugLevel::NONE);
     if(auto env = std::getenv("VC4CL_DEBUG"))
     {
         std::string tmp(env);
         if(tmp.find("api") != std::string::npos)
-            level |= static_cast<uint8_t>(DebugLevel::API_CALLS);
+            level |= static_cast<IntType>(DebugLevel::API_CALLS);
         if(tmp.find("code") != std::string::npos)
-            level |= static_cast<uint8_t>(DebugLevel::DUMP_CODE);
+            level |= static_cast<IntType>(DebugLevel::DUMP_CODE);
         if(tmp.find("syscall") != std::string::npos)
-            level |= static_cast<uint8_t>(DebugLevel::SYSCALL);
+            level |= static_cast<IntType>(DebugLevel::SYSCALL);
         if(tmp.find("execution") != std::string::npos)
-            level |= static_cast<uint8_t>(DebugLevel::KERNEL_EXECUTION);
+            level |= static_cast<IntType>(DebugLevel::KERNEL_EXECUTION);
         if(tmp.find("events") != std::string::npos)
-            level |= static_cast<uint8_t>(DebugLevel::EVENTS);
+            level |= static_cast<IntType>(DebugLevel::EVENTS);
         if(tmp.find("objects") != std::string::npos)
-            level |= static_cast<uint8_t>(DebugLevel::OBJECTS);
+            level |= static_cast<IntType>(DebugLevel::OBJECTS);
         if(tmp.find("perf") != std::string::npos)
-            level |= static_cast<uint8_t>(DebugLevel::PERFORMANCE_COUNTERS);
+            level |= static_cast<IntType>(DebugLevel::PERFORMANCE_COUNTERS);
         if(tmp.find("system") != std::string::npos)
-            level |= static_cast<uint8_t>(DebugLevel::SYSTEM_ACCESS);
+            level |= static_cast<IntType>(DebugLevel::SYSTEM_ACCESS);
+        if(tmp.find("memory") != std::string::npos)
+            level |= static_cast<IntType>(DebugLevel::MEMORY);
         if(tmp.find("all") != std::string::npos)
-            level = static_cast<uint8_t>(DebugLevel::ALL);
+            level = static_cast<IntType>(DebugLevel::ALL);
     }
 
     return static_cast<DebugLevel>(level);
@@ -152,6 +155,7 @@ static DebugLevel getDebugLevel()
 
 bool vc4cl::isDebugModeEnabled(DebugLevel level)
 {
+    using IntType = std::underlying_type<DebugLevel>::type;
     static const auto debugLevel = getDebugLevel();
-    return (static_cast<uint8_t>(debugLevel) & static_cast<uint8_t>(level)) == static_cast<uint8_t>(level);
+    return (static_cast<IntType>(debugLevel) & static_cast<IntType>(level)) == static_cast<IntType>(level);
 }

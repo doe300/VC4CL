@@ -7,6 +7,9 @@
 
 #include "hal/hal.h"
 
+#include <iomanip>
+#include <sstream>
+
 using namespace vc4cl;
 
 Buffer::Buffer(Context* context, cl_mem_flags flags) :
@@ -832,6 +835,17 @@ void* Buffer::getDeviceHostPointerWithOffset()
     return reinterpret_cast<void*>(tmp);
 }
 
+static std::string toString(const Buffer& buffer)
+{
+    std::stringstream ss;
+    ss << std::hex << "buffer 0x" << &buffer;
+    if(buffer.deviceBuffer)
+        ss << " {" << static_cast<unsigned>(buffer.deviceBuffer->memHandle) << ", 0x"
+           << buffer.deviceBuffer->hostPointer << ", 0x" << buffer.deviceBuffer->qpuPointer << ", " << std::dec
+           << buffer.deviceBuffer->size << '}';
+    return ss.str();
+}
+
 BufferMapping::BufferMapping(Buffer* buffer, std::list<MappingInfo>::const_iterator mappingInfo, bool unmap) :
     buffer(buffer), mappingInfo(mappingInfo), unmap(unmap)
 {
@@ -870,6 +884,16 @@ cl_int BufferMapping::operator()()
     return status;
 }
 
+std::string BufferMapping::to_string() const
+{
+    std::stringstream ss;
+    if(unmap)
+        ss << "unmap " << toString(*buffer.get()) << " from 0x" << mappingInfo->hostPointer;
+    else
+        ss << "map " << toString(*buffer.get()) << " to 0x" << mappingInfo->hostPointer;
+    return ss.str();
+}
+
 BufferAccess::BufferAccess(Buffer* buffer, void* hostPtr, std::size_t numBytes, bool writeBuffer) :
     buffer(buffer), bufferOffset(0), hostPtr(hostPtr), hostOffset(0), numBytes(numBytes), writeToBuffer(writeBuffer)
 {
@@ -888,6 +912,18 @@ cl_int BufferAccess::operator()()
         memmove(static_cast<char*>(hostPtr) + hostOffset,
             static_cast<char*>(buffer->getDeviceHostPointerWithOffset()) + bufferOffset, numBytes);
     return CL_SUCCESS;
+}
+
+std::string BufferAccess::to_string() const
+{
+    std::stringstream ss;
+    if(writeToBuffer)
+        ss << "write " << numBytes << " bytes from 0x" << hostPtr << " at offset " << hostOffset << " into "
+           << toString(*buffer.get()) << " at offset " << bufferOffset;
+    else
+        ss << "read " << numBytes << " bytes from " << toString(*buffer.get()) << " at offset " << bufferOffset
+           << " into 0x" << hostPtr << " at offset " << hostOffset;
+    return ss.str();
 }
 
 BufferRectAccess::BufferRectAccess(Buffer* buf, void* hostPointer, const std::size_t region[3], bool writeBuffer) :
@@ -926,6 +962,16 @@ cl_int BufferRectAccess::operator()()
     return CL_SUCCESS;
 }
 
+std::string BufferRectAccess::to_string() const
+{
+    std::stringstream ss;
+    if(writeToBuffer)
+        ss << "write rectangular " << numBytes << " bytes from 0x" << hostPtr << " into " << toString(*buffer.get());
+    else
+        ss << "read rectangular " << numBytes << " bytes from " << toString(*buffer.get()) << " into 0x" << hostPtr;
+    return ss.str();
+}
+
 BufferFill::BufferFill(Buffer* buffer, const void* pattern, std::size_t patternSize, std::size_t numBytes) :
     buffer(buffer), bufferOffset(0), numBytes(numBytes)
 {
@@ -949,6 +995,14 @@ cl_int BufferFill::operator()()
     return CL_SUCCESS;
 }
 
+std::string BufferFill::to_string() const
+{
+    std::stringstream ss;
+    ss << "filling " << toString(*buffer.get()) << " at offset " << bufferOffset << " with " << numBytes
+       << " bytes from " << pattern.size() << "-byte pattern";
+    return ss.str();
+}
+
 BufferCopy::BufferCopy(Buffer* src, Buffer* dest, std::size_t numBytes) :
     sourceBuffer(src), sourceOffset(0), destBuffer(dest), destOffset(0), numBytes(numBytes)
 {
@@ -964,6 +1018,14 @@ cl_int BufferCopy::operator()()
         return CL_SUCCESS;
     memmove(reinterpret_cast<void*>(dest), reinterpret_cast<void*>(src), numBytes);
     return CL_SUCCESS;
+}
+
+std::string BufferCopy::to_string() const
+{
+    std::stringstream ss;
+    ss << "copying " << numBytes << " bytes from " << toString(*sourceBuffer.get()) << " at offset " << sourceOffset
+       << " into " << toString(*destBuffer.get()) << " at offset " << destOffset;
+    return ss.str();
 }
 
 BufferRectCopy::BufferRectCopy(Buffer* src, Buffer* dest, const std::size_t region[3]) :
@@ -994,6 +1056,13 @@ cl_int BufferRectCopy::operator()()
         }
     }
     return CL_SUCCESS;
+}
+
+std::string BufferRectCopy::to_string() const
+{
+    std::stringstream ss;
+    ss << "copying rectangular from " << toString(*sourceBuffer.get()) << " into " << toString(*destBuffer.get());
+    return ss.str();
 }
 
 /*!

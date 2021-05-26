@@ -77,6 +77,7 @@ To generate debug information, set the `VC4CL_DEBUG` environment variable to one
 - `objects` enables logging of lifetime begin/end and leaks of OpenCL API objects to the standard output
 - `perf` enables collection and logging of V3D hardware performance counters to the standard output
 - `system` enables logging high-level information about the selected system interfaces (e.g. mailbox, V3D, VCSM, etc.) to the standard output
+- `memory` enables logging of memory (buffer) management related information to the standard output
 - `all` enables all above logging modes
 
 ## Experimental features

@@ -9,6 +9,7 @@
 #include "Buffer.h"
 #include "hal/hal.h"
 
+#include <sstream>
 #include <unordered_map>
 
 using namespace vc4cl;
@@ -620,6 +621,16 @@ cl_int ImageAccess::operator()()
     return CL_SUCCESS;
 }
 
+std::string ImageAccess::to_string() const
+{
+    std::stringstream ss;
+    if(writeToImage)
+        ss << "write from 0x" << hostPointer << " into image 0x" << image.get();
+    else
+        ss << "read from image 0x" << image.get() << " into 0x" << hostPointer;
+    return ss.str();
+}
+
 ImageCopy::ImageCopy(Image* src, Image* dst, const std::size_t srcOrigin[3], const std::size_t dstOrigin[3],
     const std::size_t region[3]) :
     source(src),
@@ -640,6 +651,13 @@ cl_int ImageCopy::operator()()
         return CL_INVALID_OPERATION;
 }
 
+std::string ImageCopy::to_string() const
+{
+    std::stringstream ss;
+    ss << "copying from image 0x" << source.get() << " into image 0x" << destination.get();
+    return ss.str();
+}
+
 ImageFill::ImageFill(Image* img, const void* color, const std::size_t origin[3], const std::size_t region[3]) :
     image(img)
 {
@@ -658,6 +676,13 @@ cl_int ImageFill::operator()()
 {
     image->accessor->fillPixelData(origin, region, fillColor.data());
     return CL_SUCCESS;
+}
+
+std::string ImageFill::to_string() const
+{
+    std::stringstream ss;
+    ss << "filling image 0x" << image.get() << " with " << fillColor.size() << "-byte color";
+    return ss.str();
 }
 
 ImageCopyBuffer::ImageCopyBuffer(Image* image, Buffer* buffer, bool copyIntoImage, const std::size_t imgOrigin[3],
@@ -688,6 +713,18 @@ cl_int ImageCopyBuffer::operator()()
     return CL_SUCCESS;
 }
 
+std::string ImageCopyBuffer::to_string() const
+{
+    std::stringstream ss;
+    if(copyIntoImage)
+        ss << "copying from buffer 0x" << buffer.get() << " at offset " << bufferOffset << " into image 0x"
+           << image.get();
+    else
+        ss << "copying from image 0x" << image.get() << " into buffer 0x" << buffer.get() << " at offset "
+           << bufferOffset;
+    return ss.str();
+}
+
 ImageMapping::ImageMapping(Image* image, std::list<MappingInfo>::const_iterator mappingInfo, bool isUnmap,
     const std::size_t origin[3], const std::size_t region[3]) :
     BufferMapping(image, mappingInfo, isUnmap)
@@ -697,6 +734,16 @@ ImageMapping::ImageMapping(Image* image, std::list<MappingInfo>::const_iterator 
 }
 
 ImageMapping::~ImageMapping() = default;
+
+std::string ImageMapping::to_string() const
+{
+    std::stringstream ss;
+    if(unmap)
+        ss << "unmap image 0x" << buffer.get() << " from 0x" << mappingInfo->hostPointer;
+    else
+        ss << "map image 0x" << buffer.get() << " to 0x" << mappingInfo->hostPointer;
+    return ss.str();
+}
 
 size_t hash_cl_image_format::operator()(const cl_image_format& format) const noexcept
 {

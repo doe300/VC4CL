@@ -80,7 +80,7 @@ void EventQueue::waitForEvent(const Event* event)
     {
         // lock on some semaphore triggered when done
         // this is triggered for every event, so re-check for this particular event
-        eventProcessed.wait(lock);
+        eventProcessed.wait_for(lock, WAIT_DURATION);
     }
 }
 
@@ -133,6 +133,8 @@ void EventQueue::runEventQueue()
                 {
                     try
                     {
+                        DEBUG_LOG(DebugLevel::EVENTS,
+                            std::cout << "Executing event action: " << event->action->to_string() << std::endl);
                         cl_int status = event->action->operator()();
                         if(status != CL_SUCCESS)
                             event->updateStatus(status);

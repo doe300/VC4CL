@@ -34,7 +34,7 @@ namespace vc4cl
      *
      * This is a bitset allowing the fields to be combined.
      */
-    enum class DebugLevel : uint8_t
+    enum class DebugLevel : uint32_t
     {
         NONE = 0,
         // OpenCL API calls, parameters and return values (on error) are logged to the standard output
@@ -53,7 +53,9 @@ namespace vc4cl
         PERFORMANCE_COUNTERS = 1 << 6u,
         // Prints high-level information on the selected system access interfaces
         SYSTEM_ACCESS = 1 << 7u,
-        ALL = 0xFF
+        // Prints buffer management related information
+        MEMORY = 1 << 8u,
+        ALL = 0xFFFFFFFF
 
     };
 

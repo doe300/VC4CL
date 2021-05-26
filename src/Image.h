@@ -179,6 +179,7 @@ namespace vc4cl
         ~ImageAccess() override;
 
         cl_int operator()() override final;
+        std::string to_string() const override;
     };
 
     struct ImageCopy final : public EventAction
@@ -194,6 +195,7 @@ namespace vc4cl
         ~ImageCopy() override;
 
         cl_int operator()() override final;
+        std::string to_string() const override;
     };
 
     struct ImageFill final : public EventAction
@@ -207,6 +209,7 @@ namespace vc4cl
         ~ImageFill() override;
 
         cl_int operator()() override final;
+        std::string to_string() const override;
     };
 
     struct ImageCopyBuffer final : public EventAction
@@ -223,6 +226,7 @@ namespace vc4cl
         ~ImageCopyBuffer() override;
 
         cl_int operator()() override final;
+        std::string to_string() const override;
     };
 
     struct ImageMapping final : public BufferMapping
@@ -233,6 +237,8 @@ namespace vc4cl
         ImageMapping(Image* image, std::list<MappingInfo>::const_iterator mappingInfo, bool isUnmap,
             const std::size_t origin[3], const std::size_t region[3]);
         ~ImageMapping() override;
+
+        std::string to_string() const override;
     };
 
     struct hash_cl_image_format : public std::hash<std::string>

@@ -32,7 +32,7 @@ jobs:
           command: git clone https://github.com/KhronosGroup/OpenCL-Headers.git OpenCL-Headers
       - run:
           name: configure
-          command: mkdir build && cd build && LDFLAGS=-Wl,--warn-unresolved-symbols cmake ../ -DOpenCL_INCLUDE_DIRS=../OpenCL-Headers -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=OFF -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
+          command: mkdir build && cd build && LDFLAGS=-Wl,--warn-unresolved-symbols cmake ../ -DOpenCL_INCLUDE_DIRS=../OpenCL-Headers -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=OFF -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
       - run:
           name: build
           command: cd build && make -j`nproc`
@@ -98,12 +98,12 @@ jobs:
             - test
   cross-offline:
     docker:
-      - image: nomaddo/cross-rpi:0.2
+      - image: doe300/cross-rpi:stretch-llvm6
     steps:
       - checkout
       - run:
           name: configure
-          command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=OFF -DINCLUDE_COMPILER=OFF -DREGISTER_POKE_KERNELS=ON -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
+          command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=OFF -DINCLUDE_COMPILER=OFF -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
       - run:
           name: make
           command: cd build && make -j`nproc`

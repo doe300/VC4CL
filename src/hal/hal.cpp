@@ -11,6 +11,7 @@
 #include "VCHI.h"
 #include "VCSM.h"
 #include "emulator.h"
+#include "userland.h"
 
 #include <cstdlib>
 #include <unistd.h>
@@ -202,6 +203,66 @@ uint32_t SystemAccess::querySystem(SystemQuery query, uint32_t defaultValue)
     if(mailbox && mailbox->readValue(query, value))
         return value;
     return defaultValue;
+}
+
+std::string SystemAccess::getModelType()
+{
+    switch(bcm_host_get_model_type())
+    {
+    case BCM_HOST_BOARD_TYPE_MODELA:
+        return "A";
+    case BCM_HOST_BOARD_TYPE_MODELB:
+        return "B";
+    case BCM_HOST_BOARD_TYPE_MODELAPLUS:
+        return "A+";
+    case BCM_HOST_BOARD_TYPE_MODELBPLUS:
+        return "B+";
+    case BCM_HOST_BOARD_TYPE_PI2MODELB:
+        return "2 B";
+    case BCM_HOST_BOARD_TYPE_CM:
+        return "CM";
+    case BCM_HOST_BOARD_TYPE_CM2:
+        return "2 CM";
+    case BCM_HOST_BOARD_TYPE_PI3MODELB:
+        return "3 B+";
+    case BCM_HOST_BOARD_TYPE_PI0:
+        return "Zero";
+    case BCM_HOST_BOARD_TYPE_CM3:
+        return "3 CM";
+    case BCM_HOST_BOARD_TYPE_PI0W:
+        return "Zero W";
+    case BCM_HOST_BOARD_TYPE_PI3MODELBPLUS:
+        return "3 B+";
+    case BCM_HOST_BOARD_TYPE_PI3MODELAPLUS:
+        return "3 A+";
+    case BCM_HOST_BOARD_TYPE_CM3PLUS:
+        return "3 CM+";
+    case BCM_HOST_BOARD_TYPE_PI4MODELB:
+        return "4 B";
+    case BCM_HOST_BOARD_TYPE_PI400:
+        return "400";
+    case BCM_HOST_BOARD_TYPE_CM4:
+        return "4 CM";
+    default:
+        return "unknown";
+    }
+}
+
+std::string SystemAccess::getProcessorType()
+{
+    switch(bcm_host_get_processor_id())
+    {
+    case BCM_HOST_PROCESSOR_BCM2835:
+        return "BCM2835";
+    case BCM_HOST_PROCESSOR_BCM2836:
+        return "BCM2836";
+    case BCM_HOST_PROCESSOR_BCM2837:
+        return "BCM2837";
+    case BCM_HOST_PROCESSOR_BCM2838:
+        return "BCM2838";
+    default:
+        return "unknown";
+    }
 }
 
 std::unique_ptr<DeviceBuffer> SystemAccess::allocateBuffer(

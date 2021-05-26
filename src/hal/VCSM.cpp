@@ -6,6 +6,8 @@
 
 #include "VCSM.h"
 
+#include "userland.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <fcntl.h>
@@ -14,65 +16,6 @@
 #include <unistd.h>
 
 using namespace vc4cl;
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-    // see "/opt/vc/include/interface/vcsm/user-vcsm.h"
-    typedef enum
-    {
-        VCSM_CACHE_TYPE_NONE = 0,     // No caching applies.
-        VCSM_CACHE_TYPE_HOST,         // Allocation is cached on host (user space).
-        VCSM_CACHE_TYPE_VC,           // Allocation is cached on videocore.
-        VCSM_CACHE_TYPE_HOST_AND_VC,  // Allocation is cached on both host and videocore.
-        VCSM_CACHE_TYPE_PINNED = 0x80 // Pre-pin (vs. allocation on first access), see
-                                      // https://github.com/xbmc/xbmc/commit/3d1e2d73dbbcbc8c1e6bf63f7e563ae96312c394
-
-    } VCSM_CACHE_TYPE_T;
-
-    int vcsm_init_ex(int want_cma, int fd);
-    void vcsm_exit(void);
-
-    unsigned int vcsm_malloc_cache(unsigned int size, VCSM_CACHE_TYPE_T cache, const char* name);
-    void vcsm_free(unsigned int handle);
-
-    unsigned int vcsm_vc_addr_from_hdl(unsigned int handle);
-
-    void* vcsm_lock(unsigned int handle);
-    int vcsm_unlock_ptr_sp(void* usr_ptr, int cache_no_flush);
-
-    int vcsm_export_dmabuf(unsigned int vcsm_handle);
-
-    struct vcsm_user_clean_invalid2_s
-    {
-        unsigned char op_count;
-        unsigned char zero[3];
-        struct vcsm_user_clean_invalid2_block_s
-        {
-            unsigned short invalidate_mode;
-            unsigned short block_count;
-            void* start_address;
-            unsigned int block_size;
-            unsigned int inter_block_stride;
-        } s[0];
-    };
-
-    int vcsm_clean_invalid2(struct vcsm_user_clean_invalid2_s* s);
-
-// Taken from kernel header "linux/drivers/staging/vc04_services/include/linux/broadcom/vc_sm_cma_ioctl.h "
-/*
- * Cache functions to be set to struct vc_sm_cma_ioctl_clean_invalid2 invalidate_mode.
- */
-#define VC_SM_CACHE_OP_NOP 0x00
-#define VC_SM_CACHE_OP_INV 0x01
-#define VC_SM_CACHE_OP_CLEAN 0x02
-#define VC_SM_CACHE_OP_FLUSH 0x03
-
-#ifdef __cplusplus
-}
-#endif
 
 VCSM::VCSM(bool useCMA)
 {
@@ -138,12 +81,12 @@ std::unique_ptr<DeviceBuffer> VCSM::allocateBuffer(
     {
         DEBUG_LOG(DebugLevel::SYSCALL,
             std::cout << "[VC4CL] Failed to get bus address for VCSM handle: " << handle << std::endl)
-        vcsm_unlock_ptr_sp(hostPointer, true);
+        vcsm_unlock_ptr(hostPointer);
         vcsm_free(handle);
         return nullptr;
     }
 
-    DEBUG_LOG(DebugLevel::SYSCALL,
+    DEBUG_LOG(DebugLevel::MEMORY,
         std::cout << "Allocated " << sizeInBytes << " bytes of buffer: handle " << handle << ", device address "
                   << std::hex << "0x" << qpuPointer << ", host address " << hostPointer << std::dec << std::endl)
     return std::unique_ptr<DeviceBuffer>{new DeviceBuffer(system, handle, qpuPointer, hostPointer, sizeInBytes)};
@@ -151,19 +94,17 @@ std::unique_ptr<DeviceBuffer> VCSM::allocateBuffer(
 
 bool VCSM::deallocateBuffer(const DeviceBuffer* buffer)
 {
-    int status;
     if(buffer->hostPointer)
     {
-        // no need to flush the cache, since we don't care about the contents anymore
-        if((status = vcsm_unlock_ptr_sp(buffer->hostPointer, true)) != 0)
+        if(int status = vcsm_unlock_ptr(buffer->hostPointer))
         {
             errno = -status;
-            perror("[VC4CL] Error in vcsm_unlock_ptr_sp");
+            perror("[VC4CL] Error in vcsm_unlock_ptr");
             return false;
         }
     }
     vcsm_free(buffer->memHandle);
-    DEBUG_LOG(DebugLevel::SYSCALL,
+    DEBUG_LOG(DebugLevel::MEMORY,
         std::cout << "Deallocated " << buffer->size << " bytes of buffer: handle " << buffer->memHandle
                   << ", device address " << std::hex << "0x" << buffer->qpuPointer << ", host address "
                   << buffer->hostPointer << std::dec << std::endl)

@@ -108,7 +108,7 @@ std::unique_ptr<DeviceBuffer> Mailbox::allocateBuffer(
     {
         DevicePointer qpuPointer = memLock(handle);
         void* hostPointer = mapmem(V3D::busAddressToPhysicalAddress(static_cast<unsigned>(qpuPointer)), sizeInBytes);
-        DEBUG_LOG(DebugLevel::SYSCALL,
+        DEBUG_LOG(DebugLevel::MEMORY,
             std::cout << "Allocated " << sizeInBytes << " bytes of buffer: handle " << handle << ", device address "
                       << std::hex << "0x" << qpuPointer << ", host address " << hostPointer << std::dec << std::endl)
         return std::unique_ptr<DeviceBuffer>{new DeviceBuffer(system, handle, qpuPointer, hostPointer, sizeInBytes)};
@@ -126,7 +126,7 @@ bool Mailbox::deallocateBuffer(const DeviceBuffer* buffer)
             return false;
         if(!memFree(buffer->memHandle))
             return false;
-        DEBUG_LOG(DebugLevel::SYSCALL,
+        DEBUG_LOG(DebugLevel::MEMORY,
             std::cout << "Deallocated " << buffer->size << " bytes of buffer: handle " << buffer->memHandle
                       << ", device address " << std::hex << "0x" << buffer->qpuPointer << ", host address "
                       << buffer->hostPointer << std::dec << std::endl)

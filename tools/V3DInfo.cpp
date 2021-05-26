@@ -24,12 +24,14 @@ static void checkResult(bool result)
         throw std::runtime_error("Error in mailbox-call!");
 }
 
-static void printModelInfo()
+static void printModelInfo(SystemAccess& system)
 {
-    // This information is all taken from https://github.com/AndrewFromMelbourne/raspberry_pi_revision
+    std::cout << std::setw(NAME_LENGTH) << "Model:" << std::setw(VAL_LENGTH) << system.getModelType() << std::endl;
+    std::cout << std::setw(NAME_LENGTH) << "Processor:" << std::setw(VAL_LENGTH) << system.getProcessorType()
+              << std::endl;
 
     uint32_t revision = 0;
-    if(auto mb = system()->getMailboxIfAvailable())
+    if(auto mb = system.getMailboxIfAvailable())
     {
         SimpleQueryMessage<MailboxTag::BOARD_REVISION> msg;
         checkResult(mb->readMailboxMessage(msg));
@@ -38,59 +40,18 @@ static void printModelInfo()
 
     if(revision == 0)
     {
-        std::cout << std::setw(NAME_LENGTH) << "Model:" << std::setw(VAL_LENGTH) << "failed to detect" << std::endl;
+        std::cout << std::setw(NAME_LENGTH) << "Warranty:" << std::setw(VAL_LENGTH) << "failed to detect" << std::endl;
         return;
     }
 
+    // This below information is  taken from https://github.com/AndrewFromMelbourne/raspberry_pi_revision
     if(revision & 0x800000)
-    {
         // Raspberry Pi2 style revision encoding
-        static const std::vector<std::string> bitfieldToModel = {"A", "B", "A+", "B+", "B+", "Alpha", "CM", "unknown",
-            "3 B", "Zero", "3 CM", "unknown", "Zero W", "3 B+", "3 A+", "unknown", "3 CM+", "4 B"};
-        static const std::vector<std::string> bitFieldToProcessor = {"BCM2835", "BCM2836", "BCM2837", "BCM2838"};
-
-        auto modelIndex = (revision & 0xFF0) >> 4;
-        std::cout << std::setw(NAME_LENGTH) << "Model:" << std::setw(VAL_LENGTH)
-                  << (modelIndex >= bitfieldToModel.size() ? "unknown" : bitfieldToModel[modelIndex]) << std::endl;
-
-        auto processorIndex = (revision & 0xF000) >> 12;
-        std::cout << std::setw(NAME_LENGTH) << "Processor:" << std::setw(VAL_LENGTH)
-                  << (processorIndex >= bitFieldToProcessor.size() ? "unknown" : bitFieldToProcessor[processorIndex])
-                  << std::endl;
-
         std::cout << std::setw(NAME_LENGTH) << "Warranty void:" << std::setw(VAL_LENGTH)
                   << (revision & 0x2000000 ? "yes" : "no") << std::endl;
-
-        if(processorIndex >= 3 || modelIndex >= 17)
-            std::cout << "NOTE: Raspberry Pi 4 is not supported!" << std::endl;
-    }
     else
-    {
-        static const std::map<uint32_t, std::string> revisionToModel = {
-            {2, "B"},
-            {3, "B"},
-            {4, "B"},
-            {5, "B"},
-            {6, "B"},
-            {7, "A"},
-            {8, "A"},
-            {9, "A"},
-            {0xD, "B"},
-            {0xE, "B"},
-            {0xF, "B"},
-            {0x10, "B+"},
-            {0x11, "CM"},
-            {0x12, "A+"},
-            {0x13, "B+"},
-            {0x14, "CM"},
-            {0x15, "A+"},
-        };
-        auto it = revisionToModel.find(revision & 0xFF);
-        std::cout << std::setw(NAME_LENGTH) << "Model:" << std::setw(VAL_LENGTH)
-                  << (it == revisionToModel.end() ? "unknown" : it->second) << std::endl;
         std::cout << std::setw(NAME_LENGTH) << "Warranty void:" << std::setw(VAL_LENGTH)
                   << (revision & 0x1000000 ? "yes" : "no") << std::endl;
-    }
 }
 
 static std::string toString(ExecutionMode mode)
@@ -323,7 +284,7 @@ int main(int argc, char** argv)
     std::cout << "V3D Info:" << std::endl;
     std::cout << std::endl;
 
-    printModelInfo();
+    printModelInfo(*system());
     printVC4CLInfo();
     if(auto mailbox = system()->getMailboxIfAvailable())
         printMailboxInfo(*mailbox);

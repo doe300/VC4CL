@@ -95,6 +95,9 @@ namespace vc4cl
         uint32_t getTotalVPMMemory();
         uint32_t querySystem(SystemQuery query, uint32_t defaultValue);
 
+        std::string getModelType();
+        std::string getProcessorType();
+
         inline Mailbox* getMailboxIfAvailable()
         {
             return mailbox.get();
