@@ -256,6 +256,15 @@ extern "C"
 #define CL_DEVICE_BUILT_IN_KERNELS_WITH_VERSION_KHR 0x1062
 #endif
 
+    /*
+     * Khronos suggested work-group size (cl_khr_suggested_local_work_size)
+     * https://github.com/KhronosGroup/OpenCL-Docs/blob/master/ext/cl_khr_suggested_local_work_size.asciidoc
+     *
+     * Allows to query the automatically calculated work-group size for a kernel execution if none is given.
+     */
+    cl_int VC4CL_FUNC(clGetKernelSuggestedLocalWorkSizeKHR)(cl_command_queue command_queue, cl_kernel kernel,
+        cl_uint work_dim, const size_t* global_work_offset, const size_t* global_work_size,
+        size_t* suggested_local_work_size);
 #ifdef __cplusplus
 }
 #endif

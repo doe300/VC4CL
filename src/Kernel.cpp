@@ -497,9 +497,9 @@ static cl_int split_global_work_size(const std::array<std::size_t, kernel_config
     return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__, "Failed to find a matching local work size!");
 }
 
-cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, const size_t* global_work_offset,
-    const size_t* global_work_size, const size_t* local_work_size, cl_uint num_events_in_wait_list,
-    const cl_event* event_wait_list, cl_event* event)
+cl_int Kernel::setWorkGroupSizes(CommandQueue* commandQueue, cl_uint work_dim, const size_t* global_work_offset,
+    const size_t* global_work_size, const size_t* local_work_size, std::array<size_t, 3>& work_offsets,
+    std::array<size_t, 3>& work_sizes, std::array<size_t, 3>& local_sizes)
 {
     if(commandQueue->context() != program->context())
     {
@@ -532,11 +532,6 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
         return returnError(CL_INVALID_GLOBAL_WORK_SIZE, __FILE__, __LINE__, "Global-work-size is not set!");
     }
 
-    CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
-
-    std::array<std::size_t, kernel_config::NUM_DIMENSIONS> work_offsets{};
-    std::array<std::size_t, kernel_config::NUM_DIMENSIONS> work_sizes{};
-    std::array<std::size_t, kernel_config::NUM_DIMENSIONS> local_sizes{};
     if(global_work_offset == nullptr)
         work_offsets.fill(0);
     else
@@ -614,9 +609,27 @@ cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, cons
         }
     }
 
+    return CL_SUCCESS;
+}
+
+cl_int Kernel::enqueueNDRange(CommandQueue* commandQueue, cl_uint work_dim, const size_t* global_work_offset,
+    const size_t* global_work_size, const size_t* local_work_size, cl_uint num_events_in_wait_list,
+    const cl_event* event_wait_list, cl_event* event)
+{
+    std::array<std::size_t, kernel_config::NUM_DIMENSIONS> work_offsets{};
+    std::array<std::size_t, kernel_config::NUM_DIMENSIONS> work_sizes{};
+    std::array<std::size_t, kernel_config::NUM_DIMENSIONS> local_sizes{};
+
+    cl_int state = setWorkGroupSizes(commandQueue, work_dim, global_work_offset, global_work_size, local_work_size,
+        work_offsets, work_sizes, local_sizes);
+    if(state != CL_SUCCESS)
+        return state;
+
+    CHECK_EVENT_WAIT_LIST(event_wait_list, num_events_in_wait_list)
+
     std::map<unsigned, std::unique_ptr<DeviceBuffer>> tmpBuffers;
     std::map<unsigned, std::pair<std::shared_ptr<DeviceBuffer>, DevicePointer>> persistentBuffers;
-    auto state = allocateAndTrackBufferArguments(tmpBuffers, persistentBuffers);
+    state = allocateAndTrackBufferArguments(tmpBuffers, persistentBuffers);
     if(state != CL_SUCCESS)
         return returnError(state, __FILE__, __LINE__, "Error while allocating and tracking buffer kernel arguments");
 
@@ -1444,4 +1457,87 @@ cl_kernel VC4CL_FUNC(clCloneKernel)(cl_kernel source_kernel, cl_int* errcode_ret
     Kernel* kernel = newOpenCLObject<Kernel>(*toType<Kernel>(source_kernel));
     CHECK_ALLOCATION_ERROR_CODE(kernel, errcode_ret, cl_kernel)
     RETURN_OBJECT(kernel->toBase(), errcode_ret)
+}
+
+/*!
+ * cl_khr_suggested_local_work_size extension specification:
+ *
+ *  To query a suggested local work size for a kernel object, call the function
+ * clGetKernelSuggestedLocalWorkSizeKHR(...).
+ *
+ *  The returned suggested local work size is expected to match the local work size that would be chosen if the
+ * specified kernel object, with the same kernel arguments, were enqueued into the specified command queue with the
+ * specified global work size, specified global work offset, and with a NULL local work size.
+ *
+ *  \param command_queue specifies the command queue and device for the query.
+ *
+ *  \param kernel specifies the kernel object and kernel arguments for the query. The OpenCL context associated with
+ * kernel and command_queue must the same.
+ *
+ *  \param work_dim specifies the number of work dimensions in the input global work offset and global work size, and
+ * the output suggested local work size.
+ *
+ *  \param global_work_offset can be used to specify an array of at least work_dim global ID offset values for the
+ * query. This is optional and may be NULL to indicate there is no global ID offset.
+ *
+ *  \param global_work_size is an array of at least work_dim values describing the global work size for the query.
+ *
+ *  \param suggested_local_work_size is an output array of at least work_dim values that will contain the result of the
+ * query.
+ *
+ * \return clGetKernelSuggestedLocalWorkSizeKHR returns CL_SUCCESS if the query executed successfully. Otherwise, it
+ * returns one of the following errors:
+ * - CL_INVALID_COMMAND_QUEUE if command_queue is not a valid host command queue.
+ * - CL_INVALID_KERNEL if kernel is not a valid kernel object.
+ * - CL_INVALID_CONTEXT if the context associated with kernel is not the same as the context associated with
+ * command_queue.
+ * - CL_INVALID_PROGRAM_EXECUTABLE if there is no successfully built program executable available for kernel for the
+ * device associated with command_queue.
+ * - CL_INVALID_KERNEL_ARGS if all argument values for kernel have not been set.
+ * - CL_MISALIGNED_SUB_BUFFER_OFFSET if a sub-buffer object is set as an argument to kernel and the offset specified
+ * when the sub-buffer object was created is not aligned to CL_DEVICE_MEM_BASE_ADDR_ALIGN for the device associated with
+ * command_queue.
+ * - CL_INVALID_IMAGE_SIZE if an image object is set as an argument to kernel and the image dimensions are not supported
+ * by device associated with command_queue.
+ * - CL_IMAGE_FORMAT_NOT_SUPPORTED if an image object is set as an argument to kernel and the image format is not
+ * supported by the device associated with command_queue.
+ * - CL_INVALID_OPERATION if an SVM pointer is set as an argument to kernel and the device associated with command_queue
+ * does not support SVM or the required SVM capabilities for the SVM pointer.
+ * - CL_INVALID_WORK_DIMENSION if work_dim is not a valid value (i.e. a value between 1 and
+ * CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS).
+ * - CL_INVALID_GLOBAL_WORK_SIZE if global_work_size is NULL or if any of the values specified in global_work_size are
+ * 0.
+ * - CL_INVALID_GLOBAL_WORK_SIZE if any of the values specified in global_work_size exceed the maximum value
+ * representable by size_t on the device associated with command_queue.
+ * - CL_INVALID_GLOBAL_OFFSET if the value specified in global_work_size plus the corresponding value in
+ * global_work_offset for dimension exceeds the maximum value representable by size_t on the device associated with
+ * command_queue.
+ * - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the
+ * device.
+ * - CL_OUT_OF_HOST_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the
+ * host.
+ *
+ * NOTE: These error conditions are consistent with error conditions for clEnqueueNDRangeKernel.
+ */
+cl_int VC4CL_FUNC(clGetKernelSuggestedLocalWorkSizeKHR)(cl_command_queue command_queue, cl_kernel kernel,
+    cl_uint work_dim, const size_t* global_work_offset, const size_t* global_work_size,
+    size_t* suggested_local_work_size)
+{
+    VC4CL_PRINT_API_CALL("cl_int", clGetKernelSuggestedLocalWorkSizeKHR, "cl_command_queue", command_queue, "cl_kernel",
+        kernel, "cl_uint", work_dim, "const size_t*", global_work_offset, "const size_t*", global_work_size, "size_t*",
+        suggested_local_work_size);
+    CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
+    CHECK_KERNEL(toType<Kernel>(kernel))
+
+    std::array<std::size_t, kernel_config::NUM_DIMENSIONS> work_offsets{};
+    std::array<std::size_t, kernel_config::NUM_DIMENSIONS> work_sizes{};
+    std::array<std::size_t, kernel_config::NUM_DIMENSIONS> local_sizes{};
+
+    auto state = toType<Kernel>(kernel)->setWorkGroupSizes(toType<CommandQueue>(command_queue), work_dim,
+        global_work_offset, global_work_size, nullptr, work_offsets, work_sizes, local_sizes);
+
+    if(state == CL_SUCCESS)
+        memcpy(suggested_local_work_size, local_sizes.data(), work_dim * sizeof(size_t));
+
+    return state;
 }

@@ -40,6 +40,8 @@ void* VC4CL_FUNC(clGetExtensionFunctionAddressForPlatform)(cl_platform_id platfo
         return reinterpret_cast<void*>(&(VC4CL_FUNC(clTrackLiveObjectsAltera)));
     if(strcmp("clReportLiveObjectsAltera", funcname) == 0)
         return reinterpret_cast<void*>(&(VC4CL_FUNC(clReportLiveObjectsAltera)));
+    if(strcmp("clGetKernelSuggestedLocalWorkSizeKHR", funcname) == 0)
+        return reinterpret_cast<void*>(&(VC4CL_FUNC(clGetKernelSuggestedLocalWorkSizeKHR)));
 
     DEBUG_LOG(DebugLevel::API_CALLS, std::cout << "extension function address not found for: " << funcname << std::endl)
 
