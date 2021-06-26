@@ -29,7 +29,7 @@ namespace vc4cl
     class Kernel final : public Object<_cl_kernel, CL_INVALID_KERNEL>
     {
     public:
-        Kernel(Program* program, const KernelInfo& info);
+        Kernel(Program* program, const KernelHeader& info);
         Kernel(const Kernel& other);
         ~Kernel() noexcept override;
 
@@ -48,7 +48,7 @@ namespace vc4cl
             cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event);
 
         object_wrapper<Program> program;
-        const KernelInfo info;
+        const KernelHeader info;
 
         std::vector<std::unique_ptr<KernelArgument>> args;
         std::bitset<kernel_config::MAX_PARAMETER_COUNT> argsSetMask;

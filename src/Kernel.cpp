@@ -94,9 +94,9 @@ std::unique_ptr<KernelArgument> BufferArgument::clone() const
     return std::make_unique<BufferArgument>(*this);
 }
 
-Kernel::Kernel(Program* program, const KernelInfo& info) : program(program), info(info), argsSetMask(0)
+Kernel::Kernel(Program* program, const KernelHeader& info) : program(program), info(info), argsSetMask(0)
 {
-    args.resize(info.params.size());
+    args.resize(info.parameters.size());
 }
 
 Kernel::Kernel(const Kernel& other) : Object(), program(other.program), info(other.info), argsSetMask(other.argsSetMask)
@@ -116,19 +116,19 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                   << arg_size << std::endl);
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
         std::cout << "Kernel arg " << arg_index << " for kernel '" << info.name << "' is "
-                  << info.params[arg_index].type << " '" << info.params[arg_index].name << "' with size "
-                  << static_cast<size_t>(info.params[arg_index].getSize()) << std::endl);
+                  << info.parameters[arg_index].typeName << " '" << info.parameters[arg_index].name << "' with size "
+                  << static_cast<size_t>(info.parameters[arg_index].getSize()) << std::endl);
 
-    if(arg_index >= info.params.size())
+    if(arg_index >= info.parameters.size())
     {
         return returnError(CL_INVALID_ARG_INDEX, __FILE__, __LINE__,
-            buildString("Invalid arg index: %d of %d", arg_index, info.params.size()));
+            buildString("Invalid arg index: %d of %d", arg_index, info.parameters.size()));
     }
 
     // clear previous set parameter value
     args[arg_index].reset();
 
-    const ParamInfo& paramInfo = info.params[arg_index];
+    const auto& paramInfo = info.parameters[arg_index];
     if(!paramInfo.getPointer() || paramInfo.getByValue())
     {
         // literal (scalar, vector or struct) argument
@@ -254,11 +254,11 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
              * with the write_only qualifier and arg_value refers to an image object created with cl_mem_flags of
              * CL_MEM_READ."
              */
-            if(info.params[arg_index].getImage() && info.params[arg_index].isReadOnly() &&
+            if(info.parameters[arg_index].getImage() && info.parameters[arg_index].isReadOnly() &&
                 !toType<Buffer>(buffer)->readable)
                 return returnError(
                     CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-readable image as input parameter!");
-            if(info.params[arg_index].getImage() && info.params[arg_index].isWriteOnly() &&
+            if(info.parameters[arg_index].getImage() && info.parameters[arg_index].isWriteOnly() &&
                 !toType<Buffer>(buffer)->writeable)
                 return returnError(
                     CL_INVALID_ARG_VALUE, __FILE__, __LINE__, "Setting a non-writeable image as output parameter!");
@@ -295,7 +295,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
     return CL_SUCCESS;
 }
 
-static std::string buildAttributeString(const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& compileGroupSizes)
+static std::string buildAttributeString(const std::array<uint16_t, kernel_config::NUM_DIMENSIONS>& compileGroupSizes)
 {
     if(compileGroupSizes.at(0) == 0)
         // not set
@@ -313,7 +313,7 @@ cl_int Kernel::getInfo(
         return returnString(info.name, param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_NUM_ARGS:
         return returnValue<cl_uint>(
-            static_cast<cl_uint>(info.params.size()), param_value_size, param_value, param_value_size_ret);
+            static_cast<cl_uint>(info.parameters.size()), param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_REFERENCE_COUNT:
         return returnValue<cl_uint>(referenceCount, param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_CONTEXT:
@@ -324,7 +324,7 @@ cl_int Kernel::getInfo(
     case CL_KERNEL_ATTRIBUTES:
         // TODO other arbitrary attributes
         return returnString(
-            buildAttributeString(info.compileGroupSizes), param_value_size, param_value, param_value_size_ret);
+            buildAttributeString(info.workGroupSize), param_value_size, param_value, param_value_size_ret);
     }
 
     return returnError(
@@ -345,8 +345,11 @@ cl_int Kernel::getWorkGroupInfo(
         return returnValue<size_t>(
             V3D::instance()->getSystemInfo(SystemInfo::QPU_COUNT), param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
-        return returnValue(
-            info.compileGroupSizes.data(), sizeof(size_t), 3, param_value_size, param_value, param_value_size_ret);
+    {
+        std::array<size_t, kernel_config::NUM_DIMENSIONS> tmp{
+            info.workGroupSize[0], info.workGroupSize[1], info.workGroupSize[2]};
+        return returnValue(tmp.data(), sizeof(size_t), 3, param_value_size, param_value, param_value_size_ret);
+    }
     case CL_KERNEL_LOCAL_MEM_SIZE:
         // XXX can we get this somehow? Need to distinguish in global data block what is __global/__local/__private
         // section
@@ -365,11 +368,11 @@ cl_int Kernel::getWorkGroupInfo(
 cl_int Kernel::getArgInfo(cl_uint arg_index, cl_kernel_arg_info param_name, size_t param_value_size, void* param_value,
     size_t* param_value_size_ret)
 {
-    if(arg_index >= info.params.size())
+    if(arg_index >= info.parameters.size())
         return returnError(CL_INVALID_ARG_INDEX, __FILE__, __LINE__,
-            buildString("Invalid argument index %u (of %u)", arg_index, info.params.size()));
+            buildString("Invalid argument index %u (of %u)", arg_index, info.parameters.size()));
 
-    const ParamInfo& paramInfo = info.params[arg_index];
+    const auto& paramInfo = info.parameters[arg_index];
 
     switch(param_name)
     {
@@ -389,7 +392,7 @@ cl_int Kernel::getArgInfo(cl_uint arg_index, cl_kernel_arg_info param_name, size
         return returnValue<cl_kernel_arg_access_qualifier>(
             CL_KERNEL_ARG_ACCESS_NONE, param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_ARG_TYPE_NAME:
-        return returnString(paramInfo.type, param_value_size, param_value, param_value_size_ret);
+        return returnString(paramInfo.typeName, param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_ARG_TYPE_QUALIFIER:
     {
         auto val = (paramInfo.getConstant() ? CL_KERNEL_ARG_TYPE_CONST : 0) |
@@ -409,7 +412,7 @@ cl_int Kernel::getArgInfo(cl_uint arg_index, cl_kernel_arg_info param_name, size
 /*
  * Tries to split the global sizes into the sizes specified at compile-time
  */
-static bool split_compile_work_size(const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& compile_group_sizes,
+static bool split_compile_work_size(const std::array<uint16_t, kernel_config::NUM_DIMENSIONS>& compile_group_sizes,
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& global_sizes,
     std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_sizes)
 {
@@ -507,13 +510,13 @@ cl_int Kernel::setWorkGroupSizes(CommandQueue* commandQueue, cl_uint work_dim, c
             CL_INVALID_CONTEXT, __FILE__, __LINE__, "Contexts of command queue and program do not match!");
     }
 
-    if(program->moduleInfo.kernelInfos.empty())
+    if(program->moduleInfo.kernels.empty())
     {
         return returnError(CL_INVALID_PROGRAM_EXECUTABLE, __FILE__, __LINE__, "Kernel was not yet compiled!");
     }
 
     cl_ulong expectedMask =
-        info.params.size() == 64 ? 0xFFFFFFFFFFFFFFFF : ((cl_ulong{1} << info.params.size()) - cl_ulong{1});
+        info.parameters.size() == 64 ? 0xFFFFFFFFFFFFFFFF : ((cl_ulong{1} << info.parameters.size()) - cl_ulong{1});
     if(argsSetMask != expectedMask)
     {
         return returnError(CL_INVALID_KERNEL_ARGS, __FILE__, __LINE__,
@@ -549,7 +552,7 @@ cl_int Kernel::setWorkGroupSizes(CommandQueue* commandQueue, cl_uint work_dim, c
         //"local_work_size can also be a NULL value in which case the OpenCL implementation
         // will determine how to be break the global work-items into appropriate work-group instances."
         cl_int state = CL_SUCCESS;
-        if(!split_compile_work_size(info.compileGroupSizes, work_sizes, local_sizes))
+        if(!split_compile_work_size(info.workGroupSize, work_sizes, local_sizes))
         {
             state = split_global_work_size(work_sizes, local_sizes, work_dim);
         }
@@ -564,13 +567,13 @@ cl_int Kernel::setWorkGroupSizes(CommandQueue* commandQueue, cl_uint work_dim, c
         // TODO "CL_INVALID_WORK_GROUP_SIZE if local_work_size is NULL and the __attribute__((reqd_work_group_size(X, Y,
         // Z))) qualifier is used to declare the work-group size for kernel in the program source."
     }
-    else if((info.compileGroupSizes[0] != 0) && local_work_size[0] != info.compileGroupSizes[0] &&
-        (work_dim < 2 || local_work_size[1] != info.compileGroupSizes[1]) &&
-        (work_dim < 3 || local_work_size[2] != info.compileGroupSizes[2]))
+    else if((info.workGroupSize[0] != 0) && local_work_size[0] != info.workGroupSize[0] &&
+        (work_dim < 2 || local_work_size[1] != info.workGroupSize[1]) &&
+        (work_dim < 3 || local_work_size[2] != info.workGroupSize[2]))
         return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__,
             buildString("Local work size does not match the compile-time work-size: %u(%u), %u(%u), %u(%u)",
-                local_work_size[0], info.compileGroupSizes[0], work_dim < 2 ? 1 : local_work_size[1],
-                info.compileGroupSizes[1], work_dim < 3 ? 1 : local_work_size[2], info.compileGroupSizes[2]));
+                local_work_size[0], info.workGroupSize[0], work_dim < 2 ? 1 : local_work_size[1], info.workGroupSize[1],
+                work_dim < 3 ? 1 : local_work_size[2], info.workGroupSize[2]));
     else
         memcpy(local_sizes.data(), local_work_size, work_dim * sizeof(size_t));
     if(exceedsLimits<size_t>(work_sizes[0], 0, kernel_config::MAX_WORK_ITEM_DIMENSIONS[0]) ||
@@ -675,15 +678,15 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
         const KernelArgument* arg = args.at(i).get();
         if(auto localArg = dynamic_cast<const TemporaryBufferArgument*>(arg))
         {
-            if(info.params.at(i).getLowered())
+            if(info.parameters.at(i).getLowered())
             {
                 // don't need to reserve temporary buffer, it will be unused anyway
                 // TODO the zeroing below is not applied for these parameters!
                 tmpBuffers.emplace(i, nullptr);
                 DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
                     std::cout << "Skipping reserving of " << localArg->sizeToAllocate
-                              << " bytes of buffer for lowered local parameter: " << info.params.at(i).type << " "
-                              << info.params.at(i).name << std::endl)
+                              << " bytes of buffer for lowered local parameter: " << info.parameters.at(i).typeName
+                              << " " << info.parameters.at(i).name << std::endl)
             }
             else
             {
@@ -704,8 +707,8 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
                 }
                 DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
                     std::cout << "Reserved " << localArg->sizeToAllocate
-                              << " bytes of buffer for local/struct parameter: " << info.params.at(i).type << " "
-                              << info.params.at(i).name << std::endl)
+                              << " bytes of buffer for local/struct parameter: " << info.parameters.at(i).typeName
+                              << " " << info.parameters.at(i).name << std::endl)
             }
         }
     }
@@ -800,15 +803,15 @@ cl_kernel VC4CL_FUNC(clCreateKernel)(cl_program program, const char* kernel_name
         "cl_kernel", clCreateKernel, "cl_program", program, "const char*", kernel_name, "cl_int*", errcode_ret);
     CHECK_PROGRAM_ERROR_CODE(toType<Program>(program), errcode_ret, cl_kernel)
 
-    if(toType<Program>(program)->moduleInfo.kernelInfos.empty())
+    if(toType<Program>(program)->moduleInfo.kernels.empty())
         return returnError<cl_kernel>(CL_INVALID_PROGRAM_EXECUTABLE, errcode_ret, __FILE__, __LINE__,
             "Program has no kernel-info, may not be compiled!");
 
     if(kernel_name == nullptr)
         return returnError<cl_kernel>(CL_INVALID_VALUE, errcode_ret, __FILE__, __LINE__, "No kernel-name was set!");
 
-    const KernelInfo* info = nullptr;
-    for(const KernelInfo& i : toType<Program>(program)->moduleInfo.kernelInfos)
+    const KernelHeader* info = nullptr;
+    for(const auto& i : toType<Program>(program)->moduleInfo.kernels)
     {
         if(i.name == kernel_name)
         {
@@ -868,17 +871,17 @@ cl_int VC4CL_FUNC(clCreateKernelsInProgram)(
         "cl_kernel*", kernels, "cl_uint*", num_kernels_ret);
     CHECK_PROGRAM(toType<Program>(program))
 
-    if(toType<Program>(program)->moduleInfo.kernelInfos.empty())
+    if(toType<Program>(program)->moduleInfo.kernels.empty())
         return returnError(CL_INVALID_PROGRAM_EXECUTABLE, __FILE__, __LINE__,
             "No kernel-info found, maybe program was not yet compiled!");
 
-    if(kernels != nullptr && num_kernels < toType<Program>(program)->moduleInfo.kernelInfos.size())
+    if(kernels != nullptr && num_kernels < toType<Program>(program)->moduleInfo.kernels.size())
         return returnError(CL_INVALID_VALUE, __FILE__, __LINE__,
-            buildString("Output parameter cannot hold all %d kernels",
-                toType<Program>(program)->moduleInfo.kernelInfos.size()));
+            buildString(
+                "Output parameter cannot hold all %d kernels", toType<Program>(program)->moduleInfo.kernels.size()));
 
     size_t i = 0;
-    for(const KernelInfo& info : toType<Program>(program)->moduleInfo.kernelInfos)
+    for(const auto& info : toType<Program>(program)->moduleInfo.kernels)
     {
         // if kernels is NULL, kernels are created but not referenced -> they leak!!
         if(kernels != nullptr)
@@ -891,7 +894,7 @@ cl_int VC4CL_FUNC(clCreateKernelsInProgram)(
     }
 
     if(num_kernels_ret != nullptr)
-        *num_kernels_ret = static_cast<cl_uint>(toType<Program>(program)->moduleInfo.kernelInfos.size());
+        *num_kernels_ret = static_cast<cl_uint>(toType<Program>(program)->moduleInfo.kernels.size());
 
     return CL_SUCCESS;
 }

@@ -21,6 +21,7 @@ target_sources(VC4CL
     TextureFormat.cpp
     unsupported.cpp
     V3D.cpp
+    shared/BinaryHeader.cpp
 )
 
 if(MOCK_HAL)

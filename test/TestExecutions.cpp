@@ -183,8 +183,8 @@ struct ExecutionRunner final : public test_data::TestRunner
         if(isLiteral)
             errcode =
                 VC4CL_FUNC(clSetKernelArg)(currentKernel->toBase(), static_cast<cl_uint>(index), numBytes, byteData);
-        else if(index < currentKernel->info.params.size() && currentKernel->info.params[index].getPointer() &&
-            currentKernel->info.params[index].getAddressSpace() == AddressSpace::LOCAL)
+        else if(index < currentKernel->info.parameters.size() && currentKernel->info.parameters[index].getPointer() &&
+            currentKernel->info.parameters[index].getAddressSpace() == AddressSpace::LOCAL)
             // need special handling for__local buffers, need to pass in NULL
             errcode =
                 VC4CL_FUNC(clSetKernelArg)(currentKernel->toBase(), static_cast<cl_uint>(index), numBytes, nullptr);

@@ -23,14 +23,6 @@
 
 using namespace vc4cl;
 
-size_t KernelInfo::getExplicitUniformCount() const
-{
-    size_t count = 0;
-    for(const ParamInfo& info : params)
-        count += info.getVectorElements();
-    return count;
-}
-
 Program::Program(Context* context, const std::vector<char>& code, CreationType type) :
     HasContext(context), creationType(type)
 {
@@ -337,7 +329,7 @@ cl_int Program::compile(
     // if the program was already compiled, clear all results
     intermediateCode.clear();
     binaryCode.clear();
-    moduleInfo.kernelInfos.clear();
+    moduleInfo.kernels.clear();
 #if HAS_COMPILER
     cl_int state = precompile_program(this, options, embeddedHeaders);
 #else
@@ -376,7 +368,7 @@ cl_int Program::link(const std::string& options, const std::vector<object_wrappe
     if(status == CL_SUCCESS && creationType != CreationType::LIBRARY)
     {
         // if the program was already compiled, clear all results
-        moduleInfo.kernelInfos.clear();
+        moduleInfo.kernels.clear();
         status = extractModuleInfo();
     }
 #else
@@ -390,7 +382,7 @@ cl_int Program::getInfo(
     cl_program_info param_name, size_t param_value_size, void* param_value, size_t* param_value_size_ret)
 {
     std::string kernelNames;
-    for(const KernelInfo& info : moduleInfo.kernelInfos)
+    for(const auto& info : moduleInfo.kernels)
     {
         kernelNames.append(info.name).append(";");
     }
@@ -449,11 +441,11 @@ cl_int Program::getInfo(
         return returnBuffers({reinterpret_cast<uint8_t*>(binaryCode.data())}, {binaryCode.size() * sizeof(uint64_t)},
             sizeof(unsigned char*), param_value_size, param_value, param_value_size_ret);
     case CL_PROGRAM_NUM_KERNELS:
-        if(moduleInfo.kernelInfos.empty())
+        if(moduleInfo.kernels.empty())
             return CL_INVALID_PROGRAM_EXECUTABLE;
-        return returnValue<size_t>(moduleInfo.kernelInfos.size(), param_value_size, param_value, param_value_size_ret);
+        return returnValue<size_t>(moduleInfo.kernels.size(), param_value_size, param_value, param_value_size_ret);
     case CL_PROGRAM_KERNEL_NAMES:
-        if(moduleInfo.kernelInfos.empty())
+        if(moduleInfo.kernels.empty())
             return CL_INVALID_PROGRAM_EXECUTABLE;
         return returnString(kernelNames, param_value_size, param_value, param_value_size_ret);
 #ifdef CL_VERSION_2_2
@@ -538,40 +530,17 @@ CHECK_RETURN cl_int Program::setSpecializationConstant(cl_uint id, std::size_t n
     return CL_SUCCESS;
 }
 
-static std::string readString(cl_ulong** ptr, cl_uint stringLength)
-{
-    const std::string s(reinterpret_cast<char*>(*ptr), stringLength);
-    *ptr += stringLength / 8;
-    if(stringLength % 8 != 0)
-    {
-        *ptr += 1;
-    }
-    return s;
-}
-
 cl_int Program::extractModuleInfo()
 {
     cl_ulong* ptr = reinterpret_cast<cl_ulong*>(binaryCode.data());
     // check and skip magic number
-    if(*reinterpret_cast<const cl_uint*>(ptr) != kernel_config::BINARY_MAGIC_NUMBER)
+    if(*reinterpret_cast<const cl_uint*>(ptr) != ModuleHeader::QPUASM_MAGIC_NUMBER)
         return returnError(
             CL_INVALID_BINARY, __FILE__, __LINE__, "Invalid binary data given, magic number does not match!");
-    ptr += 1;
 
-    // read and skip module info
-    moduleInfo = ModuleInfo(*ptr);
-    ptr += 1;
-    while(moduleInfo.kernelInfos.size() < moduleInfo.getInfoCount())
-    {
-        cl_int state = extractKernelInfo(&ptr);
-        if(state != CL_SUCCESS)
-        {
-            moduleInfo.kernelInfos.clear();
-            return state;
-        }
-    }
+    moduleInfo = ModuleHeader::fromBinaryData(binaryCode);
 
-    if(moduleInfo.kernelInfos.empty())
+    if(moduleInfo.kernels.empty())
         // no kernel meta-data was found!
         return returnError(CL_INVALID_PROGRAM, __FILE__, __LINE__, "No kernel offset found!");
 
@@ -581,38 +550,6 @@ cl_int Program::extractModuleInfo()
         globalData.reserve(moduleInfo.getGlobalDataSize());
         std::copy(globalsPtr, globalsPtr + moduleInfo.getGlobalDataSize(), std::back_inserter(globalData));
     }
-
-    return CL_SUCCESS;
-}
-
-cl_int Program::extractKernelInfo(cl_ulong** ptr)
-{
-    KernelInfo info(*reinterpret_cast<uint64_t*>(*ptr));
-    *ptr += 1;
-
-    info.compileGroupSizes[0] = **ptr & 0xFFFF;
-    info.compileGroupSizes[1] = (**ptr >> 16) & 0xFFFF;
-    info.compileGroupSizes[2] = (**ptr >> 32) & 0xFFFF;
-    *ptr += 1;
-
-    info.uniformsUsed.value = *reinterpret_cast<uint64_t*>(*ptr);
-    *ptr += 1;
-
-    // name[...]|padding
-    info.name = readString(ptr, info.getNameLength());
-
-    for(cl_ushort i = 0; i < info.getParamCount(); ++i)
-    {
-        ParamInfo param(*reinterpret_cast<uint64_t*>(*ptr));
-        *ptr += 1;
-
-        param.name = readString(ptr, param.getNameLength());
-        param.type = readString(ptr, param.getTypeNameLength());
-
-        info.params.push_back(param);
-    }
-
-    moduleInfo.kernelInfos.push_back(info);
 
     return CL_SUCCESS;
 }
@@ -879,7 +816,7 @@ cl_program VC4CL_FUNC(clCreateProgramWithBinary)(cl_context context, cl_uint num
      * "clCreateProgramWithBinary can be used to load a SPIR binary."
      * -> so if the check for a valid QPU binary fails, assume SPIR binary
      */
-    bool isValidQPUCode = *reinterpret_cast<const cl_uint*>(binaries[0]) == kernel_config::BINARY_MAGIC_NUMBER;
+    bool isValidQPUCode = *reinterpret_cast<const cl_uint*>(binaries[0]) == ModuleHeader::QPUASM_MAGIC_NUMBER;
     const std::vector<char> buffer(binaries[0], binaries[0] + lengths[0]);
     Program* program = newOpenCLObject<Program>(
         toType<Context>(context), buffer, isValidQPUCode ? CreationType::BINARY : CreationType::INTERMEDIATE_LANGUAGE);

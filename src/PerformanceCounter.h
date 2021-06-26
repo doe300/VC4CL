@@ -17,7 +17,7 @@
 
 namespace vc4cl
 {
-    struct KernelInfo;
+    struct KernelHeader;
 
     /**
      * Container object for storing performance counter results
@@ -46,7 +46,7 @@ namespace vc4cl
     {
     public:
         PerformanceCollector(
-            PerformanceCounters& counters, const KernelInfo& kernelInfo, size_t localWorkSize, size_t numGroups);
+            PerformanceCounters& counters, const KernelHeader& kernel, size_t localWorkSize, size_t numGroups);
         PerformanceCollector(const PerformanceCollector&) = delete;
         PerformanceCollector(PerformanceCollector&&) noexcept = delete;
         ~PerformanceCollector() noexcept;

@@ -329,7 +329,7 @@ cl_int executeKernel(KernelExecution& args)
         uniformPointers[0][i] = p;
         p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes,
             group_indices, local_indices, global_data, AS_GPU_ADDRESS(p, buffer.get()), kernel->info.uniformsUsed);
-        for(unsigned u = 0; u < kernel->info.params.size(); ++u)
+        for(unsigned u = 0; u < kernel->info.parameters.size(); ++u)
         {
             auto tmpBufferIt = args.tmpBuffers.find(u);
             auto persistentBufferIt = args.persistentBuffers.find(u);
@@ -398,7 +398,7 @@ cl_int executeKernel(KernelExecution& args)
     }
 
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
-        std::cout << (kernel->info.uniformsUsed.countUniforms() + kernel->info.params.size()) << " parameters set."
+        std::cout << (kernel->info.uniformsUsed.countUniforms() + kernel->info.parameters.size()) << " parameters set."
                   << std::endl)
 
     // We duplicate the UNIFORM buffer, so we can have one being used by the background execution and the other is

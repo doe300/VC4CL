@@ -200,12 +200,6 @@ namespace vc4cl
         // minimum is 2048 (width, height, buffer-size) or 256 (array-size)
         // TMU supports width/height of 2048 pixels
         static constexpr cl_uint MAX_IMAGE_DIMENSION = 2048;
-
-        /*
-         * Program configuration
-         */
-        // magic number to recognize VC4CL binaries, must be the same as set in VC4C
-        static constexpr cl_uint BINARY_MAGIC_NUMBER = 0xDEADBEAF;
     } // namespace kernel_config
 
 } // namespace vc4cl

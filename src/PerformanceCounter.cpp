@@ -99,7 +99,7 @@ cl_int PerformanceCounters::getCounterValue(
 }
 
 PerformanceCollector::PerformanceCollector(
-    PerformanceCounters& counters, const KernelInfo& kernelInfo, size_t localWorkSize, size_t numGroups) :
+    PerformanceCounters& counters, const KernelHeader& kernel, size_t localWorkSize, size_t numGroups) :
     counters(counters)
 {
     // set-up and clear the performance counters
@@ -115,8 +115,8 @@ PerformanceCollector::PerformanceCollector(
     QueryMessage<MailboxTag::GET_MAX_CLOCK_RATE> msg({static_cast<uint32_t>(VC4Clock::V3D)});
     if(mb->readMailboxMessage(msg))
         counters.clockSpeed = msg.getContent(1);
-    counters.numInstructions = kernelInfo.getLength();
-    counters.numExplicitUniforms = static_cast<uint32_t>(kernelInfo.getExplicitUniformCount());
+    counters.numInstructions = kernel.getLength();
+    counters.numExplicitUniforms = static_cast<uint32_t>(kernel.getExplicitUniformCount());
     counters.numWorkGroups = numGroups;
     counters.workGroupSize = localWorkSize;
     for(uint8_t i = 0; i < PERFORMANCE_COUNTERS.size(); ++i)
