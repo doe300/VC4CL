@@ -8,6 +8,7 @@
 #define VC4CL_TEXTURE_FORMAT
 
 #include <array>
+#include <cstddef>
 #include <utility>
 #include <vector>
 

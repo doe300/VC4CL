@@ -118,8 +118,8 @@ PerformanceCollector::PerformanceCollector(
     }
     // fill the static kernel info
     counters.clockSpeed = sys->getCurrentQPUClockRateInHz();
-    counters.numInstructions = kernelInfo.getLength();
-    counters.numExplicitUniforms = static_cast<uint32_t>(kernelInfo.getExplicitUniformCount());
+    counters.numInstructions = kernel.getLength();
+    counters.numExplicitUniforms = static_cast<uint32_t>(kernel.getExplicitUniformCount());
     counters.numWorkGroups = numGroups;
     counters.workGroupSize = localWorkSize;
     for(uint8_t i = 0; i < PERFORMANCE_COUNTERS.size(); ++i)

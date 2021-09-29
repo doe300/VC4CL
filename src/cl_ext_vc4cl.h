@@ -7,6 +7,10 @@
  */
 #pragma once
 
+// For unified OpenCL specification, we need to define the target version
+#ifndef CL_TARGET_OPENCL_VERSION
+#define CL_TARGET_OPENCL_VERSION 120
+#endif
 #include <CL/opencl.h>
 
 #ifdef __cplusplus
