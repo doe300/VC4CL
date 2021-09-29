@@ -94,7 +94,7 @@ void TestKernel::testCreateKernelsInProgram()
 
 void TestKernel::testSetKernelArg()
 {
-    cl_char16 arg0;
+    cl_char16 arg0{};
     cl_int state = VC4CL_FUNC(clSetKernelArg)(kernel, 0, sizeof(arg0), &arg0);
     TEST_ASSERT_EQUALS(CL_INVALID_ARG_SIZE, state);
     

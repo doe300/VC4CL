@@ -49,21 +49,130 @@ std::string toString<std::string>(const std::vector<std::string>& values, const 
     return tmp.substr(0, tmp.size() - separator.size());
 }
 
-static void writeString(const std::string& text, std::vector<uint64_t>& data)
+template <typename T>
+static void writeByteContainer(const T& input, std::vector<uint64_t>& data)
 {
-    auto numWords = text.size() / sizeof(uint64_t);
-    numWords += (text.size() % sizeof(uint64_t) != 0) ? 1 : 0;
+    static_assert(sizeof(typename T::value_type) == 1, "Value type must be a single byte!");
+    auto numWords = input.size() / sizeof(uint64_t);
+    numWords += (input.size() % sizeof(uint64_t) != 0) ? 1 : 0;
     auto currentIndex = data.size();
     data.resize(data.size() + numWords);
-    std::copy(text.begin(), text.end(), reinterpret_cast<char*>(&data[currentIndex]));
+    std::copy(input.begin(), input.end(), reinterpret_cast<typename T::value_type*>(&data[currentIndex]));
 }
 
-static std::string readString(const std::vector<uint64_t>& data, std::size_t& dataIndex, std::size_t numBytes)
+static auto writeString = writeByteContainer<std::string>;
+
+template <typename T>
+static T readByteContainer(const std::vector<uint64_t>& data, std::size_t& dataIndex, std::size_t numBytes)
 {
-    std::string result(reinterpret_cast<const char*>(&data[dataIndex]), numBytes);
+    static_assert(sizeof(typename T::value_type) == 1, "Value type must be a single byte!");
+    T result(reinterpret_cast<const typename T::value_type*>(&data[dataIndex]),
+        reinterpret_cast<const typename T::value_type*>(&data[dataIndex]) + numBytes);
     dataIndex += numBytes / sizeof(uint64_t);
     dataIndex += (numBytes % sizeof(uint64_t) != 0) ? 1 : 0;
     return result;
+}
+
+static auto readString = readByteContainer<std::string>;
+
+MetaData::Type MetaData::getType() const
+{
+    if(payload.empty())
+        throw std::runtime_error{"Metadata has no payload and therefore no type!"};
+    return static_cast<Type>(payload[2]);
+}
+
+std::string MetaData::to_string(bool withQuotes) const
+{
+    std::string tmp;
+    switch(getType())
+    {
+    case Type::KERNEL_VECTOR_TYPE_HINT:
+        tmp = "vec_type_hint(" + getString() + ")";
+        break;
+    case Type::KERNEL_WORK_GROUP_SIZE:
+    {
+        auto sizes = getSizes();
+        tmp = "reqd_work_group_size(" + std::to_string(sizes[0]) + ", " + std::to_string(sizes[1]) + ", " +
+            std::to_string(sizes[2]) + ")";
+        break;
+    }
+    case Type::KERNEL_WORK_GROUP_SIZE_HINT:
+    {
+        auto sizes = getSizes();
+        tmp = "work_group_size_hint(" + std::to_string(sizes[0]) + ", " + std::to_string(sizes[1]) + ", " +
+            std::to_string(sizes[2]) + ")";
+        break;
+    }
+    }
+    return withQuotes ? "\"" + tmp + "\"" : tmp;
+}
+
+void MetaData::toBinaryData(std::vector<uint64_t>& data) const
+{
+    writeByteContainer(payload, data);
+}
+
+MetaData MetaData::fromBinaryData(const std::vector<uint64_t>& data, std::size_t& dataIndex)
+{
+    MetaData metaData;
+    auto numBytes = data[dataIndex] & 0xFFFFU;
+    metaData.payload = readByteContainer<std::vector<uint8_t>>(data, dataIndex, numBytes);
+    return metaData;
+}
+
+std::string MetaData::getString() const
+{
+    auto numBytes = static_cast<uint16_t>(payload[0]) + (static_cast<uint16_t>(payload[1]) << uint16_t{8});
+    auto start = reinterpret_cast<const char*>(payload.data());
+    return std::string(start + 3u /* length + type */, start + numBytes);
+}
+
+void MetaData::setString(Type type, const std::string& text)
+{
+    if(text.size() > std::numeric_limits<uint16_t>::max())
+        throw std::invalid_argument{"Text is too big to fit into a metadata entry!"};
+
+    payload.clear();
+    auto numBytes = text.size() + 3u /* length + type */;
+    payload.reserve(numBytes);
+    payload.push_back(static_cast<uint8_t>(numBytes & 0xFF));
+    payload.push_back(static_cast<uint8_t>((numBytes >> 8) & 0xFF));
+    payload.push_back(static_cast<uint8_t>(type));
+    payload.insert(payload.end(), text.begin(), text.end());
+}
+
+std::array<uint32_t, 3> MetaData::getSizes() const
+{
+    std::array<uint32_t, 3> result{};
+    result[0] = static_cast<uint32_t>(payload[4]) | (static_cast<uint32_t>(payload[5]) << 8u) |
+        (static_cast<uint32_t>(payload[6]) << 16u) | (static_cast<uint32_t>(payload[7]) << 24u);
+    result[1] = static_cast<uint32_t>(payload[8]) | (static_cast<uint32_t>(payload[9]) << 8u) |
+        (static_cast<uint32_t>(payload[10]) << 16u) | (static_cast<uint32_t>(payload[11]) << 24u);
+    result[2] = static_cast<uint32_t>(payload[12]) | (static_cast<uint32_t>(payload[13]) << 8u) |
+        (static_cast<uint32_t>(payload[14]) << 16u) | (static_cast<uint32_t>(payload[15]) << 24u);
+    return result;
+}
+
+void MetaData::setSizes(Type type, const std::array<uint32_t, 3>& sizes)
+{
+    payload.resize(16);
+    payload[0] = 16; // lower size
+    payload[1] = 0;  // upper size
+    payload[2] = static_cast<uint8_t>(type);
+    payload[3] = 0; // padding
+    payload[4] = static_cast<uint8_t>(sizes[0] & 0xFF);
+    payload[5] = static_cast<uint8_t>((sizes[0] >> 8u) & 0xFF);
+    payload[6] = static_cast<uint8_t>((sizes[0] >> 16u) & 0xFF);
+    payload[7] = static_cast<uint8_t>((sizes[0] >> 24u) & 0xFF);
+    payload[8] = static_cast<uint8_t>(sizes[1] & 0xFF);
+    payload[9] = static_cast<uint8_t>((sizes[1] >> 8u) & 0xFF);
+    payload[10] = static_cast<uint8_t>((sizes[1] >> 16u) & 0xFF);
+    payload[11] = static_cast<uint8_t>((sizes[1] >> 24u) & 0xFF);
+    payload[12] = static_cast<uint8_t>(sizes[2] & 0xFF);
+    payload[13] = static_cast<uint8_t>((sizes[2] >> 8u) & 0xFF);
+    payload[14] = static_cast<uint8_t>((sizes[2] >> 16u) & 0xFF);
+    payload[15] = static_cast<uint8_t>((sizes[2] >> 24u) & 0xFF);
 }
 
 LCOV_EXCL_START
@@ -166,9 +275,11 @@ std::string KernelHeader::to_string() const
     auto mergeFactor =
         workItemMergeFactor ? (" (work-item merge factor: " + std::to_string(workItemMergeFactor) + ")") : "";
 
+    auto metaString = metaData.empty() ? "" : (" (metadata: " + ::toString<MetaData>(metaData) + ")");
+
     return std::string("Kernel '") + (name + "' with ") + (std::to_string(getLength()) + " instructions, offset ") +
         (std::to_string(getOffset()) + ", with following parameters: ") + ::toString<ParamHeader>(parameters) +
-        uniformsString + mergeFactor;
+        uniformsString + mergeFactor + metaString;
 }
 LCOV_EXCL_STOP
 
@@ -178,10 +289,14 @@ void KernelHeader::toBinaryData(std::vector<uint64_t>& data) const
     auto secondWord = uint64_t{workGroupSize[0]} | (uint64_t{workGroupSize[1]} << uint64_t{16}) |
         (uint64_t{workGroupSize[2]} << uint64_t{32}) | (uint64_t{workItemMergeFactor} << uint64_t{48});
     data.push_back(secondWord);
-    data.push_back(uniformsUsed.value);
+    auto thirdWord = static_cast<uint64_t>(uniformsUsed.value) |
+        (static_cast<uint64_t>(metaData.size() & 0xFFFFFFFFU) << uint64_t{32});
+    data.push_back(thirdWord);
     writeString(name, data);
     for(const auto& param : parameters)
         param.toBinaryData(data);
+    for(const auto& meta : metaData)
+        meta.toBinaryData(data);
 }
 
 KernelHeader KernelHeader::fromBinaryData(const std::vector<uint64_t>& data, std::size_t& dataIndex)
@@ -197,10 +312,13 @@ KernelHeader KernelHeader::fromBinaryData(const std::vector<uint64_t>& data, std
     ++dataIndex;
     auto thirdWord = data[dataIndex];
     kernel.uniformsUsed.value = static_cast<uint32_t>(thirdWord & 0xFFFFFFFFU);
+    auto numMetaDataEntries = static_cast<uint32_t>((thirdWord >> 32) & 0xFFFFFFFFU);
     ++dataIndex;
     kernel.name = readString(data, dataIndex, kernel.getNameLength());
     while(kernel.parameters.size() < kernel.getParamCount())
         kernel.parameters.push_back(ParamHeader::fromBinaryData(data, dataIndex));
+    while(kernel.metaData.size() < numMetaDataEntries)
+        kernel.metaData.push_back(MetaData::fromBinaryData(data, dataIndex));
     return kernel;
 }
 

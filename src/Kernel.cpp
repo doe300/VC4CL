@@ -295,13 +295,19 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
     return CL_SUCCESS;
 }
 
-static std::string buildAttributeString(const std::array<uint16_t, kernel_config::NUM_DIMENSIONS>& compileGroupSizes)
+static std::string buildAttributeString(const std::vector<MetaData>& metaData)
 {
-    if(compileGroupSizes.at(0) == 0)
-        // not set
-        return "";
-    return std::string("reqd_work_group_size(") + (std::to_string(compileGroupSizes.at(0)) + ",") +
-        (std::to_string(compileGroupSizes.at(1)) + ",") + std::to_string(compileGroupSizes.at(2)) + ")";
+    std::string result = "";
+    for(const auto& meta : metaData)
+    {
+        if(meta.getType() == MetaData::Type::KERNEL_VECTOR_TYPE_HINT ||
+            meta.getType() == MetaData::Type::KERNEL_WORK_GROUP_SIZE ||
+            meta.getType() == MetaData::Type::KERNEL_WORK_GROUP_SIZE_HINT)
+        {
+            result.append(result.empty() ? "" : " ").append(meta.to_string(false));
+        }
+    }
+    return result;
 }
 
 cl_int Kernel::getInfo(
@@ -322,9 +328,7 @@ cl_int Kernel::getInfo(
     case CL_KERNEL_PROGRAM:
         return returnValue<cl_program>(program->toBase(), param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_ATTRIBUTES:
-        // TODO other arbitrary attributes
-        return returnString(
-            buildAttributeString(info.workGroupSize), param_value_size, param_value, param_value_size_ret);
+        return returnString(buildAttributeString(info.metaData), param_value_size, param_value, param_value_size_ret);
     }
 
     return returnError(

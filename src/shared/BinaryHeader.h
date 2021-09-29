@@ -23,6 +23,54 @@ namespace vc4c
 {
     enum class AddressSpace : unsigned char;
 
+    /**
+     * Additional metadata to be stored (e.g. OpenCL C attributes).
+     *
+     * Binary layout (64-bit rows, item lengths not to scale):
+     *
+     * | number of bytes | type | data bytes ... |
+     *   ...                                     |
+     */
+    class MetaData
+    {
+    public:
+        enum class Type : uint8_t
+        {
+            KERNEL_WORK_GROUP_SIZE,
+            KERNEL_WORK_GROUP_SIZE_HINT,
+            KERNEL_VECTOR_TYPE_HINT,
+        };
+
+        template <Type T>
+        void setValue(const std::array<uint32_t, 3>& value)
+        {
+            static_assert(T == Type::KERNEL_WORK_GROUP_SIZE || T == Type::KERNEL_WORK_GROUP_SIZE_HINT, "");
+            setSizes(T, value);
+        }
+
+        template <Type T>
+        void setValue(const std::string& value)
+        {
+            static_assert(T == Type::KERNEL_VECTOR_TYPE_HINT, "");
+            setString(T, value);
+        }
+
+        Type getType() const;
+
+        std::string to_string(bool withQuotes = true) const;
+        void toBinaryData(std::vector<uint64_t>& data) const;
+        static MetaData fromBinaryData(const std::vector<uint64_t>& data, std::size_t& dataIndex);
+
+    private:
+        // The binary metadata payload. NOTE: Do not set this value manually!
+        std::vector<uint8_t> payload;
+
+        std::string getString() const;
+        void setString(Type type, const std::string& text);
+        std::array<uint32_t, 3> getSizes() const;
+        void setSizes(Type type, const std::array<uint32_t, 3>& sizes);
+    };
+
     /*
      * Binary layout (64-bit rows, item lengths not to scale):
      *
@@ -204,10 +252,12 @@ namespace vc4c
      *
      * | offset | length | name length | parameter count |
      * | compilation work-group size | item merge-factor |
-     * | uniforms used        | << unused >>             |
+     * | uniforms used        | meta data list length    |
      * | name ...
      *   ...                                             |
      * | parameters ...
+     *   ...                                             |
+     * | meta data entries ...
      *   ...                                             |
      */
     struct KernelHeader : public Bitfield<uint64_t>
@@ -254,6 +304,11 @@ namespace vc4c
          * UNIFORM-values are created host-side
          */
         KernelUniforms uniformsUsed;
+
+        /**
+         * The list of per-kernel metadata fields
+         */
+        std::vector<MetaData> metaData;
 
         /**
          * The kernel name in the source code
