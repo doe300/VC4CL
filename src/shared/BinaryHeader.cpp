@@ -117,7 +117,7 @@ MetaData MetaData::fromBinaryData(const std::vector<uint64_t>& data, std::size_t
 {
     MetaData metaData;
     auto numBytes = data[dataIndex] & 0xFFFFU;
-    metaData.payload = readByteContainer<std::vector<uint8_t>>(data, dataIndex, numBytes);
+    metaData.payload = readByteContainer<std::vector<uint8_t>>(data, dataIndex, static_cast<std::size_t>(numBytes));
     return metaData;
 }
 

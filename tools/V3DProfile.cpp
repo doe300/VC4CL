@@ -130,7 +130,7 @@ static void drawHistogram(WINDOW* window, Histogram& histogram, unsigned y, unsi
     {
         std::string tmp(histogram[i].data(), histogram[i].size());
         // wrapping in string required for trailing 0-byte
-        mvwprintw(window, y + i, x, tmp.data());
+        mvwprintw(window, static_cast<int>(y + i), static_cast<int>(x), tmp.data());
     }
 }
 

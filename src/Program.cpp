@@ -161,7 +161,8 @@ static cl_int precompile_program(Program* program, const std::string& options,
         DEBUG_LOG(DebugLevel::DUMP_CODE, std::cout << "Precompilation error: " << e.what() << std::endl)
 
         program->buildInfo.log.append("Precompilation error:\n\t").append(e.what()).append("\n");
-        status = CL_COMPILE_PROGRAM_FAILURE;
+        status = returnError(
+            CL_COMPILE_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Precompilation error: %s", e.what()));
     }
     // copy log whether build failed or not
     extractLog(program->buildInfo.log, logStream);
@@ -235,7 +236,7 @@ static cl_int link_programs(
         DEBUG_LOG(DebugLevel::DUMP_CODE, std::cout << "Link error: " << e.what() << std::endl)
 
         program->buildInfo.log.append("Link error:\n\t").append(e.what()).append("\n");
-        status = CL_LINK_PROGRAM_FAILURE;
+        status = returnError(CL_LINK_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Link error: %s", e.what()));
     }
     // copy log whether build failed or not
     extractLog(program->buildInfo.log, logStream);
@@ -289,7 +290,8 @@ static cl_int compile_program(Program* program, const std::string& options)
         DEBUG_LOG(DebugLevel::DUMP_CODE, std::cout << "Compilation error: " << e.what() << std::endl)
 
         program->buildInfo.log.append("Compilation error:\n\t").append(e.what()).append("\n");
-        status = CL_BUILD_PROGRAM_FAILURE;
+        status =
+            returnError(CL_BUILD_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Compilation error: %s", e.what()));
     }
     // copy log whether build failed or not
     extractLog(program->buildInfo.log, logStream);

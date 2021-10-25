@@ -102,10 +102,13 @@ jobs:
     steps:
       - checkout
       - run:
-          name: configure
-          command: mkdir build && cd build && cmake ../ -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=OFF -DINCLUDE_COMPILER=OFF -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
+          name: download latest OpenCL header
+          command: git clone https://github.com/KhronosGroup/OpenCL-Headers.git OpenCL-Headers
       - run:
-          name: make
+          name: configure
+          command: mkdir build && cd build && LDFLAGS=-Wl,--warn-unresolved-symbols cmake ../ -DOpenCL_INCLUDE_DIRS=../OpenCL-Headers -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DCROSS_COMPILE=ON -DBUILD_TESTING=OFF -DINCLUDE_COMPILER=OFF -DBCMHOST_LIBRARY=/opt/vc/lib/libbcm_host.so -DCROSS_COMPILER_PATH=${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin -DCROSS_COMPILER_PREFIX="armv6-rpi-linux-gnueabihf-" -DSYSROOT_CROSS=${HOME}/cross  -DOpenCL_LIBRARY=${HOME}/cross/usr/lib  -DOpenCL_INCLUDE_DIR="${HOME}/cross/usr/include"
+      - run:
+          name: build
           command: cd build && make -j`nproc`
       - run:
           name: deb-packing
