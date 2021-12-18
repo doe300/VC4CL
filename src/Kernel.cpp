@@ -126,9 +126,6 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
             buildString("Invalid arg index: %d of %d", arg_index, info.parameters.size()));
     }
 
-    // clear previous set parameter value
-    args[arg_index].reset();
-
     const auto& paramInfo = info.parameters[arg_index];
     if(!paramInfo.getPointer() || paramInfo.getByValue())
     {
@@ -171,8 +168,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                 // elements) is passed in
                 elementSize = arg_size / 4;
             }
-            ScalarArgument* scalarArg = new ScalarArgument(paramInfo.getVectorElements());
-            args[arg_index].reset(scalarArg);
+            auto scalarArg = std::make_unique<ScalarArgument>(paramInfo.getVectorElements());
             for(cl_uchar i = 0; i < paramInfo.getVectorElements(); ++i)
             {
                 // arguments are all 32-bit, since UNIFORMS are always 32-bit
@@ -219,6 +215,7 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
                     scalarArg->addScalar(static_cast<const cl_uint*>(arg_value)[i]);
                 }
             }
+            args[arg_index] = std::move(scalarArg);
             DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
                 std::cout << "Setting kernel-argument " << arg_index << " to scalar " << args[arg_index]->to_string()
                           << std::endl)
@@ -346,8 +343,12 @@ cl_int Kernel::getWorkGroupInfo(
         // not a built-in kernel."
         return CL_INVALID_VALUE;
     case CL_KERNEL_WORK_GROUP_SIZE:
+    {
         //"[...] query the maximum work-group size that can be used to execute a kernel on a specific device [...]"
-        return returnValue<size_t>(system()->getNumQPUs(), param_value_size, param_value, param_value_size_ret);
+        auto mergeFactor = std::max(info.workItemMergeFactor, uint8_t{1});
+        return returnValue<size_t>(
+            system()->getNumQPUs() * mergeFactor, param_value_size, param_value, param_value_size_ret);
+    }
     case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
     {
         std::array<size_t, kernel_config::NUM_DIMENSIONS> tmp{
@@ -355,13 +356,20 @@ cl_int Kernel::getWorkGroupInfo(
         return returnValue(tmp.data(), sizeof(size_t), 3, param_value_size, param_value, param_value_size_ret);
     }
     case CL_KERNEL_LOCAL_MEM_SIZE:
-        // XXX can we get this somehow? Need to distinguish in global data block what is __global/__local/__private
-        // section
+        if(auto entry = findMetaData<MetaData::KERNEL_LOCAL_MEMORY_SIZE>(info.metaData))
+            // TODO should also include the size of local parameters, as far as already set!
+            return returnValue<cl_ulong>(entry->getValue<MetaData::KERNEL_LOCAL_MEMORY_SIZE>(), param_value_size,
+                param_value, param_value_size_ret);
         return returnValue<cl_ulong>(0, param_value_size, param_value, param_value_size_ret);
     case CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
-        return returnValue<size_t>(1, param_value_size, param_value, param_value_size_ret);
+        // TODO this has little effect (and is in fact wrong according to the OpenCL standard), if clients check the
+        // device's max work-group size (which is fixed to 12)...
+        return returnValue<size_t>(info.workItemMergeFactor ? info.workItemMergeFactor : 1u, param_value_size,
+            param_value, param_value_size_ret);
     case CL_KERNEL_PRIVATE_MEM_SIZE:
-        // XXX same for local memory, could determine if type of global data section is known
+        if(auto entry = findMetaData<MetaData::KERNEL_PRIVATE_MEMORY_SIZE>(info.metaData))
+            return returnValue<cl_ulong>(entry->getValue<MetaData::KERNEL_PRIVATE_MEMORY_SIZE>(), param_value_size,
+                param_value, param_value_size_ret);
         return returnValue<cl_ulong>(0, param_value_size, param_value, param_value_size_ret);
     }
 
@@ -418,12 +426,12 @@ cl_int Kernel::getArgInfo(cl_uint arg_index, cl_kernel_arg_info param_name, size
  */
 static bool split_compile_work_size(const std::array<uint16_t, kernel_config::NUM_DIMENSIONS>& compile_group_sizes,
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& global_sizes,
-    std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_sizes)
+    std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_sizes, uint8_t mergeFactor)
 {
     if(compile_group_sizes[0] == 0 && compile_group_sizes[1] == 0 && compile_group_sizes[2] == 0)
         // no compile-time sizes set
         return false;
-    const cl_uint max_group_size = system()->getNumQPUs();
+    const cl_uint max_group_size = system()->getNumQPUs() * mergeFactor;
 
     if((global_sizes[0] % compile_group_sizes[0]) != 0 || (global_sizes[1] % compile_group_sizes[1]) != 0 ||
         (global_sizes[2] % compile_group_sizes[2]) != 0)
@@ -447,10 +455,10 @@ static bool split_compile_work_size(const std::array<uint16_t, kernel_config::NU
  * - the number of work-groups is as small as possible
  */
 static cl_int split_global_work_size(const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& global_sizes,
-    std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_sizes, cl_uint num_dimensions)
+    std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_sizes, cl_uint num_dimensions, uint8_t mergeFactor)
 {
     const size_t total_sizes = global_sizes[0] * global_sizes[1] * global_sizes[2];
-    const cl_uint max_group_size = system()->getNumQPUs();
+    const cl_uint max_group_size = system()->getNumQPUs() * mergeFactor;
     if(total_sizes <= max_group_size)
     {
         // can be executed in a single work-group
@@ -464,7 +472,7 @@ static cl_int split_global_work_size(const std::array<std::size_t, kernel_config
      * global[0] = x * local[0]
      * global[1] = x * local[1]
      * global[2] = x * local[2]
-     * -> produces x� work-groups
+     * -> produces x^3 work-groups
      * - only works, if global[0,1,2] are all divisible by the same number
      */
     /*
@@ -544,6 +552,7 @@ cl_int Kernel::setWorkGroupSizes(CommandQueue* commandQueue, cl_uint work_dim, c
     else
         memcpy(work_offsets.data(), global_work_offset, work_dim * sizeof(size_t));
     memcpy(work_sizes.data(), global_work_size, work_dim * sizeof(size_t));
+    auto mergeFactor = std::max(info.workItemMergeFactor, uint8_t{1});
     // fill to 3 dimensions
     for(size_t i = work_dim; i < kernel_config::NUM_DIMENSIONS; ++i)
     {
@@ -556,9 +565,9 @@ cl_int Kernel::setWorkGroupSizes(CommandQueue* commandQueue, cl_uint work_dim, c
         //"local_work_size can also be a NULL value in which case the OpenCL implementation
         // will determine how to be break the global work-items into appropriate work-group instances."
         cl_int state = CL_SUCCESS;
-        if(!split_compile_work_size(info.workGroupSize, work_sizes, local_sizes))
+        if(!split_compile_work_size(info.workGroupSize, work_sizes, local_sizes, mergeFactor))
         {
-            state = split_global_work_size(work_sizes, local_sizes, work_dim);
+            state = split_global_work_size(work_sizes, local_sizes, work_dim, mergeFactor);
         }
 
         if(state != CL_SUCCESS)
@@ -599,10 +608,10 @@ cl_int Kernel::setWorkGroupSizes(CommandQueue* commandQueue, cl_uint work_dim, c
                 work_sizes[1] + work_offsets[1], kernel_config::MAX_WORK_ITEM_DIMENSIONS[1],
                 work_sizes[2] + work_offsets[2], kernel_config::MAX_WORK_ITEM_DIMENSIONS[2]));
     }
-    if(exceedsLimits<size_t>(local_sizes[0] * local_sizes[1] * local_sizes[2], 0, system()->getNumQPUs()))
+    if(exceedsLimits<size_t>(local_sizes[0] * local_sizes[1] * local_sizes[2], 0, system()->getNumQPUs() * mergeFactor))
         return returnError(CL_INVALID_WORK_GROUP_SIZE, __FILE__, __LINE__,
             buildString("Local work-sizes exceed maximum: %u * %u * %u > %u", local_sizes[0], local_sizes[1],
-                local_sizes[2], system()->getNumQPUs()));
+                local_sizes[2], system()->getNumQPUs() * mergeFactor));
 
     // check divisibility of local_sizes[i] by work_sizes[i]
     for(cl_uint i = 0; i < kernel_config::NUM_DIMENSIONS; ++i)
@@ -1541,6 +1550,7 @@ cl_kernel VC4CL_FUNC(clCloneKernel)(cl_kernel source_kernel, cl_int* errcode_ret
  * - CL_INVALID_GLOBAL_OFFSET if the value specified in global_work_size plus the corresponding value in
  * global_work_offset for dimension exceeds the maximum value representable by size_t on the device associated with
  * command_queue.
+ * - CL_INVALID_VALUE if suggested_local_work_size is NULL.
  * - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the
  * device.
  * - CL_OUT_OF_HOST_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the
@@ -1557,6 +1567,9 @@ cl_int VC4CL_FUNC(clGetKernelSuggestedLocalWorkSizeKHR)(cl_command_queue command
         suggested_local_work_size);
     CHECK_COMMAND_QUEUE(toType<CommandQueue>(command_queue))
     CHECK_KERNEL(toType<Kernel>(kernel))
+
+    if(suggested_local_work_size == nullptr)
+        return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Local work size output parameter is not set!");
 
     std::array<std::size_t, kernel_config::NUM_DIMENSIONS> work_offsets{};
     std::array<std::size_t, kernel_config::NUM_DIMENSIONS> work_sizes{};

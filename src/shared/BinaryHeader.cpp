@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <bitset>
+#include <stdexcept>
 
 #ifdef VC4CL_BITFIELD
 #include "../Program.h"
@@ -104,6 +105,12 @@ std::string MetaData::to_string(bool withQuotes) const
             std::to_string(sizes[2]) + ")";
         break;
     }
+    case Type::KERNEL_LOCAL_MEMORY_SIZE:
+        tmp = "local_memory_size(" + std::to_string(getInt()) + ")";
+        break;
+    case Type::KERNEL_PRIVATE_MEMORY_SIZE:
+        tmp = "private_memory_size(" + std::to_string(getInt()) + ")";
+        break;
     }
     return withQuotes ? "\"" + tmp + "\"" : tmp;
 }
@@ -115,6 +122,8 @@ void MetaData::toBinaryData(std::vector<uint64_t>& data) const
 
 MetaData MetaData::fromBinaryData(const std::vector<uint64_t>& data, std::size_t& dataIndex)
 {
+    if(dataIndex >= data.size())
+        throw std::invalid_argument{"Binary data is too short, does not contain (further) metadata information!"};
     MetaData metaData;
     auto numBytes = data[dataIndex] & 0xFFFFU;
     metaData.payload = readByteContainer<std::vector<uint8_t>>(data, dataIndex, static_cast<std::size_t>(numBytes));
@@ -175,6 +184,25 @@ void MetaData::setSizes(Type type, const std::array<uint32_t, 3>& sizes)
     payload[15] = static_cast<uint8_t>((sizes[2] >> 24u) & 0xFF);
 }
 
+uint32_t MetaData::getInt() const
+{
+    return static_cast<uint32_t>(payload[4]) | (static_cast<uint32_t>(payload[5]) << 8u) |
+        (static_cast<uint32_t>(payload[6]) << 16u) | (static_cast<uint32_t>(payload[7]) << 24u);
+}
+
+void MetaData::setInt(Type type, uint32_t val)
+{
+    payload.resize(8);
+    payload[0] = 8; // lower size
+    payload[1] = 0; // upper size
+    payload[2] = static_cast<uint8_t>(type);
+    payload[3] = 0; // padding
+    payload[4] = static_cast<uint8_t>(val & 0xFF);
+    payload[5] = static_cast<uint8_t>((val >> 8u) & 0xFF);
+    payload[6] = static_cast<uint8_t>((val >> 16u) & 0xFF);
+    payload[7] = static_cast<uint8_t>((val >> 24u) & 0xFF);
+}
+
 LCOV_EXCL_START
 std::string ParamHeader::to_string() const
 {
@@ -204,6 +232,9 @@ void ParamHeader::toBinaryData(std::vector<uint64_t>& data) const
 
 ParamHeader ParamHeader::fromBinaryData(const std::vector<uint64_t>& data, std::size_t& dataIndex)
 {
+    if(dataIndex >= data.size() || (data.size() - dataIndex) < 2)
+        throw std::invalid_argument{"Binary data is too short, does not contain (further) parameter information!"};
+
     ParamHeader param{data[dataIndex]};
     ++dataIndex;
     param.name = readString(data, dataIndex, param.getNameLength());
@@ -301,6 +332,8 @@ void KernelHeader::toBinaryData(std::vector<uint64_t>& data) const
 
 KernelHeader KernelHeader::fromBinaryData(const std::vector<uint64_t>& data, std::size_t& dataIndex)
 {
+    if(dataIndex >= data.size() || (data.size() - dataIndex) < 4)
+        throw std::invalid_argument{"Binary data is too short, does not contain (further) kernel information!"};
     KernelHeader kernel{4};
     kernel.value = data[dataIndex];
     ++dataIndex;
@@ -361,6 +394,8 @@ std::vector<uint64_t> ModuleHeader::toBinaryData(const std::vector<uint64_t>& gl
 
 ModuleHeader ModuleHeader::fromBinaryData(const std::vector<uint64_t>& data)
 {
+    if(data.size() < 2)
+        throw std::invalid_argument{"Binary data is too short, does not contain module information!"};
     std::size_t dataIndex = 1; // skip magic number
     ModuleHeader module{data[dataIndex]};
     ++dataIndex;

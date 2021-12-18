@@ -59,7 +59,7 @@ static unsigned* set_work_item_info(unsigned* ptr, cl_uint num_dimensions,
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_sizes,
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& group_indices,
     const std::array<std::size_t, kernel_config::NUM_DIMENSIONS>& local_indices, unsigned global_data,
-    unsigned uniformAddress, const KernelUniforms& uniformsUsed)
+    unsigned uniformAddress, const KernelUniforms& uniformsUsed, uint8_t workItemMergeFactor)
 {
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
         std::cout << "Setting work-item infos:" << std::endl;
@@ -69,8 +69,13 @@ static unsigned* set_work_item_info(unsigned* ptr, cl_uint num_dimensions,
                   << global_sizes[0] << "), " << group_indices[1] * local_sizes[1] + local_indices[1] << "("
                   << global_sizes[1] << "), " << group_indices[2] * local_sizes[2] + local_indices[2] << "("
                   << global_sizes[2] << ")" << std::endl;
-        std::cout << "\tLocal IDs (sizes): " << local_indices[0] << "(" << local_sizes[0] << "), " << local_indices[1]
-                  << "(" << local_sizes[1] << "), " << local_indices[2] << "(" << local_sizes[2] << ")" << std::endl;
+        if (workItemMergeFactor > 1)
+            std::cout << "\tLocal IDs (sizes): " << (local_indices[0] * workItemMergeFactor) << "-"
+                      << std::min((local_indices[0] + 1) * workItemMergeFactor, local_sizes[0]) << "(" << local_sizes[0] << "), "
+                      << local_indices[1] << "(" << local_sizes[1] << "), " << local_indices[2] << "(" << local_sizes[2] << ")" << std::endl;
+        else
+            std::cout << "\tLocal IDs (sizes): " << local_indices[0] << "(" << local_sizes[0] << "), " << local_indices[1]
+                      << "(" << local_sizes[1] << "), " << local_indices[2] << "(" << local_sizes[2] << ")" << std::endl;
         std::cout << "\tGroup IDs (sizes): " << group_indices[0] << "(" << (global_sizes[0] / local_sizes[0]) << "), "
                   << group_indices[1] << "(" << (global_sizes[1] / local_sizes[1]) << "), " << group_indices[2] << "("
                   << (global_sizes[2] / local_sizes[2]) << ")" << std::endl;
@@ -85,7 +90,7 @@ static unsigned* set_work_item_info(unsigned* ptr, cl_uint num_dimensions,
             local_sizes[2] << 16 | local_sizes[1] << 8 | local_sizes[0]); /* get_local_size(dim) */
     if(uniformsUsed.getLocalIDsUsed())
         *ptr++ = static_cast<unsigned>(
-            local_indices[2] << 16 | local_indices[1] << 8 | local_indices[0]); /* get_local_id(dim) */
+            local_indices[2] << 16 | local_indices[1] << 8 | (local_indices[0] * workItemMergeFactor)); /* get_local_id(dim) */
     if(uniformsUsed.getNumGroupsXUsed())
         *ptr++ = static_cast<unsigned>(global_sizes[0] / local_sizes[0]); /* get_num_groups(0) */
     if(uniformsUsed.getNumGroupsYUsed())
@@ -225,11 +230,13 @@ cl_int executeKernel(KernelExecution& args)
     CHECK_KERNEL(kernel)
 
     // the number of QPUs is the product of all local sizes
-    const size_t num_qpus = args.localSizes[0] * args.localSizes[1] * args.localSizes[2];
-    if(num_qpus > args.system->getNumQPUs())
+    auto mergeFactor = std::max(kernel->info.workItemMergeFactor, uint8_t{1});
+    size_t localSize = args.localSizes[0] * args.localSizes[1] * args.localSizes[2];
+    size_t numQPUs = (localSize / mergeFactor) + (localSize % mergeFactor != 0);
+    if(numQPUs > args.system->getNumQPUs())
         return CL_INVALID_GLOBAL_WORK_SIZE;
 
-    if(num_qpus == 0)
+    if(numQPUs == 0)
         // OpenCL 3.0 requires that we allow to enqueue a kernel without any executions for some reason
         return CL_COMPLETE;
 
@@ -250,9 +257,9 @@ cl_int executeKernel(KernelExecution& args)
         std::cout << "Running kernel '" << kernel->info.name << "' with " << kernel->info.getLength()
                   << " instructions..." << std::endl;
         std::cout << "Local sizes: " << args.localSizes[0] << " " << args.localSizes[1] << " " << args.localSizes[2]
-                  << " -> " << num_qpus << " QPUs" << std::endl;
+                  << " and merge-factor " << static_cast<unsigned>(mergeFactor) << " -> " << numQPUs << " QPUs" << std::endl;
         std::cout << "Global sizes: " << args.globalSizes[0] << " " << args.globalSizes[1] << " " << args.globalSizes[2]
-                  << " -> " << (args.globalSizes[0] * args.globalSizes[1] * args.globalSizes[2]) / num_qpus
+                  << " -> " << (args.globalSizes[0] * args.globalSizes[1] * args.globalSizes[2]) / localSize
                   << " work-groups (" << (isWorkGroupLoopEnabled ? "all at once" : "separate") << ")" << std::endl;
     })
 
@@ -260,7 +267,7 @@ cl_int executeKernel(KernelExecution& args)
     // ALLOCATE BUFFER
     //
     size_t buffer_size = get_size(args.system->getNumQPUs(), kernel->info.getLength() * sizeof(uint64_t),
-        num_qpus * (MAX_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()),
+        numQPUs * (MAX_HIDDEN_PARAMETERS + kernel->info.getExplicitUniformCount()),
         kernel->program->globalData.size() * sizeof(uint64_t), kernel->program->moduleInfo.getStackFrameSize());
 
     std::unique_ptr<DeviceBuffer> buffer(
@@ -323,11 +330,11 @@ cl_int executeKernel(KernelExecution& args)
     std::array<std::array<unsigned*, 16>, 2> uniformPointers;
     // Build Uniforms
     const unsigned* qpu_uniform_0 = p;
-    for(unsigned i = 0; i < num_qpus; ++i)
+    for(unsigned i = 0; i < numQPUs; ++i)
     {
         uniformPointers[0][i] = p;
         p = set_work_item_info(p, args.numDimensions, args.globalOffsets, args.globalSizes, args.localSizes,
-            group_indices, local_indices, global_data, AS_GPU_ADDRESS(p, buffer.get()), kernel->info.uniformsUsed);
+            group_indices, local_indices, global_data, AS_GPU_ADDRESS(p, buffer.get()), kernel->info.uniformsUsed, mergeFactor);
         for(unsigned u = 0; u < kernel->info.parameters.size(); ++u)
         {
             auto tmpBufferIt = args.tmpBuffers.find(u);
@@ -410,20 +417,20 @@ cl_int executeKernel(KernelExecution& args)
 
         // the UNIFORMs of the second block are exactly the size of the first block after the corresponding UNIFORMs
         // of the first block
-        for(unsigned i = 0; i < num_qpus; ++i)
+        for(unsigned i = 0; i < numQPUs; ++i)
             uniformPointers[1][i] = uniformPointers[0][i] + uniformSize;
     }
 
     /* Build QPU Launch messages */
     auto uniformsPerQPU = kernel->info.uniformsUsed.countUniforms() + kernel->info.getExplicitUniformCount();
     unsigned* qpu_msg_0 = p;
-    for(unsigned i = 0; i < num_qpus; ++i)
+    for(unsigned i = 0; i < numQPUs; ++i)
     {
         *p++ = AS_GPU_ADDRESS(qpu_uniform_0 + i * uniformsPerQPU, buffer.get());
         *p++ = AS_GPU_ADDRESS(qpu_code, buffer.get());
     }
     unsigned* qpu_msg_1 = p;
-    for(unsigned i = 0; i < num_qpus; ++i)
+    for(unsigned i = 0; i < numQPUs; ++i)
     {
         *p++ = AS_GPU_ADDRESS(qpu_uniform_1 + i * uniformsPerQPU, buffer.get());
         *p++ = AS_GPU_ADDRESS(qpu_code, buffer.get());
@@ -461,11 +468,11 @@ cl_int executeKernel(KernelExecution& args)
     // object lifetime
     std::unique_ptr<PerformanceCollector> perfCollector;
     if(args.performanceCounters)
-        perfCollector.reset(new PerformanceCollector(*args.performanceCounters, args.kernel->info, num_qpus,
+        perfCollector.reset(new PerformanceCollector(*args.performanceCounters, args.kernel->info, numQPUs,
             group_limits[0] * group_limits[1] * group_limits[2]));
     // on first execution, flush code cache
     auto start = std::chrono::high_resolution_clock::now();
-    auto result = args.system->executeQPU(static_cast<unsigned>(num_qpus),
+    auto result = args.system->executeQPU(static_cast<unsigned>(numQPUs),
         std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), true, timeout);
     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION, {
         // NOTE: This disables background-execution!
@@ -482,11 +489,11 @@ cl_int executeKernel(KernelExecution& args)
         std::swap(uniformPointers_current, uniformPointers_next);
         local_indices[0] = local_indices[1] = local_indices[2] = 0;
         // re-set indices and offsets for all QPUs
-        for(cl_uint i = 0; i < num_qpus; ++i)
+        for(cl_uint i = 0; i < numQPUs; ++i)
         {
             set_work_item_info((*uniformPointers_current)[i], args.numDimensions, args.globalOffsets, args.globalSizes,
                 args.localSizes, group_indices, local_indices, global_data,
-                AS_GPU_ADDRESS((*uniformPointers_current)[i], buffer.get()), kernel->info.uniformsUsed);
+                AS_GPU_ADDRESS((*uniformPointers_current)[i], buffer.get()), kernel->info.uniformsUsed, mergeFactor);
 
             increment_index(local_indices, args.localSizes, 1);
         }
@@ -498,7 +505,7 @@ cl_int executeKernel(KernelExecution& args)
             std::cout << "Running work-group " << group_indices[0] << ", " << group_indices[1] << ", "
                       << group_indices[2] << std::endl)
         // all following executions, don't flush cache
-        result = args.system->executeQPU(static_cast<unsigned>(num_qpus),
+        result = args.system->executeQPU(static_cast<unsigned>(numQPUs),
             std::make_pair(qpu_msg_current, AS_GPU_ADDRESS(qpu_msg_current, buffer.get())), false, timeout);
         // NOTE: This disables background-execution!
         DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,

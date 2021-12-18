@@ -150,7 +150,8 @@ struct ExecutionRunner final : public test_data::TestRunner
     }
     ~ExecutionRunner() noexcept override;
 
-    test_data::Result compile(const std::string& sourceCode, const std::string& options) override
+    test_data::Result compile(
+        const std::string& sourceCode, const std::string& options, const std::string& name) override
     {
         auto it = compilationCache.find(sourceCode + options);
         if(it != compilationCache.end())

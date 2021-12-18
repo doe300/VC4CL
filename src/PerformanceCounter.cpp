@@ -47,7 +47,7 @@ void PerformanceCounters::dumpCounters() const
     DEBUG_LOG(DebugLevel::PERFORMANCE_COUNTERS, std::cout << "Instruction count: " << numInstructions << std::endl)
     DEBUG_LOG(
         DebugLevel::PERFORMANCE_COUNTERS, std::cout << "Explicit uniform count: " << numExplicitUniforms << std::endl)
-    DEBUG_LOG(DebugLevel::PERFORMANCE_COUNTERS, std::cout << "QPUs used: " << workGroupSize << std::endl)
+    DEBUG_LOG(DebugLevel::PERFORMANCE_COUNTERS, std::cout << "QPUs used: " << numQPUs << std::endl)
     DEBUG_LOG(DebugLevel::PERFORMANCE_COUNTERS, std::cout << "Kernel repetition count: " << numWorkGroups << std::endl)
     for(const auto& counter : PERFORMANCE_COUNTERS)
     {
@@ -102,7 +102,7 @@ cl_int PerformanceCounters::getCounterValue(
 }
 
 PerformanceCollector::PerformanceCollector(
-    PerformanceCounters& counters, const KernelHeader& kernel, size_t localWorkSize, size_t numGroups) :
+    PerformanceCounters& counters, const KernelHeader& kernel, size_t numQPUs, size_t numGroups) :
     counters(counters)
 {
     // set-up and clear the performance counters
@@ -121,7 +121,7 @@ PerformanceCollector::PerformanceCollector(
     counters.numInstructions = kernel.getLength();
     counters.numExplicitUniforms = static_cast<uint32_t>(kernel.getExplicitUniformCount());
     counters.numWorkGroups = numGroups;
-    counters.workGroupSize = localWorkSize;
+    counters.numQPUs = numQPUs;
     for(uint8_t i = 0; i < PERFORMANCE_COUNTERS.size(); ++i)
     {
         if(!v3d->setCounter(i, PERFORMANCE_COUNTERS[i].first))

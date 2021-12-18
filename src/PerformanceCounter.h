@@ -32,7 +32,7 @@ namespace vc4cl
         size_t numInstructions;
         size_t numExplicitUniforms;
         size_t numWorkGroups;
-        size_t workGroupSize;
+        size_t numQPUs;
         std::chrono::microseconds elapsedTime;
 
         void dumpCounters() const;
@@ -48,7 +48,7 @@ namespace vc4cl
     {
     public:
         PerformanceCollector(
-            PerformanceCounters& counters, const KernelHeader& kernel, size_t localWorkSize, size_t numGroups);
+            PerformanceCounters& counters, const KernelHeader& kernel, size_t numQPUs, size_t numGroups);
         PerformanceCollector(const PerformanceCollector&) = delete;
         PerformanceCollector(PerformanceCollector&&) noexcept = delete;
         ~PerformanceCollector() noexcept;

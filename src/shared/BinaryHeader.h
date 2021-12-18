@@ -26,6 +26,8 @@ namespace vc4c
     /**
      * Additional metadata to be stored (e.g. OpenCL C attributes).
      *
+     * NOTE: Metadata must not have any semantic meaning effecting the kernel execution itself!
+     *
      * Binary layout (64-bit rows, item lengths not to scale):
      *
      * | number of bytes | type | data bytes ... |
@@ -34,11 +36,13 @@ namespace vc4c
     class MetaData
     {
     public:
-        enum class Type : uint8_t
+        enum Type : uint8_t
         {
             KERNEL_WORK_GROUP_SIZE,
             KERNEL_WORK_GROUP_SIZE_HINT,
             KERNEL_VECTOR_TYPE_HINT,
+            KERNEL_LOCAL_MEMORY_SIZE,
+            KERNEL_PRIVATE_MEMORY_SIZE
         };
 
         template <Type T>
@@ -49,10 +53,38 @@ namespace vc4c
         }
 
         template <Type T>
+        std::enable_if_t<T == Type::KERNEL_WORK_GROUP_SIZE || T == Type::KERNEL_WORK_GROUP_SIZE_HINT,
+            std::array<uint32_t, 3>>
+        getValue() const
+        {
+            return getSizes();
+        }
+
+        template <Type T>
         void setValue(const std::string& value)
         {
             static_assert(T == Type::KERNEL_VECTOR_TYPE_HINT, "");
             setString(T, value);
+        }
+
+        template <Type T>
+        std::enable_if_t<T == Type::KERNEL_VECTOR_TYPE_HINT, std::string> getValue() const
+        {
+            return getString();
+        }
+
+        template <Type T>
+        void setValue(uint32_t value)
+        {
+            static_assert(T == Type::KERNEL_LOCAL_MEMORY_SIZE || T == Type::KERNEL_PRIVATE_MEMORY_SIZE, "");
+            setInt(T, value);
+        }
+
+        template <Type T>
+        std::enable_if_t<T == Type::KERNEL_LOCAL_MEMORY_SIZE || T == Type::KERNEL_PRIVATE_MEMORY_SIZE, uint32_t>
+        getValue() const
+        {
+            return getInt();
         }
 
         Type getType() const;
@@ -69,6 +101,8 @@ namespace vc4c
         void setString(Type type, const std::string& text);
         std::array<uint32_t, 3> getSizes() const;
         void setSizes(Type type, const std::array<uint32_t, 3>& sizes);
+        uint32_t getInt() const;
+        void setInt(Type type, uint32_t val);
     };
 
     /*
@@ -396,6 +430,17 @@ namespace vc4c
         std::vector<uint64_t> toBinaryData(const std::vector<uint64_t>& globalData, uint16_t numStackWords);
         static ModuleHeader fromBinaryData(const std::vector<uint64_t>& data);
     };
+
+    template <MetaData::Type T>
+    const MetaData* findMetaData(const std::vector<MetaData>& list)
+    {
+        for(const auto& entry : list)
+        {
+            if(entry.getType() == T)
+                return &entry;
+        }
+        return nullptr;
+    }
 
 } // namespace vc4c
 
