@@ -83,21 +83,19 @@ static cl_int extractLog(std::string& log, std::wstringstream& logStream)
 static cl_int precompile_program(Program* program, const std::string& options,
     const std::unordered_map<std::string, object_wrapper<Program>>& embeddedHeaders)
 {
-    std::istringstream sourceCode;
     // to avoid the warning about "null character ignored"
     auto length = program->sourceCode.size();
     if(length > 0 && program->sourceCode.back() == '\0')
         --length;
-    sourceCode.str(std::string(program->sourceCode.data(), length));
+    vc4c::CompilationData sourceCode{program->sourceCode.data(), program->sourceCode.data() + length};
 
-    vc4c::SourceType sourceType = vc4c::Precompiler::getSourceType(sourceCode);
-    if(sourceType == vc4c::SourceType::UNKNOWN || sourceType == vc4c::SourceType::QPUASM_BIN ||
-        sourceType == vc4c::SourceType::QPUASM_HEX)
+    if(sourceCode.getType() == vc4c::SourceType::UNKNOWN || sourceCode.getType() == vc4c::SourceType::QPUASM_BIN ||
+        sourceCode.getType() == vc4c::SourceType::QPUASM_HEX)
     {
         program->buildInfo.log.append("Invalid source-code type:");
         program->buildInfo.log.append(program->sourceCode.data(), length);
-        return returnError(
-            CL_COMPILE_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Invalid source-code type %d", sourceType));
+        return returnError(CL_COMPILE_PROGRAM_FAILURE, __FILE__, __LINE__,
+            buildString("Invalid source-code type %d", sourceCode.getType()));
     }
 
     vc4c::Configuration config;
@@ -108,8 +106,7 @@ static cl_int precompile_program(Program* program, const std::string& options,
         const std::string dumpFile("/tmp/vc4cl-source-" + std::to_string(rand()) + ".cl");
         std::cout << "Dumping program sources to " << dumpFile << std::endl;
         std::ofstream f(dumpFile, std::ios_base::out | std::ios_base::trunc);
-        f << sourceCode.str();
-        f.close();
+        sourceCode.readInto(f);
     })
 
     cl_int status = CL_SUCCESS;
@@ -129,31 +126,27 @@ static cl_int precompile_program(Program* program, const std::string& options,
         if(!tempHeaderFiles.empty())
             tempHeaderIncludes = " -I /tmp/ ";
 
-        vc4c::TemporaryFile tmpFile;
-        std::unique_ptr<std::istream> out;
-        vc4c::Precompiler::precompile(sourceCode, out, config, tempHeaderIncludes + options, {}, tmpFile.fileName);
-        if(out == nullptr ||
-            (dynamic_cast<std::istringstream*>(out.get()) != nullptr &&
-                dynamic_cast<std::istringstream*>(out.get())->str().empty()))
-            // replace only when pre-compiled (and not just linked output to input, e.g. if source-type is output-type)
-            tmpFile.openInputStream(out);
-
-        uint8_t tmp;
-        while(out->read(reinterpret_cast<char*>(&tmp), sizeof(uint8_t)))
-            program->intermediateCode.push_back(tmp);
+        auto out = vc4c::Precompiler::precompile(sourceCode, config, tempHeaderIncludes + options);
+        if(auto rawData = out.getRawData())
+            program->intermediateCode = *std::move(rawData);
+        else
+        {
+            std::stringstream tmpStream{};
+            out.readInto(tmpStream);
+            uint8_t tmp;
+            while(tmpStream.read(reinterpret_cast<char*>(&tmp), sizeof(uint8_t)))
+                program->intermediateCode.push_back(tmp);
+        }
 
         DEBUG_LOG(DebugLevel::DUMP_CODE, {
-            // reset the tmp buffer, so we can actually read from it again
-            out->clear();
-            out->seekg(0);
-            auto irType = vc4c::Precompiler::getSourceType(*out);
-            bool isSPIRVType = irType == vc4c::SourceType::SPIRV_BIN || irType == vc4c::SourceType::SPIRV_TEXT;
+            bool isSPIRVType =
+                out.getType() == vc4c::SourceType::SPIRV_BIN || out.getType() == vc4c::SourceType::SPIRV_TEXT;
             const std::string dumpFile("/tmp/vc4cl-ir-" + std::to_string(rand()) + (isSPIRVType ? ".spt" : ".ll"));
             std::cout << "Dumping program IR to " << dumpFile << std::endl;
-            vc4c::Precompiler precomp(config, *out, irType);
-            std::unique_ptr<std::istream> irOut;
-            precomp.run(
-                irOut, isSPIRVType ? vc4c::SourceType::SPIRV_TEXT : vc4c::SourceType::LLVM_IR_TEXT, "", dumpFile);
+            auto dumpData = vc4c::Precompiler::precompile(
+                out, isSPIRVType ? vc4c::SourceType::SPIRV_TEXT : vc4c::SourceType::LLVM_IR_TEXT, config, "");
+            std::ofstream fos{dumpFile};
+            dumpData.readInto(fos);
         })
     }
     catch(vc4c::CompilationError& e)
@@ -188,47 +181,41 @@ static cl_int link_programs(
     {
         vc4c::setLogger(logStream, false, vc4c::LogLevel::WARNING);
 
-        std::stringstream linkedCode;
-        std::unordered_map<std::istream*, vc4c::Optional<std::string>> inputModules;
-        std::vector<std::unique_ptr<std::istream>> streamsBuffer;
-        streamsBuffer.reserve(1 + otherPrograms.size());
+        std::vector<vc4c::CompilationData> inputModules;
+        inputModules.reserve(1 + otherPrograms.size());
         if(!program->intermediateCode.empty())
-        {
-            streamsBuffer.emplace_back(new std::stringstream(std::string(
-                reinterpret_cast<const char*>(program->intermediateCode.data()), program->intermediateCode.size())));
-            inputModules.emplace(streamsBuffer.back().get(), vc4c::Optional<std::string>{});
-        }
+            inputModules.emplace_back(std::vector<uint8_t>{program->intermediateCode});
+
         for(const auto& p : otherPrograms)
         {
             if(p && !p->intermediateCode.empty())
-            {
-                streamsBuffer.emplace_back(new std::stringstream(std::string(
-                    reinterpret_cast<const char*>(p->intermediateCode.data()), p->intermediateCode.size())));
-                inputModules.emplace(streamsBuffer.back().get(), vc4c::Optional<std::string>{});
-            }
+                inputModules.emplace_back(std::vector<uint8_t>{p->intermediateCode});
         }
         if(!vc4c::Precompiler::isLinkerAvailable(inputModules))
             return returnError(
                 CL_LINKER_NOT_AVAILABLE, __FILE__, __LINE__, "No linker available for this type of input modules!");
-        vc4c::Precompiler::linkSourceCode(inputModules, linkedCode, includeStandardLibrary);
-        program->intermediateCode.clear();
-        uint8_t tmp;
-        while(linkedCode.read(reinterpret_cast<char*>(&tmp), sizeof(uint8_t)))
-            program->intermediateCode.push_back(tmp);
+        auto linkedCode = vc4c::Precompiler::linkSourceCode(inputModules, includeStandardLibrary);
+        if(auto rawData = linkedCode.getRawData())
+            program->intermediateCode = *std::move(rawData);
+        else
+        {
+            std::stringstream tmpStream{};
+            linkedCode.readInto(tmpStream);
+            program->intermediateCode.clear();
+            uint8_t tmp;
+            while(tmpStream.read(reinterpret_cast<char*>(&tmp), sizeof(uint8_t)))
+                program->intermediateCode.push_back(tmp);
+        }
 
         DEBUG_LOG(DebugLevel::DUMP_CODE, {
-            // reset the tmp buffer, so we can actually read from it again
-            linkedCode.clear();
-            linkedCode.seekg(0);
-            auto irType = vc4c::Precompiler::getSourceType(linkedCode);
-            bool isSPIRVType = irType == vc4c::SourceType::SPIRV_BIN || irType == vc4c::SourceType::SPIRV_TEXT;
+            bool isSPIRVType = linkedCode.getType() == vc4c::SourceType::SPIRV_BIN ||
+                linkedCode.getType() == vc4c::SourceType::SPIRV_TEXT;
             const std::string dumpFile("/tmp/vc4cl-ir-" + std::to_string(rand()) + (isSPIRVType ? ".spt" : ".ll"));
             std::cout << "Dumping program IR to " << dumpFile << std::endl;
-            vc4c::Configuration dummyConfig{};
-            vc4c::Precompiler precomp(dummyConfig, linkedCode, irType);
-            std::unique_ptr<std::istream> irOut;
-            precomp.run(
-                irOut, isSPIRVType ? vc4c::SourceType::SPIRV_TEXT : vc4c::SourceType::LLVM_IR_TEXT, "", dumpFile);
+            auto dumpData = vc4c::Precompiler::precompile(
+                linkedCode, isSPIRVType ? vc4c::SourceType::SPIRV_TEXT : vc4c::SourceType::LLVM_IR_TEXT);
+            std::ofstream fos{dumpFile};
+            dumpData.readInto(fos);
         })
     }
     catch(vc4c::CompilationError& e)
@@ -252,15 +239,12 @@ static cl_int link_programs(
 
 static cl_int compile_program(Program* program, const std::string& options)
 {
-    std::stringstream intermediateCode;
-    intermediateCode.write(reinterpret_cast<char*>(program->intermediateCode.data()),
-        static_cast<std::streamsize>(program->intermediateCode.size()));
-
-    vc4c::SourceType sourceType = vc4c::Precompiler::getSourceType(intermediateCode);
-    if(sourceType == vc4c::SourceType::UNKNOWN || sourceType == vc4c::SourceType::QPUASM_BIN ||
-        sourceType == vc4c::SourceType::QPUASM_HEX)
-        return returnError(
-            CL_BUILD_PROGRAM_FAILURE, __FILE__, __LINE__, buildString("Invalid source-code type %d", sourceType));
+    vc4c::CompilationData intermediateCode{std::vector<uint8_t>{program->intermediateCode}};
+    if(intermediateCode.getType() == vc4c::SourceType::UNKNOWN ||
+        intermediateCode.getType() == vc4c::SourceType::QPUASM_BIN ||
+        intermediateCode.getType() == vc4c::SourceType::QPUASM_HEX)
+        return returnError(CL_BUILD_PROGRAM_FAILURE, __FILE__, __LINE__,
+            buildString("Invalid source-code type %d", intermediateCode.getType()));
 
     vc4c::Configuration config;
     // set the configuration for the available VPM size
@@ -273,17 +257,31 @@ static cl_int compile_program(Program* program, const std::string& options)
     program->buildInfo.options = options;
     DEBUG_LOG(DebugLevel::DUMP_CODE, std::cout << "Compiling source with: " << program->buildInfo.options << std::endl)
 
+    DEBUG_LOG(DebugLevel::DUMP_CODE, {
+        bool isSPIRVType = intermediateCode.getType() == vc4c::SourceType::SPIRV_BIN ||
+            intermediateCode.getType() == vc4c::SourceType::SPIRV_TEXT;
+        const std::string dumpFile("/tmp/vc4cl-ir-" + std::to_string(rand()) + (isSPIRVType ? ".spv" : ".bc"));
+        std::cout << "Dumping program IR to " << dumpFile << std::endl;
+        std::ofstream outFile(dumpFile);
+        intermediateCode.readInto(outFile);
+    })
+
     cl_int status = CL_SUCCESS;
     std::wstringstream logStream;
     try
     {
         vc4c::setLogger(logStream, false, vc4c::LogLevel::WARNING);
 
-        std::stringstream binaryCode;
-        std::size_t numBytes = vc4c::Compiler::compile(intermediateCode, binaryCode, config, options);
-        program->binaryCode.resize(numBytes / sizeof(uint64_t), '\0');
-
-        memcpy(program->binaryCode.data(), binaryCode.str().data(), numBytes);
+        auto result = vc4c::Compiler::compile(intermediateCode, config, options);
+        program->binaryCode.resize(result.second / sizeof(uint64_t), '\0');
+        if(auto rawData = result.first.getRawData())
+            memcpy(program->binaryCode.data(), rawData->data(), result.second);
+        else
+        {
+            std::stringstream tmpStream{};
+            result.first.readInto(tmpStream);
+            memcpy(program->binaryCode.data(), tmpStream.str().data(), result.second);
+        }
     }
     catch(vc4c::CompilationError& e)
     {
@@ -540,7 +538,15 @@ cl_int Program::extractModuleInfo()
         return returnError(
             CL_INVALID_BINARY, __FILE__, __LINE__, "Invalid binary data given, magic number does not match!");
 
-    moduleInfo = ModuleHeader::fromBinaryData(binaryCode);
+    try
+    {
+        moduleInfo = ModuleHeader::fromBinaryData(binaryCode);
+    }
+    catch(const std::exception& err)
+    {
+        // error parsing module
+        return returnError(CL_INVALID_PROGRAM, __FILE__, __LINE__, err.what());
+    }
 
     if(moduleInfo.kernels.empty())
         // no kernel meta-data was found!

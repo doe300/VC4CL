@@ -136,7 +136,7 @@ void TestKernel::testGetKernelInfo()
     
     state = VC4CL_FUNC(clGetKernelInfo)(kernel, CL_KERNEL_ATTRIBUTES, 1024, buffer, &info_size);
     TEST_ASSERT_EQUALS(CL_SUCCESS, state);
-    TEST_ASSERT_EQUALS(std::string("reqd_work_group_size(1,1,1)"), buffer);
+    TEST_ASSERT_EQUALS(std::string("reqd_work_group_size(1, 1, 1)"), buffer);
     
     state = VC4CL_FUNC(clGetKernelInfo)(kernel, 0xDEADBEAF, 1024, buffer, &info_size);
     TEST_ASSERT(state != CL_SUCCESS);
