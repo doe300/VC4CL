@@ -230,16 +230,16 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
         //"If the argument is declared to be a pointer of a built-in scalar or vector type [...] the memory object
         // specified as argument value must be a buffer object (or NULL)"
         // -> no pointers to non-buffer objects are allowed! -> good, no extra checking required
-        Buffer* bufferArg = nullptr;
-        if(arg_value != nullptr && *static_cast<const void* const*>(arg_value) != nullptr)
+        //"If the argument is a memory object, the size is the size of the buffer or image object type."
+        if(paramInfo.getAddressSpace() != AddressSpace::LOCAL && arg_size != sizeof(cl_mem))
         {
-            //"If the argument is a memory object, the size is the size of the buffer or image object type."
-            if(arg_size != sizeof(cl_mem))
-            {
-                return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__,
-                    buildString("Invalid arg size for buffers: %d, must be %u", arg_size, sizeof(cl_mem)));
-            }
-
+            return returnError(CL_INVALID_ARG_SIZE, __FILE__, __LINE__,
+                buildString("Invalid arg size for buffers: %d, must be %u", arg_size, sizeof(cl_mem)));
+        }
+        Buffer* bufferArg = nullptr;
+        if(paramInfo.getAddressSpace() != AddressSpace::LOCAL && arg_value != nullptr &&
+            *static_cast<const void* const*>(arg_value) != nullptr)
+        {
             auto buffer = *static_cast<const cl_mem*>(arg_value);
             CHECK_BUFFER(toType<Buffer>(buffer))
             if(toType<Buffer>(buffer)->context() != program->context())
