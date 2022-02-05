@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <bitset>
 #include <stdexcept>
+#include <type_traits>
 
 #ifdef VC4CL_BITFIELD
 #include "../Program.h"
@@ -75,6 +76,12 @@ static T readByteContainer(const std::vector<uint64_t>& data, std::size_t& dataI
 }
 
 static auto readString = readByteContainer<std::string>;
+
+template <typename R, typename T>
+static constexpr std::enable_if_t<std::is_unsigned<R>::value && std::is_unsigned<T>::value, R> truncate(T val) noexcept
+{
+    return static_cast<R>(val & ((T{1} << (sizeof(R) * 8u)) - 1u));
+}
 
 MetaData::Type MetaData::getType() const
 {
@@ -145,8 +152,8 @@ void MetaData::setString(Type type, const std::string& text)
     payload.clear();
     auto numBytes = text.size() + 3u /* length + type */;
     payload.reserve(numBytes);
-    payload.push_back(static_cast<uint8_t>(numBytes & 0xFF));
-    payload.push_back(static_cast<uint8_t>((numBytes >> 8) & 0xFF));
+    payload.push_back(truncate<uint8_t>(numBytes));
+    payload.push_back(truncate<uint8_t>(numBytes >> 8));
     payload.push_back(static_cast<uint8_t>(type));
     payload.insert(payload.end(), text.begin(), text.end());
 }
@@ -170,18 +177,18 @@ void MetaData::setSizes(Type type, const std::array<uint32_t, 3>& sizes)
     payload[1] = 0;  // upper size
     payload[2] = static_cast<uint8_t>(type);
     payload[3] = 0; // padding
-    payload[4] = static_cast<uint8_t>(sizes[0] & 0xFF);
-    payload[5] = static_cast<uint8_t>((sizes[0] >> 8u) & 0xFF);
-    payload[6] = static_cast<uint8_t>((sizes[0] >> 16u) & 0xFF);
-    payload[7] = static_cast<uint8_t>((sizes[0] >> 24u) & 0xFF);
-    payload[8] = static_cast<uint8_t>(sizes[1] & 0xFF);
-    payload[9] = static_cast<uint8_t>((sizes[1] >> 8u) & 0xFF);
-    payload[10] = static_cast<uint8_t>((sizes[1] >> 16u) & 0xFF);
-    payload[11] = static_cast<uint8_t>((sizes[1] >> 24u) & 0xFF);
-    payload[12] = static_cast<uint8_t>(sizes[2] & 0xFF);
-    payload[13] = static_cast<uint8_t>((sizes[2] >> 8u) & 0xFF);
-    payload[14] = static_cast<uint8_t>((sizes[2] >> 16u) & 0xFF);
-    payload[15] = static_cast<uint8_t>((sizes[2] >> 24u) & 0xFF);
+    payload[4] = truncate<uint8_t>(sizes[0]);
+    payload[5] = truncate<uint8_t>(sizes[0] >> 8u);
+    payload[6] = truncate<uint8_t>(sizes[0] >> 16u);
+    payload[7] = truncate<uint8_t>(sizes[0] >> 24u);
+    payload[8] = truncate<uint8_t>(sizes[1]);
+    payload[9] = truncate<uint8_t>(sizes[1] >> 8u);
+    payload[10] = truncate<uint8_t>(sizes[1] >> 16u);
+    payload[11] = truncate<uint8_t>(sizes[1] >> 24u);
+    payload[12] = truncate<uint8_t>(sizes[2]);
+    payload[13] = truncate<uint8_t>(sizes[2] >> 8u);
+    payload[14] = truncate<uint8_t>(sizes[2] >> 16u);
+    payload[15] = truncate<uint8_t>(sizes[2] >> 24u);
 }
 
 uint32_t MetaData::getInt() const
@@ -197,10 +204,10 @@ void MetaData::setInt(Type type, uint32_t val)
     payload[1] = 0; // upper size
     payload[2] = static_cast<uint8_t>(type);
     payload[3] = 0; // padding
-    payload[4] = static_cast<uint8_t>(val & 0xFF);
-    payload[5] = static_cast<uint8_t>((val >> 8u) & 0xFF);
-    payload[6] = static_cast<uint8_t>((val >> 16u) & 0xFF);
-    payload[7] = static_cast<uint8_t>((val >> 24u) & 0xFF);
+    payload[4] = truncate<uint8_t>(val);
+    payload[5] = truncate<uint8_t>(val >> 8u);
+    payload[6] = truncate<uint8_t>(val >> 16u);
+    payload[7] = truncate<uint8_t>(val >> 24u);
 }
 
 LCOV_EXCL_START
@@ -338,14 +345,14 @@ KernelHeader KernelHeader::fromBinaryData(const std::vector<uint64_t>& data, std
     kernel.value = data[dataIndex];
     ++dataIndex;
     auto secondWord = data[dataIndex];
-    kernel.workGroupSize[0] = static_cast<uint16_t>(secondWord & 0xFFFFU);
-    kernel.workGroupSize[1] = static_cast<uint16_t>((secondWord >> 16) & 0xFFFFU);
-    kernel.workGroupSize[2] = static_cast<uint16_t>((secondWord >> 32) & 0xFFFFU);
-    kernel.workItemMergeFactor = static_cast<uint8_t>((secondWord >> 48) & 0xFFU);
+    kernel.workGroupSize[0] = truncate<uint16_t>(secondWord);
+    kernel.workGroupSize[1] = truncate<uint16_t>(secondWord >> 16);
+    kernel.workGroupSize[2] = truncate<uint16_t>(secondWord >> 32);
+    kernel.workItemMergeFactor = truncate<uint8_t>(secondWord >> 48);
     ++dataIndex;
     auto thirdWord = data[dataIndex];
-    kernel.uniformsUsed.value = static_cast<uint32_t>(thirdWord & 0xFFFFFFFFU);
-    auto numMetaDataEntries = static_cast<uint32_t>((thirdWord >> 32) & 0xFFFFFFFFU);
+    kernel.uniformsUsed.value = truncate<uint32_t>(thirdWord);
+    auto numMetaDataEntries = truncate<uint32_t>(thirdWord >> 32);
     ++dataIndex;
     kernel.name = readString(data, dataIndex, kernel.getNameLength());
     while(kernel.parameters.size() < kernel.getParamCount())

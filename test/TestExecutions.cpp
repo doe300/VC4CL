@@ -24,10 +24,6 @@ static std::string sourceFFT;
 static constexpr int COUNTER_IDLE = 0;
 static constexpr int COUNTER_EXECUTIONS = 1;
 
-// TODO add execution tests for:
-// - multiple work-groups
-// - with/without "loop-work-groups" optimization enabled
-
 TestExecutions::TestExecutions() : Test::Suite(), context(nullptr), queue(nullptr)
 {
     for(const auto& test : test_data::getAllTests())

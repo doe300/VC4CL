@@ -127,9 +127,7 @@ static cl_int precompile_program(Program* program, const std::string& options,
             tempHeaderIncludes = " -I /tmp/ ";
 
         auto out = vc4c::Precompiler::precompile(sourceCode, config, tempHeaderIncludes + options);
-        if(auto rawData = out.getRawData())
-            program->intermediateCode = *std::move(rawData);
-        else
+        if(!out.getRawData(program->intermediateCode))
         {
             std::stringstream tmpStream{};
             out.readInto(tmpStream);
@@ -195,9 +193,7 @@ static cl_int link_programs(
             return returnError(
                 CL_LINKER_NOT_AVAILABLE, __FILE__, __LINE__, "No linker available for this type of input modules!");
         auto linkedCode = vc4c::Precompiler::linkSourceCode(inputModules, includeStandardLibrary);
-        if(auto rawData = linkedCode.getRawData())
-            program->intermediateCode = *std::move(rawData);
-        else
+        if(!linkedCode.getRawData(program->intermediateCode))
         {
             std::stringstream tmpStream{};
             linkedCode.readInto(tmpStream);
@@ -274,8 +270,9 @@ static cl_int compile_program(Program* program, const std::string& options)
 
         auto result = vc4c::Compiler::compile(intermediateCode, config, options);
         program->binaryCode.resize(result.second / sizeof(uint64_t), '\0');
-        if(auto rawData = result.first.getRawData())
-            memcpy(program->binaryCode.data(), rawData->data(), result.second);
+        std::vector<uint8_t> rawData;
+        if(result.first.getRawData(rawData))
+            memcpy(program->binaryCode.data(), rawData.data(), result.second);
         else
         {
             std::stringstream tmpStream{};

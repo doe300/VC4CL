@@ -123,7 +123,7 @@ namespace vc4cl
         // the reason is for documentation only
         if(state != CL_SUCCESS)
             DEBUG_LOG(DebugLevel::API_CALLS,
-                std::cout << "Error in '" << file << ":" << line << "', returning status " << state << std::endl);
+                std::cout << "Error in '" << file << ":" << line << "', returning status " << state << std::endl)
     }
 
     template <typename... T>
