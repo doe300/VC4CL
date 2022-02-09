@@ -8,7 +8,7 @@ include(CheckSymbolExists)
 ####
 option(INCLUDE_COMPILER "Includes the VC4C compiler" ON)
 option(BUILD_TESTING "Build testing program" OFF)
-option(BUILD_ICD "Build with support for ICD" ON)
+option(BUILD_ICD "Build with support for ICD" OFF)
 option(IMAGE_SUPPORT "Experimental image support" OFF)
 # Option to enable/disable cross compilation
 option(CROSS_COMPILE "Cross compile for Raspbian" OFF)

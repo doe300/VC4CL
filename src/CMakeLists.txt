@@ -26,7 +26,7 @@ endif()
 
 if(MOCK_HAL)
 	target_compile_definitions(VC4CL PRIVATE MOCK_HAL=1)
-elseif(CROSS_COMPILE OR EXISTS "/opt/vc/include/bcm_host.h")
+elseif(CROSS_COMPILE OR EXISTS "/opt/vc/include/bcm_host.h" OR EXISTS "/usr/include/bcm_host.h")
 	find_library(BCMHOST_LIBRARY NAMES bcm_host libbcm_host HINTS "/opt/vc/lib" "/usr/lib/arm-linux-gnueabihf")
 	find_library(VCSM_LIBRARY NAMES vcsm libvcsm HINTS "/opt/vc/lib" "/usr/lib/arm-linux-gnueabihf")
 	target_link_libraries(VC4CL ${BCMHOST_LIBRARY} ${VCSM_LIBRARY} ${SYSROOT_LIBRARY_FLAGS})

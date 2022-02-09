@@ -45,8 +45,8 @@ void TestProgram::checkBuildStatus(const cl_program program)
         state = VC4CL_FUNC(clGetProgramBuildInfo)(program, Platform::getVC4CLPlatform().VideoCoreIVGPU.toBase(),
             CL_PROGRAM_BUILD_LOG, log.size(), log.data(), nullptr);
         std::cerr << "Build log: " << log.data() << std::endl;
-        TEST_ASSERT_EQUALS(CL_BUILD_SUCCESS, status)
     }
+    TEST_ASSERT_EQUALS(CL_SUCCESS, state)
 }
 
 bool TestProgram::setup()

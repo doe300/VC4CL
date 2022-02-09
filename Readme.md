@@ -41,7 +41,7 @@ The GPU (which is located on the same chip as the CPU) has 12 cores, able of run
 The following configuration options are available in CMake:
 
 - `BUILD_TESTING` toggles building of test program (when configured, can be built with `make TestVC4CL`)
-- `CMAKE_BUILD_TYPE` set to *Debug*, *Release*, *asan*, *tsan* or *usbsan* to build for the given debug/release mode or with sanitizers enabled
+- `CMAKE_BUILD_TYPE` set to *Debug*, *Release*, *RelWithDebInfo*, *asan*, *tsan* or *usbsan* to build for the given debug/release mode or with sanitizers enabled
 - `CROSS_COMPILE` toggles whether to cross-compile for the Raspberry Pi. NOTE: The [Raspberry Pi cross-compiler](https://github.com/raspberrypi/tools) is no longer supported!
 - `CROSS_COMPILER_PATH` sets the root path to the Raspberry Pi cross compiler (.g. `arm-linux-gnueabihf-g++-6`)
 - `INCLUDE_COMPILER` whether to include the [VC4C](https://github.com/doe300/VC4C) compiler. For the compiler to be actually included, the VC4C header and library needs to be found too
