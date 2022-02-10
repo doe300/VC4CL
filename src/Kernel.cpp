@@ -156,8 +156,8 @@ cl_int Kernel::setArg(cl_uint arg_index, size_t arg_size, const void* arg_value)
             }
             args[arg_index].reset(new TemporaryBufferArgument(static_cast<unsigned>(arg_size), arg_value));
             DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
-                std::cout << "Setting kernel-argument " << arg_index << " to temporary buffer "
-                          << args[arg_index]->to_string() << std::endl)
+                std::cout << "Setting kernel-argument " << arg_index << " to " << args[arg_index]->to_string()
+                          << std::endl)
         }
         else
         {
@@ -703,7 +703,7 @@ CHECK_RETURN cl_int Kernel::allocateAndTrackBufferArguments(
             else
             {
                 auto bufIt = tmpBuffers.end();
-                bool initializeMemory = localArg->data.empty();
+                bool initializeMemory = !localArg->data.empty();
                 bool zeroMemory = program->context()->initializeMemoryToZero(CL_CONTEXT_MEMORY_INITIALIZE_LOCAL_KHR);
                 if(initializeMemory || zeroMemory)
                     // we need to write from host-side

@@ -14,7 +14,7 @@ using namespace vc4cl;
 
 std::ostream& vc4cl::operator<<(std::ostream& s, const DevicePointer& ptr)
 {
-    return s << "0x" << std::hex << std::setw(8) << ptr.pointer << std::dec;
+    return s << "0x" << std::hex << std::setfill('0') << std::setw(8) << ptr.pointer << std::dec << std::setfill(' ');
 }
 
 DeviceBuffer::DeviceBuffer(

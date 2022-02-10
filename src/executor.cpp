@@ -356,8 +356,7 @@ cl_int executeKernel(KernelExecution& args)
                     *p++ = static_cast<unsigned>(tmpBufferIt->second->qpuPointer);
                     DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
                         std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
-                                  << " to temporary buffer 0x" << std::hex << tmpBufferIt->second->qpuPointer
-                                  << std::dec << std::endl)
+                                  << " to temporary buffer " << tmpBufferIt->second->qpuPointer << std::endl)
                 }
             }
             else if(persistentBufferIt != args.persistentBuffers.end())
@@ -365,13 +364,12 @@ cl_int executeKernel(KernelExecution& args)
                 // the argument is a pointer to a buffer, use its device pointer as kernel argument value.
                 // Since the buffer pointer might be NULL, we have to check for this first
                 // NOTE: For sub-buffers, the offset is added to the device pointer
-                auto devicePtr = persistentBufferIt->second.first.get() ?
-                    static_cast<unsigned>(persistentBufferIt->second.second) :
-                    0u;
-                *p++ = devicePtr;
+                auto devicePtr =
+                    persistentBufferIt->second.first.get() ? persistentBufferIt->second.second : DevicePointer{0u};
+                *p++ = static_cast<uint32_t>(devicePtr);
                 DEBUG_LOG(DebugLevel::KERNEL_EXECUTION,
                     std::cout << "Setting parameter " << (kernel->info.uniformsUsed.countUniforms() + u)
-                              << " to buffer 0x" << std::hex << devicePtr << std::dec << std::endl)
+                              << " to buffer " << devicePtr << std::endl)
             }
             else if(auto scalarArg = dynamic_cast<const ScalarArgument*>(args.executionArguments.at(u).get()))
             {
