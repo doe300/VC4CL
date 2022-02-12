@@ -15,7 +15,7 @@ extern "C"
 
     ////
     // BCM host library
-    // see "/opt/vc/include/bcm_host.h"
+    // see "/opt/vc/include/bcm_host.h" (or "/usr/include/bcm_host.h")
     ////
 
     void bcm_host_init(void);
@@ -52,7 +52,7 @@ extern "C"
 
     ////
     // VideoCore Host Interface general functions
-    // see "/opt/vc/include/interface/vchi/vchi.h"
+    // see "/opt/vc/include/interface/vchi/vchi.h" (or "/usr/include/interface/vchi/vchi.h")
     ////
 
     struct opaque_vchi_instance_handle_t;
@@ -65,17 +65,21 @@ extern "C"
 
     ////
     // VideoCore Host Interface general command interface
-    // see "/opt/vc/include/interface/vmcs_host/vc_vchi_gencmd.h"
+    // see "/opt/vc/include/interface/vmcs_host/vc_vchi_gencmd.h" (or
+    // "/usr/include/interface/vmcs_host/vc_vchi_gencmd.h")
     ////
 
     void vc_vchi_gencmd_init(
         opaque_vchi_instance_handle_t* initialise_instance, vchi_connection_t** connections, uint32_t num_connections);
     void vc_gencmd_stop(void);
-    int vc_gencmd(char* response, int maxlen, const char* format, ...);
+    // Original is int vc_gencmd(char* response, int maxlen, const char* format, ...) but we do not need the additional
+    // arguments for now
+    int vc_gencmd(char* response, int maxlen, const char* format);
 
     ////
     // VideoCore Host Interface GPUS service
-    // see "/opt/vc/include/interface/vmcs_host/vc_vchi_gpuserv.h"
+    // see "/opt/vc/include/interface/vmcs_host/vc_vchi_gpuserv.h" (or
+    // "/usr/include/interface/vmcs_host/vc_vchi_gpuserv.h")
     ////
 
     // these go in command word of gpu_job_s
@@ -145,7 +149,7 @@ extern "C"
 
     ////
     // VideoCore Shared Memory user-space library
-    // see "/opt/vc/include/interface/vcsm/user-vcsm.h"
+    // see "/opt/vc/include/interface/vcsm/user-vcsm.h" (or "/usr/include/interface/vcsm/user-vcsm.h")
     ////
 
     typedef enum

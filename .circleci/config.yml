@@ -8,7 +8,7 @@ jobs:
       - run: .circleci/clang-format-diff.sh
   cross:
     docker:
-      - image: doe300/cross-rpi:stretch-llvm6
+      - image: doe300/cross-rpi:buster-llvm11
     steps:
       - checkout
       - run:
