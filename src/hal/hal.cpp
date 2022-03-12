@@ -207,6 +207,9 @@ uint32_t SystemAccess::querySystem(SystemQuery query, uint32_t defaultValue)
 
 std::string SystemAccess::getModelType()
 {
+    if(isEmulated)
+        return "(emulated)";
+
     switch(bcm_host_get_model_type())
     {
     case BCM_HOST_BOARD_TYPE_MODELA:
@@ -250,6 +253,9 @@ std::string SystemAccess::getModelType()
 
 std::string SystemAccess::getProcessorType()
 {
+    if(isEmulated)
+        return "(emulated)";
+
     switch(bcm_host_get_processor_id())
     {
     case BCM_HOST_PROCESSOR_BCM2835:

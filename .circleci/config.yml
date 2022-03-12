@@ -39,6 +39,13 @@ jobs:
       - run:
           name: deb-packing
           command: cd build && cpack -G DEB
+      - run:
+          # Raspberry Pi OS Buster only ships with GLIBC 2.28, the cross compiler uses GLIBC 2.29
+          name: check compatibility
+          command: |
+              ${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin/armv6-rpi-linux-gnueabihf-objdump -x build/src/libVC4CL.so.0.4 | grep -vzo 'GLIBC_2.29'
+              ${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin/armv6-rpi-linux-gnueabihf-objdump -x build/tools/v3d_info | grep -vzo 'GLIBC_2.29'
+              ${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin/armv6-rpi-linux-gnueabihf-objdump -x build/tools/vc4cl_dump_analyzer | grep -vzo 'GLIBC_2.29'
       - store_artifacts:
           path: build/src/libVC4CL.so.0.4
           distination: libVC4CL.so.0.4
@@ -71,7 +78,7 @@ jobs:
           command: dpkg-deb -x /tmp/vc4cl-stdlib.deb / && dpkg-deb -x /tmp/vc4c.deb / && dpkg-deb -x /tmp/vc4c_testdata.deb /
       - run:
           name: configure
-          command: mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DBUILD_TESTING=ON -DBUILD_ICD=OFF -DINCLUDE_COMPILER=ON -DMOCK_HAL=ON
+          command: mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Debug -DBUILD_NUMBER=$CIRCLE_BUILD_NUM -DBUILD_TESTING=ON -DBUILD_ICD=OFF -DINCLUDE_COMPILER=ON -DMOCK_HAL=ON
       - run:
           name: make
           command: cd build && make -j`nproc`
