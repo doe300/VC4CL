@@ -43,12 +43,9 @@ jobs:
           # Raspberry Pi OS Buster only ships with GLIBC 2.28, the cross compiler uses GLIBC 2.29
           name: check compatibility
           command: |
-              ${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin/armv6-rpi-linux-gnueabihf-objdump -x build/src/libVC4CL.so.0.4 | grep -vzo 'GLIBC_2.29'
+              ${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin/armv6-rpi-linux-gnueabihf-objdump -x build/src/libVC4CL.so | grep -vzo 'GLIBC_2.29'
               ${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin/armv6-rpi-linux-gnueabihf-objdump -x build/tools/v3d_info | grep -vzo 'GLIBC_2.29'
               ${HOME}/x-tools/armv6-rpi-linux-gnueabihf/bin/armv6-rpi-linux-gnueabihf-objdump -x build/tools/vc4cl_dump_analyzer | grep -vzo 'GLIBC_2.29'
-      - store_artifacts:
-          path: build/src/libVC4CL.so.0.4
-          distination: libVC4CL.so.0.4
       - store_artifacts:
           path: build/vc4cl-0.4-Linux.deb
           distination: vc4cl-0.4-Linux.deb
@@ -86,9 +83,6 @@ jobs:
           name: deb-packing
           command: cd build && cpack -G DEB
       - store_artifacts:
-          path: build/src/libVC4CL.so.0.4
-          distination: libVC4CL.so.0.4
-      - store_artifacts:
           path: build/test/TestVC4CL
           distination: TestVC4CL
       - store_artifacts:
@@ -120,9 +114,6 @@ jobs:
       - run:
           name: deb-packing
           command: cd build && cpack -G DEB
-      - store_artifacts:
-          path: build/src/libVC4CL.so.0.4
-          distination: libVC4CL.so.0.4
       - store_artifacts:
           path: build/vc4cl-0.4-Linux.deb
           distination: vc4cl-0.4-Linux.deb
