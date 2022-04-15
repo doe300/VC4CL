@@ -26,7 +26,8 @@ static constexpr int COUNTER_EXECUTIONS = 1;
 
 TestExecutions::TestExecutions() : Test::Suite(), context(nullptr), queue(nullptr)
 {
-    for(const auto& test : test_data::getAllTests())
+    for(const auto& test :
+        test_data::getAllTests(test_data::DataFilter::DISABLED | test_data::DataFilter::ACCESSES_LOCAL_BUFFER))
     {
         TEST_ADD_WITH_STRING(TestExecutions::runTestData, test.first);
     }

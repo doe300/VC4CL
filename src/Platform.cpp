@@ -123,6 +123,7 @@ cl_int VC4CL_FUNC(clGetPlatformIDs)(cl_uint num_entries, cl_platform_id* platfor
         {
             return returnError(CL_INVALID_VALUE, __FILE__, __LINE__, "Cannot return 0 platforms!");
         }
+        return CL_SUCCESS;
     }
 
     if(platforms != nullptr)

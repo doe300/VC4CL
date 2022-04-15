@@ -144,7 +144,9 @@ namespace vc4cl
             // adds a list of integer dot products
             {"cl_arm_integer_dot_product_int8", 3, 0}, {"cl_arm_integer_dot_product_accumulate_int8", 3, 0},
             {"cl_arm_integer_dot_product_accumulate_int16", 3, 0},
-            {"cl_arm_integer_dot_product_accumulate_saturate_int8", 3, 0}};
+            {"cl_arm_integer_dot_product_accumulate_saturate_int8", 3, 0},
+            // adds support for __builtin_expect and __builtin_assume intrinsics
+            {"cl_khr_expect_assume", 1, 0}};
 
         /*
          * "The work-items in a given work-group execute concurrently on the processing elements of a single compute

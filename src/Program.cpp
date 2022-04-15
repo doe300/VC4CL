@@ -1074,7 +1074,9 @@ cl_int VC4CL_FUNC(clBuildProgram)(cl_program program, cl_uint num_devices, const
  *  - CL_COMPILE_PROGRAM_FAILURE if there is a failure to compile the program source. This error will be returned if
  * clCompileProgram does not return until the compile has completed.
  *  - CL_INVALID_OPERATION if there are kernel objects attached to program.
- *  - CL_INVALID_OPERATION if program has no source i.e. it has not been created with clCreateProgramWithSource.
+ *  - CL_INVALID_OPERATION if program has no source or IL available, i.e. it has not been created with
+ * clCreateProgramWithSource or clCreateProgramWithIL or clCreateProgramWithBinary where `-x spir` is present in
+ * options.
  *  - CL_OUT_OF_RESOURCES if there is a failure to allocate resources required by the OpenCL implementation on the
  * device.
  *  - CL_OUT_OF_HOST_MEMORY if there is a failure to allocate resources required by the OpenCL implementation on the
