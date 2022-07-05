@@ -1,0 +1,9 @@
+target_sources(VC4CL
+  PRIVATE
+    hal/emulator.cpp
+    hal/hal.cpp
+    hal/Mailbox.cpp
+    hal/userland.cpp
+    hal/V3D.cpp
+    hal/VCHI.cpp
+)

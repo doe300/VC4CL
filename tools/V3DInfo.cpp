@@ -74,10 +74,12 @@ static std::string toString(MemoryManagement mode)
     {
     case MemoryManagement::MAILBOX:
         return "mailbox";
+    #ifndef NO_VCSM
     case MemoryManagement::VCSM:
         return "VCSM";
     case MemoryManagement::VCSM_CMA:
         return "VCSM CMA";
+    #endif
     }
     throw std::invalid_argument{"Unknown memory management mode: " + std::to_string(static_cast<unsigned>(mode))};
 }

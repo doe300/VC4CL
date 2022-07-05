@@ -19,7 +19,9 @@ namespace vc4cl
 
     class Mailbox;
     class V3D;
+    #ifndef NO_VCSM
     class VCSM;
+    #endif
     class VCHI;
 
     enum class CacheType : uint8_t
@@ -38,10 +40,12 @@ namespace vc4cl
     };
 
     enum class MemoryManagement : uint8_t
-    {
+    {       
         MAILBOX,
+	#ifndef NO_VCSM
         VCSM,
         VCSM_CMA
+	#endif
     };
 
     enum class SystemQuery : uint8_t
@@ -107,11 +111,12 @@ namespace vc4cl
         {
             return v3d.get();
         }
-
+	#ifndef NO_VCSM
         inline VCSM* getVCSMIfAvailable()
         {
             return vcsm.get();
         }
+	#endif
 
         inline VCHI* getVCHIIfAvailable()
         {
@@ -138,7 +143,9 @@ namespace vc4cl
 
         std::unique_ptr<Mailbox> mailbox;
         std::unique_ptr<V3D> v3d;
+	#ifndef NO_VCSM
         std::unique_ptr<VCSM> vcsm;
+	#endif
         std::unique_ptr<VCHI> vchi;
 
         friend std::shared_ptr<SystemAccess>& system();
