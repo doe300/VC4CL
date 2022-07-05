@@ -9,7 +9,9 @@
 #include "Mailbox.h"
 #include "V3D.h"
 #include "VCHI.h"
+#ifndef NO_VCSM
 #include "VCSM.h"
+#endif
 #include "emulator.h"
 #include "userland.h"
 
@@ -50,10 +52,12 @@ static ExecutionMode getExecMode()
 
 static MemoryManagement getMemoryMode()
 {
+    #ifndef NO_VCSM
     if(std::getenv("VC4CL_MEMORY_CMA"))
         return MemoryManagement::VCSM_CMA;
     if(std::getenv("VC4CL_MEMORY_VCSM"))
         return MemoryManagement::VCSM;
+    #endif
     if(std::getenv("VC4CL_MEMORY_MAILBOX"))
         return MemoryManagement::MAILBOX;
 
@@ -63,7 +67,11 @@ static MemoryManagement getMemoryMode()
     // - CMA is more interoperable with other GPU memory management (e.g. mesa) and can be monitored via debugfs
     //  (/sys/kernel/debug/dma_buf/bufinfo and /sys/kernel/debug/vcsm-cma/state)
     // for root keep the current default of mailbox memory management, since this will already be configured correctly
+    #ifndef NO_VCSM
     return isRoot() ? MemoryManagement::MAILBOX : MemoryManagement::VCSM_CMA;
+    #else
+    return MemoryManagement::MAILBOX;
+    #endif
 }
 
 static std::pair<bool, CacheType> getForcedCacheType()
@@ -103,6 +111,7 @@ static std::unique_ptr<V3D> initializeV3D(bool isEmulated, ExecutionMode execMod
     return nullptr;
 }
 
+#ifndef NO_VCSM
 static std::unique_ptr<VCSM> initializeVCSM(bool isEmulated, MemoryManagement memoryMode)
 {
     if(isEmulated || std::getenv("VC4CL_NO_VCSM"))
@@ -113,6 +122,7 @@ static std::unique_ptr<VCSM> initializeVCSM(bool isEmulated, MemoryManagement me
         return nullptr;
     return std::unique_ptr<VCSM>{new VCSM(memoryMode == MemoryManagement::VCSM_CMA)};
 }
+#endif
 
 static std::unique_ptr<VCHI> initializeVCHI(bool isEmulated, ExecutionMode execMode)
 {
@@ -126,9 +136,15 @@ static std::unique_ptr<VCHI> initializeVCHI(bool isEmulated, ExecutionMode execM
 }
 
 SystemAccess::SystemAccess() :
-    isEmulated(getEmulated()), executionMode(getExecMode()), memoryManagement(getMemoryMode()),
-    forcedCacheType(getForcedCacheType()), mailbox(initializeMailbox(isEmulated, executionMode, memoryManagement)),
-    v3d(initializeV3D(isEmulated, executionMode)), vcsm(initializeVCSM(isEmulated, memoryManagement)),
+    isEmulated(getEmulated()), 
+    executionMode(getExecMode()), 
+    memoryManagement(getMemoryMode()),	
+    forcedCacheType(getForcedCacheType()), 
+    mailbox(initializeMailbox(isEmulated, executionMode, memoryManagement)),
+    v3d(initializeV3D(isEmulated, executionMode)), 
+    #ifndef NO_VCSM
+    vcsm(initializeVCSM(isEmulated, memoryManagement)),
+    #endif
     vchi(initializeVCHI(isEmulated, executionMode))
 {
     if(isEmulated)
@@ -144,6 +160,7 @@ SystemAccess::SystemAccess() :
             std::cout << "[VC4CL] Using V3D for: "
                       << (executionMode == ExecutionMode::V3D_REGISTER_POKING ? "kernel execution, " : "")
                       << "profiling, system queries" << std::endl)
+    #ifndef NO_VCSM		
     if(vcsm)
         DEBUG_LOG(DebugLevel::SYSTEM_ACCESS,
             std::cout << "[VC4CL] Using VCSM (" << (vcsm->isUsingCMA() ? "CMA" : "non-CMA") << ") for: "
@@ -151,6 +168,7 @@ SystemAccess::SystemAccess() :
                                  "memory allocation" :
                                  "")
                       << std::endl)
+    #endif
     if(vchi)
         DEBUG_LOG(DebugLevel::SYSTEM_ACCESS,
             std::cout << "[VC4CL] Using VCHI for: "
@@ -194,8 +212,10 @@ uint32_t SystemAccess::querySystem(SystemQuery query, uint32_t defaultValue)
     uint32_t value = defaultValue;
     if(isEmulated)
         return getEmulatedSystemQuery(query);
+    #ifndef NO_VCSM
     if(vcsm && vcsm->readValue(query, value))
         return value;
+    #endif
     if(v3d && v3d->readValue(query, value))
         return value;
     if(vchi && vchi->readValue(query, value))
@@ -277,8 +297,10 @@ std::unique_ptr<DeviceBuffer> SystemAccess::allocateBuffer(
     if(isEmulated)
         return allocateEmulatorBuffer(shared_from_this(), sizeInBytes);
     auto effectiveCacheType = forcedCacheType.first ? forcedCacheType.second : cacheType;
+    #ifndef NO_VCSM
     if(vcsm && (memoryManagement == MemoryManagement::VCSM || memoryManagement == MemoryManagement::VCSM_CMA))
         return vcsm->allocateBuffer(shared_from_this(), sizeInBytes, name, effectiveCacheType);
+    #endif
     if(mailbox && memoryManagement == MemoryManagement::MAILBOX)
         return mailbox->allocateBuffer(shared_from_this(), sizeInBytes, effectiveCacheType);
     return nullptr;
@@ -294,8 +316,10 @@ bool SystemAccess::deallocateBuffer(const DeviceBuffer* buffer)
 {
     if(isEmulated)
         deallocateEmulatorBuffer(buffer);
+    #ifndef NO_VCSM	
     if(vcsm && (memoryManagement == MemoryManagement::VCSM || memoryManagement == MemoryManagement::VCSM_CMA))
         return vcsm->deallocateBuffer(buffer);
+    #endif
     if(mailbox && memoryManagement == MemoryManagement::MAILBOX)
         return mailbox->deallocateBuffer(buffer);
     return false;
@@ -303,8 +327,10 @@ bool SystemAccess::deallocateBuffer(const DeviceBuffer* buffer)
 
 bool SystemAccess::flushCPUCache(const std::vector<const DeviceBuffer*>& buffers)
 {
+    #ifndef NO_VCSM
     if(vcsm && (memoryManagement == MemoryManagement::VCSM || memoryManagement == MemoryManagement::VCSM_CMA))
         return vcsm->flushCPUCache(buffers);
+    #endif
     return false;
 }
 
